@@ -1,0 +1,171 @@
+:host {
+  display: flex;
+  height: 100vh;
+}
+
+/* 1. SIDEBAR CHÍNH (Xanh ngọc bích sẫm) */
+.sidebar-main {
+  width: 80px;
+  background-color: var(--primary); /* #005953 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 0;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-logo-icon {
+  margin-bottom: 2rem;
+}
+
+.sidebar-logo-icon .hub-icon {
+  font-size: 2rem;
+  color: #ffffff;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.sidebar-nav .nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 0.25rem;
+  color: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  text-align: center;
+  position: relative;
+}
+
+.sidebar-nav .nav-item .icon {
+  font-size: 1.3rem;
+  margin-bottom: 0.25rem;
+  transition: transform 0.2s ease;
+}
+
+.sidebar-nav .nav-item .text {
+  font-weight: 500;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 90%;
+}
+
+.sidebar-nav .nav-item:hover,
+.sidebar-nav .nav-item.active {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-nav .nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #00bfa5;
+}
+
+.sidebar-nav .nav-item:hover .icon {
+  transform: translateY(-2px);
+}
+
+.sidebar-footer {
+  width: 100%;
+  margin-top: auto;
+}
+
+.sidebar-footer .nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem 0;
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sidebar-footer .nav-item:hover {
+  color: #f43f5e;
+  background-color: rgba(244, 63, 94, 0.08);
+}
+
+/* 2. SIDEBAR PHỤ (SUB-MENU) */
+.sidebar-sub {
+  width: 250px;
+  background-color: #ffffff;
+  border-right: 1px solid var(--border-color);
+  padding: 1.5rem 0.5rem;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sub-menu-header {
+  padding: 0 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.sub-menu-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.sub-menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sub-menu-list li {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 550;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
+.sub-menu-list li:hover {
+  background-color: #f1f5f9;
+  color: var(--primary);
+}
+
+.sub-menu-list li.active,
+.sub-menu-list li.active-link {
+  background-color: var(--primary-light); /* #e0f2f1 */
+  color: var(--primary); /* #005953 */
+  font-weight: 700;
+}
+
+.sub-menu-icon {
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}

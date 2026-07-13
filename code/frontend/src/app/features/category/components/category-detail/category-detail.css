@@ -1,0 +1,222 @@
+.form-page-wrapper {
+  width: 100%;
+  animation: fadeIn 0.2s ease-out;
+  padding: 1.5rem;
+}
+
+/* Breadcrumb */
+.form-page-wrapper .breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+}
+.form-page-wrapper .breadcrumb .divider {
+  color: #cbd5e1;
+}
+.form-page-wrapper .breadcrumb .current {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+/* Header Row */
+.form-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.form-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.back-arrow {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #64748b;
+  transition: color 0.2s;
+}
+.form-header-left:hover .back-arrow {
+  color: #005953;
+}
+
+.form-page-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* Status Pill */
+.status-pill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+}
+.status-pill.badge-new {
+  background-color: #e0f2fe; /* light blue */
+  color: #0369a1;
+}
+.status-pill.badge-pending {
+  background-color: #fef3c7; /* amber */
+  color: #b45309;
+}
+.status-pill.badge-approved {
+  background-color: #dcfce7; /* green */
+  color: #15803d;
+}
+.status-pill.badge-rejected {
+  background-color: #fee2e2; /* red */
+  color: #b91c1c;
+}
+.status-pill.badge-canceled {
+  background-color: #f1f5f9; /* slate */
+  color: #475569;
+}
+
+/* Cancel / Close button circle */
+.action-btn-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1;
+}
+.action-btn-circle:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+  border-color: #94a3b8;
+}
+
+/* Container & Grid đối chiếu */
+.comparison-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .comparison-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Card đối chiếu */
+.comparison-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+}
+
+.comparison-card-header {
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.header-old {
+  background-color: #fffbeb; /* Light amber */
+  border-bottom: 1px solid #fde68a;
+  color: #d97706;
+}
+
+.header-new {
+  background-color: #f0fdf4; /* Light green */
+  border-bottom: 1px solid #bbf7d0;
+  color: #16a34a;
+}
+
+.card-header-icon {
+  font-size: 1rem;
+}
+
+.comparison-card-body {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Dòng thông tin */
+.info-row-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px dashed #f1f5f9;
+}
+.info-row-detail:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.info-label-detail {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 550;
+}
+
+.info-value-detail {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #334155;
+  word-break: break-word;
+}
+
+/* Highlight bôi đỏ khi thay đổi */
+.info-row-detail.is-changed .info-label-detail {
+  color: #f87171;
+}
+
+.info-row-detail.is-changed .info-value-detail {
+  color: #ef4444 !important;
+  font-weight: 700;
+}
+
+/* Footer nút bấm */
+.form-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 1rem;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

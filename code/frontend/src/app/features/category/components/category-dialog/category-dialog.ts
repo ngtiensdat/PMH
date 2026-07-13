@@ -1,0 +1,307 @@
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { CategoryService } from '../../services/category.service';
+import { ComponentService } from '../../../processing-components/services/component.service';
+import { NotificationService } from '../../../../shared/components/notification/notification.service';
+import { CategorySchema, zodFormValidator, zodFieldValidator } from '../../../../shared/validators/category.schema';
+import { GroupCategoryResponse, GroupCategoryRequest } from '../../../../shared/models/group-category.model';
+import { LanguageService } from '../../../../core/services/language.service';
+
+import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
+
+@Component({
+  selector: 'app-category-dialog',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    SharedTaigaModule
+  ],
+  templateUrl: './category-dialog.html',
+  styleUrl: './category-dialog.css'
+})
+export class CategoryDialogComponent implements OnInit {
+  private fb         = inject(FormBuilder);
+  private categoryService  = inject(CategoryService);
+  private componentService = inject(ComponentService);
+  private notificationService = inject(NotificationService);
+  private route      = inject(ActivatedRoute);
+  private router     = inject(Router);
+  private destroyRef = inject(DestroyRef);
+  public languageService = inject(LanguageService);
+
+  mode: 'add' | 'edit' | 'copy' = 'add';
+  category: GroupCategoryResponse | null = null;
+  id: number | null = null;
+
+  dialogForm!: FormGroup;
+
+  componentsList: { value: string; label: string }[] = [];
+  
+  // Dynamic getter for select dropdown items
+  get componentItems(): string[] {
+    return this.componentsList.map(o => o.value);
+  }
+
+  readonly stringifyComponentCode = (val: string): string => {
+    if (!val) return 'Chọn giá trị';
+    const found = this.componentsList.find(o => o.value === val);
+    return found ? found.label : val;
+  };
+
+
+  ngOnInit() {
+    this.initForm();
+    this.detectRouteAndMode();
+    this.loadActiveComponents();
+  }
+
+  private detectRouteAndMode() {
+    const url = this.router.url;
+    if (url.includes('/add')) {
+      this.mode = 'add';
+    } else if (url.includes('/edit')) {
+      this.mode = 'edit';
+    } else if (url.includes('/copy')) {
+      this.mode = 'copy';
+    }
+
+    const idParam = this.route.snapshot.paramMap.get('id');
+    if (idParam) {
+      this.id = +idParam;
+      this.loadCategoryData(this.id);
+    }
+  }
+
+  private loadCategoryData(id: number) {
+    this.categoryService.getById(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.category = res.data;
+          this.populateForm();
+        },
+        error: (err) => {
+          this.notificationService.error('Không thể nạp dữ liệu tham số: ' + (err.error?.message || err.message));
+          this.goBack();
+        }
+      });
+  }
+
+  private loadActiveComponents() {
+    this.componentService.getActiveList()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          const list = res.data || [];
+          this.componentsList = list.map(c => ({
+            value: c.componentCode,
+            label: `${c.componentCode} - ${c.componentName}`
+          }));
+        },
+        error: () => {
+          this.componentsList = [
+            { value: 'RLT', label: 'RLT - Real-time Payment Component' },
+            { value: 'FIM', label: 'FIM - Financial Information Module' },
+            { value: 'TRA', label: 'TRA - Transaction Router Agent' }
+          ];
+        }
+      });
+  }
+
+  private initForm() {
+    this.dialogForm = this.fb.group(
+      {
+        paramType:        ['', zodFieldValidator(CategorySchema, 'paramType')],
+        paramValue:       ['', zodFieldValidator(CategorySchema, 'paramValue')],
+        paramName:        ['', zodFieldValidator(CategorySchema, 'paramName')],
+        description:      ['', zodFieldValidator(CategorySchema, 'description')],
+        componentCode:    ['', zodFieldValidator(CategorySchema, 'componentCode')],
+        isActive:         [1,  zodFieldValidator(CategorySchema, 'isActive')],
+        effectiveDate:    ['', zodFieldValidator(CategorySchema, 'effectiveDate')],
+        endEffectiveDate: ['', zodFieldValidator(CategorySchema, 'endEffectiveDate')]
+      },
+      { validators: zodFormValidator(CategorySchema) }
+    );
+  }
+
+  private populateForm() {
+    const toLocalISO = (dateStr?: string | null) => {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '';
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+    if (!this.category) return;
+    this.dialogForm.patchValue({
+      paramType:        this.category.paramType,
+      paramValue:       this.category.paramValue,
+      paramName:        this.category.paramName,
+      description:      this.category.description,
+      componentCode:    this.category.componentCode,
+      isActive:         this.category.isActive,
+      effectiveDate:    this.mode === 'copy' ? '' : toLocalISO(this.category.effectiveDate),
+      endEffectiveDate: this.mode === 'copy' ? '' : toLocalISO(this.category.endEffectiveDate)
+    });
+
+    if (this.mode === 'edit') {
+      this.dialogForm.get('paramType')?.disable();
+      this.dialogForm.get('paramValue')?.disable();
+    }
+  }
+
+  hasFormChanged(): boolean {
+    if (!this.category) return true;
+    const formValue = this.dialogForm.getRawValue();
+
+    const normalizeDate = (val: any) => {
+      if (!val) return '';
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? '' : d.toISOString();
+    };
+
+    const fields = ['paramName', 'description', 'componentCode', 'isActive'];
+    for (const f of fields) {
+      const orig = (this.category as any)[f] != null ? String((this.category as any)[f]).trim() : '';
+      const curr = formValue[f]       != null ? String(formValue[f]).trim()   : '';
+      if (orig !== curr) return true;
+    }
+
+    if (normalizeDate(this.category.effectiveDate) !== normalizeDate(formValue.effectiveDate)) return true;
+    if (normalizeDate(this.category.endEffectiveDate) !== normalizeDate(formValue.endEffectiveDate)) return true;
+
+    return false;
+  }
+
+  onSubmit(sendForApproval = false) {
+    const raw = this.dialogForm.getRawValue();
+    const parseResult = CategorySchema.safeParse(raw);
+
+    if (!parseResult.success) {
+      this.markFormGroupTouched(this.dialogForm);
+      const issues: any[] = (parseResult.error as any).issues ?? (parseResult.error as any).errors ?? [];
+      const firstError = issues[0];
+      this.notificationService.error(firstError?.message ?? 'Dữ liệu nhập không hợp lệ');
+      return;
+    }
+
+    if (this.mode === 'edit' && !this.hasFormChanged()) {
+      this.notificationService.warning('Không có thay đổi nào so với dữ liệu gốc! Không cần gửi duyệt sửa.');
+      return;
+    }
+
+    const dto: GroupCategoryRequest = {
+      ...raw,
+      effectiveDate:    this.formatToISO(raw.effectiveDate),
+      endEffectiveDate: raw.endEffectiveDate ? this.formatToISO(raw.endEffectiveDate) : undefined
+    };
+
+    if (this.mode === 'edit' && this.category) {
+      this.categoryService.update(this.category.id, dto)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: () => {
+            if (sendForApproval && this.category) {
+              this.categoryService.sendApproval(this.category.id)
+                .pipe(takeUntilDestroyed(this.destroyRef))
+                .subscribe({
+                  next: () => {
+                    this.notificationService.success('Thành công!', 'Cập nhật và Gửi duyệt thành công', '/categories/detail/' + this.category!.id);
+                    this.goBack();
+                  },
+                  error: (err: any) => {
+                    this.notificationService.error('Lỗi gửi duyệt: ' + (err.error?.message || err.message));
+                    this.goBack();
+                  }
+                });
+            } else {
+              this.notificationService.success('Thành công!', 'Cập nhật thành công', '/categories/detail/' + this.category!.id);
+              this.goBack();
+            }
+          },
+          error: (err: any) => {
+            this.notificationService.error('Lỗi cập nhật: ' + (err.error?.message || err.message));
+          }
+        });
+    } else {
+      this.categoryService.create(dto)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (res) => {
+            const newId = res.data.id;
+            if (sendForApproval && newId) {
+              this.categoryService.sendApproval(newId)
+                .pipe(takeUntilDestroyed(this.destroyRef))
+                .subscribe({
+                  next: () => {
+                    this.notificationService.success('Thành công!', 'Thêm mới và Gửi duyệt thành công', '/categories/detail/' + newId);
+                    this.goBack();
+                  },
+                  error: (err: any) => {
+                    this.notificationService.error('Đã lưu bản ghi, nhưng lỗi gửi duyệt: ' + (err.error?.message || err.message));
+                    this.goBack();
+                  }
+                });
+            } else {
+              this.notificationService.success('Thành công!', 'Thêm mới thành công', '/categories/detail/' + newId);
+              this.goBack();
+            }
+          },
+          error: (err: any) => {
+            this.notificationService.error('Lỗi thêm mới: ' + (err.error?.message || err.message));
+          }
+        });
+    }
+  }
+
+  private formatToISO(dateStr: string): string {
+    return new Date(dateStr).toISOString();
+  }
+
+  private markFormGroupTouched(formGroup: FormGroup) {
+    Object.values(formGroup.controls).forEach(control => {
+      control.markAsTouched();
+      if ((control as any).controls) {
+        this.markFormGroupTouched(control as FormGroup);
+      }
+    });
+  }
+
+  goBack() {
+    this.router.navigate(['/categories']);
+  }
+
+  get dialogTitle(): string {
+    switch (this.mode) {
+      case 'add':  return 'Thêm mới tham số danh mục theo nhóm';
+      case 'copy': return 'Thêm mới tham số danh mục theo nhóm';
+      case 'edit': return 'Sửa tham số danh mục theo nhóm';
+    }
+  }
+
+  getBreadcrumbText(): string {
+    switch (this.mode) {
+      case 'add':  return 'Thêm mới';
+      case 'copy': return 'Thêm mới';
+      case 'edit': return 'Sửa';
+    }
+  }
+
+  getFieldError(field: string): string {
+    const control = this.dialogForm.get(field);
+    if (control && control.touched && control.invalid) {
+      if (control.hasError('zodError')) return control.getError('zodError');
+      if (this.dialogForm.hasError(field)) return this.dialogForm.getError(field);
+    }
+    return '';
+  }
+
+  getFormError(key: string): string {
+    return this.dialogForm.hasError(key) ? this.dialogForm.getError(key) : '';
+  }
+}

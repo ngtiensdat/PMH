@@ -1,0 +1,403 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --font-family: 'Outfit', sans-serif;
+  --bg-primary: #f1f5f9; /* Nền xám nhạt nhẹ nhàng sạch sẽ */
+  --bg-secondary: #ffffff; /* Nền panel trắng tinh tế */
+  --bg-tertiary: #f8fafc;
+  --border-color: #cbd5e1;
+  --border-glass: rgba(0, 0, 0, 0.06);
+  
+  --primary: #005953; /* Xanh ngọc bích sẫm của Payment Hub */
+  --primary-hover: #004d47;
+  --primary-glow: rgba(0, 89, 83, 0.15);
+  --primary-light: #e0f2f1; /* Xanh ngọc bích nhạt */
+  
+  --accent: #00897b;
+  --accent-hover: #00796b;
+  
+  --text-primary: #0f172a; /* Chữ sẫm màu */
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  
+  /* Status Colors */
+  --status-new: #00897b;       /* Xanh tạo mới */
+  --status-pending: #ea580c;   /* Cam chờ duyệt */
+  --status-approved: #16a34a;  /* Xanh lá đã duyệt */
+  --status-rejected: #dc2626;  /* Đỏ từ chối */
+  --status-canceled: #4b5563;  /* Xám hủy duyệt */
+
+  /* Taiga UI Global Variables Override (v3/v4 compatibility) */
+  --tui-primary: var(--primary);
+  --tui-primary-hover: var(--primary-hover);
+  --tui-primary-active: #00332f;
+  --tui-font-sans: var(--font-family);
+
+  /* Taiga UI v5 Theme Overrides */
+  --tui-background-accent-1: var(--primary);
+  --tui-background-accent-1-hover: var(--primary-hover);
+  --tui-background-accent-1-pressed: #00332f;
+  
+  --tui-text-action: var(--primary);
+  --tui-text-action-hover: var(--primary-hover);
+  
+  --tui-text-primary: var(--text-primary);
+  --tui-text-secondary: var(--text-secondary);
+  --tui-text-tertiary: var(--text-muted);
+  
+  --tui-border-normal: var(--border-color);
+  --tui-border-focus: var(--primary);
+  
+  --tui-typography-family-text: var(--font-family);
+  --tui-typography-family-display: var(--font-family);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Flat Panel Container */
+.glass-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  transition: all 0.25s ease;
+}
+
+.glass-panel:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+/* Glowing text & icons (legacy compatibility) */
+.glow-text-primary {
+  color: var(--primary);
+}
+
+.glow-text-accent {
+  color: var(--accent);
+}
+
+/* Custom Dropdown Multiselect */
+.multiselect-container {
+  position: relative;
+}
+
+.dropdown-multiselect {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0.55rem 0.85rem;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  min-height: 38px;
+}
+
+.dropdown-multiselect:hover {
+  border-color: var(--primary);
+  background-color: #f8fafc;
+}
+
+.dropdown-multiselect .selected-labels {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 20px);
+  display: inline-block;
+  font-weight: 550;
+  color: var(--text-secondary);
+}
+
+.dropdown-multiselect .arrow-down {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.multiselect-popover {
+  position: absolute;
+  top: 105%;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  z-index: 150;
+  padding: 0.4rem;
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  animation: fadeIn 0.15s ease;
+}
+
+.multiselect-item {
+  width: 100%;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  cursor: pointer;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+  user-select: none;
+}
+
+.checkbox-label:hover {
+  background-color: #f1f5f9;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.checkbox-label .label-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Premium Resizing & Drag-Drop Columns */
+.resizable-th {
+  position: relative;
+  cursor: grab;
+  user-select: none;
+}
+
+.resizable-th:active {
+  cursor: grabbing;
+}
+
+/* Biển báo kéo thả khi đang kéo cột */
+.resizable-th[draggable="true"] {
+  transition: background-color 0.15s ease;
+}
+
+.resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 100;
+  background: transparent;
+  transition: background-color 0.2s ease;
+}
+
+.resize-handle:hover,
+.premium-table th:hover .resize-handle {
+  background-color: rgba(0, 89, 83, 0.25);
+}
+
+.resize-handle:active {
+  background-color: var(--primary);
+  width: 6px;
+}
+
+/* Operation History Styles (Lịch sử thao tác) */
+.history-table {
+  font-family: var(--font-family);
+}
+.history-table th {
+  border-bottom: 2px solid #e2e8f0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.history-row-item:hover {
+  background-color: #f8fafc;
+}
+.history-avatar {
+  font-family: var(--font-family);
+  user-select: none;
+}
+
+/* Action Pills for History actions */
+.action-pill {
+  display: inline-block;
+  white-space: nowrap;
+}
+.action-pill.pill-approve {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+.action-pill.pill-reject {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+.action-pill.pill-edit {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+.action-pill.pill-default {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+/* Pagination buttons in History Dialog */
+.history-pagination .pag-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  border: 1px solid #cbd5e1;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease;
+  user-select: none;
+  font-family: var(--font-family);
+  font-weight: 550;
+}
+.history-pagination .pag-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+  background-color: #f0fdf4;
+}
+.history-pagination .pag-btn.active {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+}
+.history-pagination .pag-btn:disabled {
+  border-color: #e2e8f0;
+  color: #cbd5e1;
+  cursor: not-allowed;
+}
+
+/* Status badge check-icon styling */
+.dot-badge .check-icon {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: #16a34a;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+/* Common helper classes for Taiga UI elements */
+.clear-btn-secondary {
+  border: 1px solid #cbd5e1 !important;
+  height: 44px !important;
+  font-weight: 700 !important;
+}
+
+.btn-approve-secondary {
+  --tui-primary: #10b981;
+  --tui-primary-hover: #059669;
+}
+
+.btn-reject-secondary {
+  --tui-primary: #ef4444;
+  --tui-primary-hover: #dc2626;
+}
+
+.btn-primary-pmh {
+  background-color: #005953 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  height: 44px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  border-radius: 6px !important;
+  padding: 0 1.25rem !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+.btn-primary-pmh:hover {
+  background-color: #004540 !important;
+}
+
+/* Draggable and Sortable Table Columns */
+th.draggable-col {
+  cursor: grab;
+  user-select: none;
+  position: relative;
+}
+
+th.draggable-col:active {
+  cursor: grabbing;
+}
+
+th.drag-over {
+  border-left: 2px dashed var(--primary) !important;
+  background-color: rgba(0, 89, 83, 0.05) !important;
+}
+
+.sort-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sort-icon {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.sort-header:hover .sort-icon {
+  color: var(--primary);
+}
+
+.sort-active {
+  color: var(--primary) !important;
+  font-weight: bold;
+}
+

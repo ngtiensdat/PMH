@@ -1,0 +1,42 @@
+<!-- Top Header -->
+<header class="workspace-header">
+  <div class="header-logo">
+    <span class="logo-text">PAYMENT <span class="accent-text">HUB</span></span>
+  </div>
+
+  <div class="header-right">
+    <!-- Icon chuông thông báo -->
+    @if (notificationCount() > 0) {
+      <div class="notification-badge-container">
+        <span class="bell-icon">🔔</span>
+        <span class="badge-count">{{ notificationCount() }}</span>
+      </div>
+    }
+
+    <!-- Dropdown VIE/EN động -->
+    <div class="language-dropdown-wrapper">
+      <div class="language-dropdown" (click)="toggleLangDropdown()">
+        <span>{{ languageService.currentLang() }}</span>
+        <span class="arrow-down">∨</span>
+      </div>
+      @if (isLangDropdownOpen()) {
+        <div class="lang-popover">
+          <div class="lang-item" [class.active]="languageService.currentLang() === 'VIE'" (click)="selectLanguage('VIE')">VIE (Tiếng Việt)</div>
+          <div class="lang-item" [class.active]="languageService.currentLang() === 'EN'" (click)="selectLanguage('EN')">EN (English)</div>
+        </div>
+      }
+    </div>
+
+    <!-- User Profile (Hỗ trợ click để đổi tên động không fix cứng) -->
+    <div class="user-profile clickable" (click)="editUserProfile()" title="Click để chỉnh sửa thông tin cá nhân">
+      <div class="user-avatar">
+        <span class="avatar-placeholder">{{ languageService.avatarText() }}</span>
+      </div>
+      <div class="user-info">
+        <span class="user-name">{{ languageService.userName() }}</span>
+        <span class="user-role-label">{{ languageService.userRole() }}</span>
+      </div>
+      <span class="edit-profile-icon">✏️</span>
+    </div>
+  </div>
+</header>

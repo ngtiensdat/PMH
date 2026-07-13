@@ -1,0 +1,119 @@
+<div class="form-page-wrapper">
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <span>{{ languageService.labels().navigation.paramSetting }}</span>
+    <span class="divider">&gt;</span>
+    <span>{{ languageService.labels().components.title }}</span>
+    <span class="divider">&gt;</span>
+    <span class="current">{{ languageService.labels().common.comparisonDetail }}</span>
+  </div>
+
+  <!-- Header của trang -->
+  <div class="form-header-row">
+    <div class="form-header-left" (click)="goBack()">
+      <span class="back-arrow">&lt;</span>
+      <h1 class="form-page-title" style="display: flex; align-items: center; gap: 0.75rem;">
+        {{ languageService.labels().common.viewDetail }}
+        <span *ngIf="component" class="status-pill" [ngClass]="component.status === 5 && component.isDisplay === 2 ? 'badge-canceled' : statusMap[component.status]?.css">
+          ● {{ component.status }} - {{ component.status === 5 && component.isDisplay === 2 ? (languageService.labels().common.status.canceled || 'Hủy duyệt') : statusMap[component.status]?.label }}
+        </span>
+      </h1>
+    </div>
+    
+    <div class="form-header-actions">
+      <!-- Nút Đóng (X) -->
+      <button class="action-btn-circle" (click)="goBack()" [title]="languageService.labels().common.close">&times;</button>
+    </div>
+  </div>
+
+  <!-- Panel chứa nội dung đối chiếu song song -->
+  <div class="comparison-container" *ngIf="component">
+    <div class="comparison-grid">
+      
+      <!-- Cột Dữ liệu cũ -->
+      <div class="comparison-card old-data-card">
+        <div class="comparison-card-header header-old">
+          <span class="card-header-icon orange-icon">⚠</span>
+          <span class="card-header-title">{{ languageService.labels().common.oldData }}</span>
+        </div>
+        <div class="comparison-card-body">
+          <div 
+            class="info-row-detail" 
+            *ngFor="let field of fields"
+            [class.is-changed]="isFieldChanged(field)"
+          >
+            <span class="info-label-detail">{{ getFieldLabel(field) }}</span>
+            <span class="info-value-detail">{{ formatValue(field, oldData[field]) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cột Dữ liệu mới (NEW_DATA) -->
+      <div class="comparison-card new-data-card">
+        <div class="comparison-card-header header-new">
+          <span class="card-header-icon green-icon">ℹ</span>
+          <span class="card-header-title">{{ languageService.labels().common.newData }}</span>
+        </div>
+        <div class="comparison-card-body">
+          <div 
+            class="info-row-detail" 
+            *ngFor="let field of fields"
+            [class.is-changed]="isFieldChanged(field)"
+          >
+            <span class="info-label-detail">{{ getFieldLabel(field) }}</span>
+            <span class="info-value-detail">{{ formatValue(field, newData[field]) }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Nút hành động ở dưới cùng bên phải -->
+    <div class="form-footer-actions">
+      <!-- Maker actions: Mới (1), Từ chối (5), Hủy duyệt (7) -->
+      <ng-container *ngIf="component.status === 1 || component.status === 5 || component.status === 7">
+        <button tuiButton appearance="secondary" type="button" (click)="onDeleteRecord()" style="margin-right: 0.75rem; --tui-primary: #ef4444; --tui-primary-hover: #dc2626;">
+          {{ languageService.labels().common.delete }}
+        </button>
+        <button tuiButton type="button" (click)="onSendApprovalRecord()">
+          {{ languageService.labels().common.sendApproval }}
+        </button>
+      </ng-container>
+
+      <!-- Checker actions: Chờ duyệt (3) -->
+      <ng-container *ngIf="component.status === 3">
+        <button tuiButton appearance="secondary" type="button" (click)="onRejectRecord()" style="margin-right: 0.75rem; --tui-primary: #ef4444; --tui-primary-hover: #dc2626;">
+          {{ languageService.labels().common.reject }}
+        </button>
+        <button tuiButton type="button" (click)="onApproveRecord()">
+          {{ languageService.labels().common.approve }}
+        </button>
+      </ng-container>
+      
+      <button tuiButton appearance="secondary" type="button" (click)="goBack()" style="margin-left: 0.75rem;">
+        {{ languageService.labels().common.back }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Hộp thoại nhập Lý do từ chối -->
+<ng-template [(tuiDialog)]="isRejectOpen" [tuiDialogOptions]="{label: languageService.labels().common.reasonReject, size: 's'}">
+  <div class="reject-modal-body" style="padding: 0.5rem 0;">
+    <textarea
+      style="width: 100%; min-height: 100px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.75rem; font-size: 0.85rem; font-family: inherit; resize: none; outline: none; transition: border-color 0.2s;"
+      [placeholder]="languageService.labels().common.reasonRejectPlaceholder"
+      [value]="rejectReason"
+      (input)="onRejectReasonInput($any($event.target).value)"
+      maxLength="500"
+    ></textarea>
+    <div style="text-align: right; font-size: 0.72rem; color: #94a3b8; margin-top: 0.25rem;">
+      {{ rejectReason.length }}/500
+    </div>
+  </div>
+  
+  <div class="reject-modal-footer" style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; border-top: 1px solid #f1f5f9; padding-top: 0.75rem;">
+    <button tuiButton appearance="outline" type="button" (click)="isRejectOpen = false">{{ languageService.labels().common.cancel }}</button>
+    <button tuiButton type="button" [disabled]="!rejectReason.trim()" (click)="onConfirmReject()">{{ languageService.labels().common.confirm }}</button>
+  </div>
+</ng-template>

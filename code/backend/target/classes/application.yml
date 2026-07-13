@@ -1,0 +1,33 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: payment-hub
+  
+  datasource:
+    url: jdbc:oracle:thin:@10.10.0.202:1521:orcl
+    username: DEMO
+    password: DEMO
+    driver-class-name: oracle.jdbc.OracleDriver
+    hikari:
+      connection-timeout: 30000      # Tối đa 30s chờ kết nối
+      maximum-pool-size: 10          # Tối đa 10 kết nối đồng thời
+      minimum-idle: 2                # Duy trì tối thiểu 2 kết nối sẵn sàng
+      idle-timeout: 600000           # Hủy kết nối nhàn rỗi sau 10 phút
+      max-lifetime: 1800000          # Hủy kết nối sau tối đa 30 phút
+  
+  jpa:
+    database-platform: org.hibernate.dialect.OracleDialect
+    hibernate:
+      ddl-auto: none # Trả về none sau khi đã tự động cập nhật database cấu trúc xong
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

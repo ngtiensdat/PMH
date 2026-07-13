@@ -1,0 +1,148 @@
+.form-page-wrapper {
+  width: 100%;
+  animation: fadeIn 0.2s ease-out;
+  padding: 1.5rem;
+}
+
+/* Breadcrumb */
+.form-page-wrapper .breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #64748b; /* slate-500 */
+  margin-bottom: 0.75rem;
+}
+.form-page-wrapper .breadcrumb .divider {
+  color: #cbd5e1;
+}
+.form-page-wrapper .breadcrumb .current {
+  color: #1e293b; /* slate-800 */
+  font-weight: 600;
+}
+
+/* Header Row */
+.form-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.form-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.back-arrow {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #64748b;
+  transition: color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.form-header-left:hover .back-arrow {
+  color: #005953; /* primary color */
+}
+
+.form-page-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0f172a; /* slate-900 */
+}
+
+.form-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Cancel / Close button circle */
+.action-btn-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1;
+}
+.action-btn-circle:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+  border-color: #94a3b8;
+}
+
+/* Card chứa Form */
+.form-content-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Cấu trúc Grid chia hàng */
+.form-row-four {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.form-row-two {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.form-row-one {
+  width: 100%;
+}
+
+.input-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.tui-required {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+/* Textarea styling */
+.textarea-input {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.error-message {
+  font-size: 0.75rem;
+  color: #ef4444;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
