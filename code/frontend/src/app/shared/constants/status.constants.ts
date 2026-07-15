@@ -53,5 +53,10 @@ export const ACTION_PILL_MAP: Record<string, string> = {
   'Hủy phê duyệt': 'pill-reject',
   'Hủy duyệt': 'pill-reject',
   'Gửi duyệt': 'pill-edit',
-  'Sửa': 'pill-edit'
+  'Sửa': 'pill-edit',
+  'Tạo mới': 'pill-approve',
+  'Cập nhật': 'pill-edit',
+  'Gửi duyệt sửa': 'pill-edit',
+  'Từ chối': 'pill-reject',
+  'Xóa': 'pill-reject'
 };

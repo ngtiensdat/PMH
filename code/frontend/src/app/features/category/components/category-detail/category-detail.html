@@ -1,4 +1,4 @@
-<div class="form-page-wrapper">
+<div class="form-page-wrapper" style="position: relative; min-height: 400px;">
   <!-- Breadcrumb -->
   <div class="breadcrumb">
     <span>{{ languageService.labels().navigation.paramSetting }}</span>
@@ -11,7 +11,9 @@
   <!-- Header của trang -->
   <div class="form-header-row">
     <div class="form-header-left" (click)="goBack()">
-      <span class="back-arrow">&lt;</span>
+      <span class="back-arrow">
+        <tui-icon icon="@tui.chevron-left" style="--tui-icon-size: 1rem; display: inline-block; vertical-align: middle;"></tui-icon>
+      </span>
       <h1 class="form-page-title" style="display: flex; align-items: center; gap: 0.75rem;">
         {{ languageService.labels().common.viewDetail }}
         <span *ngIf="category" class="status-pill" [ngClass]="category.status === 5 && category.isDisplay === 2 ? 'badge-canceled' : statusMap[category.status]?.css">
@@ -22,18 +24,27 @@
     
     <div class="form-header-actions">
       <!-- Nút Đóng (X) -->
-      <button class="action-btn-circle" (click)="goBack()" [title]="languageService.labels().common.close">&times;</button>
+      <button class="action-btn-circle" (click)="goBack()" [title]="languageService.labels().common.close">
+        <tui-icon icon="@tui.x" style="--tui-icon-size: 14px;"></tui-icon>
+      </button>
     </div>
   </div>
 
+  <!-- Spinner loading -->
+  <div class="loading-container" *ngIf="isLoading()" style="display: flex; justify-content: center; align-items: center; height: 300px; width: 100%;">
+    <tui-loader size="xl"></tui-loader>
+  </div>
+
   <!-- Panel chứa nội dung đối chiếu song song -->
-  <div class="comparison-container" *ngIf="category">
+  <div class="comparison-container" *ngIf="!isLoading() && category">
     <div class="comparison-grid">
       
       <!-- Cột Dữ liệu cũ -->
       <div class="comparison-card old-data-card">
         <div class="comparison-card-header header-old">
-          <span class="card-header-icon orange-icon">⚠</span>
+          <span class="card-header-icon orange-icon">
+            <tui-icon icon="@tui.triangle-alert" style="--tui-icon-size: 1.15rem;"></tui-icon>
+          </span>
           <span class="card-header-title">{{ languageService.labels().common.oldData }}</span>
         </div>
         <div class="comparison-card-body">
@@ -51,7 +62,9 @@
       <!-- Cột Dữ liệu mới (NEW_DATA) -->
       <div class="comparison-card new-data-card">
         <div class="comparison-card-header header-new">
-          <span class="card-header-icon green-icon">ℹ</span>
+          <span class="card-header-icon green-icon">
+            <tui-icon icon="@tui.info" style="--tui-icon-size: 1.15rem;"></tui-icon>
+          </span>
           <span class="card-header-title">{{ languageService.labels().common.newData }}</span>
         </div>
         <div class="comparison-card-body">

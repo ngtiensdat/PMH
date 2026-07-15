@@ -101,9 +101,9 @@ export class ComponentDialogComponent implements OnInit {
       {
         componentCode:    ['', zodFieldValidator(ComponentSchema, 'componentCode')],
         componentName:    ['', zodFieldValidator(ComponentSchema, 'componentName')],
-        messageType:      ['', zodFieldValidator(ComponentSchema, 'messageType')],
-        connectionMethod: ['', zodFieldValidator(ComponentSchema, 'connectionMethod')],
-        checkToken:       ['N', zodFieldValidator(ComponentSchema, 'checkToken')],
+        messageType:      [[], zodFieldValidator(ComponentSchema, 'messageType')],
+        connectionMethod: [[], zodFieldValidator(ComponentSchema, 'connectionMethod')],
+        checkToken:       [false, zodFieldValidator(ComponentSchema, 'checkToken')],
         description:      ['', zodFieldValidator(ComponentSchema, 'description')],
         isActive:         [1,  zodFieldValidator(ComponentSchema, 'isActive')],
         effectiveDate:    ['', zodFieldValidator(ComponentSchema, 'effectiveDate')],
@@ -126,8 +126,8 @@ export class ComponentDialogComponent implements OnInit {
     this.dialogForm.patchValue({
       componentCode:    this.component.componentCode,
       componentName:    this.component.componentName,
-      messageType:      this.component.messageType      || '',
-      connectionMethod: this.component.connectionMethod || '',
+      messageType:      this.component.messageType ? this.component.messageType.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+      connectionMethod: this.component.connectionMethod ? this.component.connectionMethod.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
       checkToken:       this.component.checkToken       === 'Y',
       description:      this.component.description      || '',
       isActive:         this.component.isActive          ?? 1,
@@ -150,12 +150,20 @@ export class ComponentDialogComponent implements OnInit {
       return isNaN(d.getTime()) ? '' : d.toISOString();
     };
 
-    const fields = ['componentName', 'messageType', 'connectionMethod', 'description', 'isActive'];
+    const fields = ['componentName', 'description', 'isActive'];
     for (const f of fields) {
       const orig = (this.component as any)[f] != null ? String((this.component as any)[f]).trim() : '';
       const curr = formValue[f]      != null ? String(formValue[f]).trim()      : '';
       if (orig !== curr) return true;
     }
+
+    const origMessageType = (this.component.messageType || '').split(',').map((s: string) => s.trim()).filter(Boolean).sort().join(', ');
+    const currMessageType = (formValue.messageType || []).map((s: string) => s.trim()).filter(Boolean).sort().join(', ');
+    if (origMessageType !== currMessageType) return true;
+
+    const origConnectionMethod = (this.component.connectionMethod || '').split(',').map((s: string) => s.trim()).filter(Boolean).sort().join(', ');
+    const currConnectionMethod = (formValue.connectionMethod || []).map((s: string) => s.trim()).filter(Boolean).sort().join(', ');
+    if (origConnectionMethod !== currConnectionMethod) return true;
 
     const origCheck = this.component.checkToken === 'Y';
     const currCheck = !!formValue.checkToken;
@@ -171,7 +179,9 @@ export class ComponentDialogComponent implements OnInit {
     const raw = this.dialogForm.getRawValue();
     const mappedRaw = {
       ...raw,
-      checkToken: raw.checkToken ? 'Y' : 'N'
+      checkToken: raw.checkToken ? 'Y' : 'N',
+      messageType: Array.isArray(raw.messageType) ? raw.messageType.join(', ') : (raw.messageType || ''),
+      connectionMethod: Array.isArray(raw.connectionMethod) ? raw.connectionMethod.join(', ') : (raw.connectionMethod || '')
     };
     const parseResult = ComponentSchema.safeParse(mappedRaw);
 

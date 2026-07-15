@@ -67,16 +67,13 @@
       </div>
 
       <div class="input-container">
-        <tui-textfield tuiChevron [stringify]="stringifyMessageType">
+        <tui-textfield multi>
           <label tuiLabel>{{ languageService.labels().components.messageType }}</label>
-          <input
-            tuiSelect
+          <select
+            tuiMultiSelect
             formControlName="messageType"
-          />
-          <tui-data-list-wrapper
-            *tuiDropdown
-            [items]="messageTypeItems"
-          />
+            [items]="messageTypeValues"
+          ></select>
         </tui-textfield>
         <span *ngIf="getFieldError('messageType')" class="error-message">
           {{ getFieldError('messageType') }}
@@ -87,16 +84,13 @@
     <!-- Hàng 2: Tên kết nối, Ngày hiệu lực, Ngày hết hiệu lực -->
     <div class="form-row-three">
       <div class="input-container">
-        <tui-textfield tuiChevron [stringify]="stringifyConnectionMethod">
+        <tui-textfield multi>
           <label tuiLabel>{{ languageService.labels().components.connectionMethod }}</label>
-          <input
-            tuiSelect
+          <select
+            tuiMultiSelect
             formControlName="connectionMethod"
-          />
-          <tui-data-list-wrapper
-            *tuiDropdown
-            [items]="connectionMethodItems"
-          />
+            [items]="connectionMethodValues"
+          ></select>
         </tui-textfield>
         <span *ngIf="getFieldError('connectionMethod')" class="error-message">
           {{ getFieldError('connectionMethod') }}

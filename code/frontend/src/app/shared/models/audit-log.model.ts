@@ -10,4 +10,5 @@ export interface AuditLogItem {
   newDataLog?: string;
   statusBefore?: number;
   statusAfter?: number;
+  ipAddress?: string;
 }

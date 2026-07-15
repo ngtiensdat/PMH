@@ -22,7 +22,7 @@ public interface ComponentService {
 
     ProcessingComponent getByCode(String code);
 
-    List<ProcessingComponent> getActiveList();
+    List<ProcessingComponent> getActiveList(Integer status);
 
     ProcessingComponent create(ComponentDTO dto, String username);
 

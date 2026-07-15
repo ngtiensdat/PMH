@@ -5,8 +5,8 @@ import { CategoryService } from '../../services/category.service';
 import { NotificationService } from '../../../../shared/components/notification/notification.service';
 import { GroupCategoryResponse } from '../../../../shared/models/group-category.model';
 import { LanguageService } from '../../../../core/services/language.service';
-
 import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-category-detail',
@@ -24,6 +24,7 @@ export class CategoryDetailComponent implements OnInit {
 
   category: GroupCategoryResponse | null = null;
   id: number | null = null;
+  isLoading = signal<boolean>(false);
 
   fields = [
     'paramName',
@@ -52,41 +53,44 @@ export class CategoryDetailComponent implements OnInit {
   }
 
   private loadCategoryData(id: number) {
+    this.isLoading.set(true);
     this.categoryService.getById(id).subscribe({
       next: (res) => {
         this.category = res.data;
+        this.isLoading.set(false);
       },
-      error: (err: any) => {
+      error: (err: HttpErrorResponse) => {
         this.notificationService.error('Không thể nạp dữ liệu chi tiết tham số: ' + (err.error?.message || err.message));
+        this.isLoading.set(false);
         this.goBack();
       }
     });
   }
 
-  get parsedNewData(): any {
+  get parsedNewData(): Record<string, unknown> | null {
     if (!this.category?.newData) return null;
     try {
       return typeof this.category.newData === 'string' ? JSON.parse(this.category.newData) : this.category.newData;
     } catch { return null; }
   }
 
-  get oldData(): any {
+  get oldData(): Record<string, unknown> {
     if (!this.category) return {};
-    
+
     if (this.category.status === 1 || (this.category.status === 3 && !this.category.createdBy)) {
       return {};
     }
-    return this.category;
+    return this.category as unknown as Record<string, unknown>;
   }
 
-  get newData(): any {
+  get newData(): Record<string, unknown> {
     if (!this.category) return {};
-    
+
     const nd = this.parsedNewData;
     if (nd) {
       return nd;
     }
-    return this.category;
+    return this.category as unknown as Record<string, unknown>;
   }
 
   getFieldLabel(field: string): string {
@@ -102,12 +106,12 @@ export class CategoryDetailComponent implements OnInit {
     return labels[field] || field;
   }
 
-  formatValue(field: string, val: any): string {
+  formatValue(field: string, val: unknown): string {
     if (val === undefined || val === null || val === '') return '-';
-    
+
     if (field === 'effectiveDate' || field === 'endEffectiveDate') {
-      const d = new Date(val);
-      if (isNaN(d.getTime())) return val;
+      const d = new Date(val as string | number | Date);
+      if (isNaN(d.getTime())) return String(val);
       const pad = (n: number) => n.toString().padStart(2, '0');
       return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     }
@@ -117,7 +121,7 @@ export class CategoryDetailComponent implements OnInit {
   isFieldChanged(field: string): boolean {
     const oldVal = this.formatValue(field, this.oldData[field]);
     const newVal = this.formatValue(field, this.newData[field]);
-    
+
     if (oldVal === '-' && newVal === '-') return false;
     return oldVal !== newVal;
   }
@@ -129,7 +133,7 @@ export class CategoryDetailComponent implements OnInit {
           this.notificationService.success('Xóa thành công!');
           this.goBack();
         },
-        error: (err: any) => {
+        error: (err: HttpErrorResponse) => {
           this.notificationService.error('Không thể xóa: ' + (err.error?.message || err.message));
         }
       });
@@ -142,7 +146,7 @@ export class CategoryDetailComponent implements OnInit {
         this.notificationService.success('Gửi duyệt thành công!');
         this.goBack();
       },
-      error: (err: any) => {
+      error: (err: HttpErrorResponse) => {
         this.notificationService.error('Lỗi gửi duyệt: ' + (err.error?.message || err.message));
       }
     });
@@ -155,11 +159,11 @@ export class CategoryDetailComponent implements OnInit {
   onApproveRecord() {
     if (confirm('Bạn có chắc chắn muốn duyệt bản ghi này?')) {
       this.categoryService.batchApprove([this.category!.id]).subscribe({
-        next: (res: any) => {
+        next: () => {
           this.notificationService.success('Duyệt bản ghi thành công!');
           this.goBack();
         },
-        error: (err: any) => {
+        error: (err: HttpErrorResponse) => {
           this.notificationService.error('Lỗi khi duyệt: ' + (err.error?.message || err.message));
         }
       });
@@ -179,12 +183,12 @@ export class CategoryDetailComponent implements OnInit {
     const reason = this.rejectReason.trim();
     this.isRejectOpen = false;
 
-    this.categoryService.batchReject([this.category!.id]).subscribe({
-      next: (res: any) => {
+    this.categoryService.batchReject([this.category!.id], reason).subscribe({
+      next: () => {
         this.notificationService.success('Từ chối duyệt thành công! Lý do: ' + reason);
         this.goBack();
       },
-      error: (err: any) => {
+      error: (err: HttpErrorResponse) => {
         this.notificationService.error('Lỗi khi từ chối: ' + (err.error?.message || err.message));
       }
     });

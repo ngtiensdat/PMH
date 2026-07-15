@@ -69,8 +69,10 @@ public class ComponentController extends BaseController {
      * Lấy danh sách cấu phần đang hoạt động cho dropdown tại màn Danh mục theo nhóm
      */
     @GetMapping("/active-list")
-    public ResponseEntity<ApiResponse<List<ComponentResponseDTO>>> getActiveList() {
-        List<ProcessingComponent> list = service.getActiveList();
+    public ResponseEntity<ApiResponse<List<ComponentResponseDTO>>> getActiveList(
+            @RequestParam(value = "status", required = false) Integer status
+    ) {
+        List<ProcessingComponent> list = service.getActiveList(status);
         List<ComponentResponseDTO> dtoList = list.stream()
                 .map(ComponentResponseDTO::fromEntity)
                 .collect(Collectors.toList());

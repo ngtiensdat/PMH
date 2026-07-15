@@ -101,12 +101,14 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1.5rem;
+  align-items: flex-start;
 }
 
 .form-row-two {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1.5rem;
+  align-items: flex-start;
 }
 
 .form-row-one {
@@ -134,6 +136,34 @@
   color: #ef4444;
   margin-top: 0.25rem;
   display: block;
+}
+
+/* Multi-select Helpers */
+.multi-select-helpers {
+  display: flex;
+  gap: 0.50rem;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  justify-content: flex-end;
+  padding-right: 0.25rem;
+}
+
+.helper-link {
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.helper-link.select-all {
+  color: #005953; /* primary color */
+}
+
+.helper-link.clear-all {
+  color: #ef4444; /* red-500 */
+}
+
+.helper-divider {
+  color: #cbd5e1; /* slate-200 */
 }
 
 @keyframes fadeIn {

@@ -96,4 +96,25 @@ export class CategoryService {
   getHistory(id: number): Observable<ApiResponse<AuditLogItem[]>> {
     return this.http.get<ApiResponse<AuditLogItem[]>>(`${environment.apiBase}/api/audit-log/group-category/${id}`);
   }
+
+  // Cache state for list pagination and filters
+  private listState: {
+    page: number;
+    size: number;
+    filters: any;
+    viewMode: 'jpa' | 'native';
+    activeTabIndex: number;
+  } | null = null;
+
+  setListState(state: any) {
+    this.listState = state;
+  }
+
+  getListState() {
+    return this.listState;
+  }
+
+  clearListState() {
+    this.listState = null;
+  }
 }

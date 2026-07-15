@@ -206,7 +206,8 @@ CREATE TABLE PMH_AUDIT_LOG (
     NEW_DATA_LOG  CLOB,                            -- JSON dữ liệu sau khi thay đổi
     DESCRIPTION   VARCHAR2(4000 CHAR),             -- Mô tả chi tiết hành động
     STATUS_BEFORE NUMBER(1),                       -- Trạng thái trước (1,3,4,5,7)
-    STATUS_AFTER  NUMBER(1)                        -- Trạng thái sau
+    STATUS_AFTER  NUMBER(1),                       -- Trạng thái sau
+    IP_ADDRESS    VARCHAR2(100 CHAR)               -- Địa chỉ IP của client gửi yêu cầu
 );
 
 -- Index cho query hiệu quả theo module + record

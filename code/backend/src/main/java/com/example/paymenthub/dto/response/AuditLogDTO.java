@@ -13,5 +13,6 @@ public record AuditLogDTO(
         String oldData,
         String newDataLog,
         Integer statusBefore,
-        Integer statusAfter
+        Integer statusAfter,
+        String ipAddress
 ) {}

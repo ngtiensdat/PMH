@@ -100,7 +100,10 @@ public class ComponentServiceImpl implements ComponentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProcessingComponent> getActiveList() {
+    public List<ProcessingComponent> getActiveList(Integer status) {
+        if (status != null) {
+            return repository.findAllByIsActiveAndStatusOrderByComponentNameAsc(1, status);
+        }
         return repository.findAllByIsActiveOrderByComponentNameAsc(1);
     }
 

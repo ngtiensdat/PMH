@@ -53,6 +53,9 @@ public class AuditLog {
     @Column(name = "STATUS_AFTER")
     private Integer statusAfter;
 
+    @Column(name = "IP_ADDRESS", length = 100)
+    private String ipAddress;
+
     @PrePersist
     protected void onCreate() {
         if (actionDate == null) actionDate = LocalDateTime.now();

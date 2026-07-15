@@ -82,17 +82,19 @@
       </div>
 
       <div class="input-container">
-        <tui-textfield tuiChevron [stringify]="stringifyComponentCode">
+        <tui-textfield multi [stringify]="stringifyComponentCode">
           <label tuiLabel>{{ languageService.labels().category.componentCode }} <span class="tui-required">*</span></label>
-          <input
-            tuiSelect
+          <select
+            tuiMultiSelect
             formControlName="componentCode"
-          />
-          <tui-data-list-wrapper
-            *tuiDropdown
             [items]="componentItems"
-          />
+          ></select>
         </tui-textfield>
+        <div class="multi-select-helpers">
+          <a (click)="selectAllComponents()" class="helper-link select-all">{{ languageService.labels().common.selectAll }}</a>
+          <span class="helper-divider">|</span>
+          <a (click)="clearAllComponents()" class="helper-link clear-all">{{ languageService.labels().common.clearAll }}</a>
+        </div>
         <span *ngIf="getFieldError('componentCode')" class="error-message">
           {{ getFieldError('componentCode') }}
         </span>

@@ -8,7 +8,9 @@
     <!-- Icon chuông thông báo -->
     @if (notificationCount() > 0) {
       <div class="notification-badge-container">
-        <span class="bell-icon">🔔</span>
+        <span class="bell-icon">
+          <tui-icon icon="@tui.bell"></tui-icon>
+        </span>
         <span class="badge-count">{{ notificationCount() }}</span>
       </div>
     }
@@ -36,7 +38,9 @@
         <span class="user-name">{{ languageService.userName() }}</span>
         <span class="user-role-label">{{ languageService.userRole() }}</span>
       </div>
-      <span class="edit-profile-icon">✏️</span>
+      <span class="edit-profile-icon">
+        <tui-icon icon="@tui.pencil"></tui-icon>
+      </span>
     </div>
   </div>
 </header>

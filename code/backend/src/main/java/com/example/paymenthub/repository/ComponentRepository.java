@@ -12,5 +12,7 @@ public interface ComponentRepository extends JpaRepository<ProcessingComponent, 
 
     List<ProcessingComponent> findAllByIsActiveOrderByComponentNameAsc(int isActive);
 
+    List<ProcessingComponent> findAllByIsActiveAndStatusOrderByComponentNameAsc(int isActive, int status);
+
     boolean existsByComponentCode(String componentCode);
 }

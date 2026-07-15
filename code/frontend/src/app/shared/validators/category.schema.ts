@@ -136,6 +136,10 @@ export function zodFieldValidator(schema: z.ZodObject<any>, field: string): Vali
     }
     partialData[field] = control.value;
 
+    if (Array.isArray(partialData['componentCode'])) {
+      partialData['componentCode'] = partialData['componentCode'].join(', ');
+    }
+
     const result = schema.safeParse(partialData);
     if (result.success) return null;
 
@@ -152,7 +156,11 @@ export function zodFieldValidator(schema: z.ZodObject<any>, field: string): Vali
  */
 export function zodFormValidator(schema: z.ZodType<any>): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
-    const result = schema.safeParse(control.value);
+    const rawValue = { ...control.value };
+    if (Array.isArray(rawValue['componentCode'])) {
+      rawValue['componentCode'] = rawValue['componentCode'].join(', ');
+    }
+    const result = schema.safeParse(rawValue);
     if (result.success) return null;
 
     const errors: ValidationErrors = {};

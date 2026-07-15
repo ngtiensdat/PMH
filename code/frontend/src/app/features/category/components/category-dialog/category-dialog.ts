@@ -9,6 +9,7 @@ import { NotificationService } from '../../../../shared/components/notification/
 import { CategorySchema, zodFormValidator, zodFieldValidator } from '../../../../shared/validators/category.schema';
 import { GroupCategoryResponse, GroupCategoryRequest } from '../../../../shared/models/group-category.model';
 import { LanguageService } from '../../../../core/services/language.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
 
@@ -84,7 +85,7 @@ export class CategoryDialogComponent implements OnInit {
           this.category = res.data;
           this.populateForm();
         },
-        error: (err) => {
+        error: (err: HttpErrorResponse) => {
           this.notificationService.error('Không thể nạp dữ liệu tham số: ' + (err.error?.message || err.message));
           this.goBack();
         }
@@ -92,7 +93,7 @@ export class CategoryDialogComponent implements OnInit {
   }
 
   private loadActiveComponents() {
-    this.componentService.getActiveList()
+    this.componentService.getActiveList(4)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
@@ -119,7 +120,7 @@ export class CategoryDialogComponent implements OnInit {
         paramValue:       ['', zodFieldValidator(CategorySchema, 'paramValue')],
         paramName:        ['', zodFieldValidator(CategorySchema, 'paramName')],
         description:      ['', zodFieldValidator(CategorySchema, 'description')],
-        componentCode:    ['', zodFieldValidator(CategorySchema, 'componentCode')],
+        componentCode:    [[], zodFieldValidator(CategorySchema, 'componentCode')],
         isActive:         [1,  zodFieldValidator(CategorySchema, 'isActive')],
         effectiveDate:    ['', zodFieldValidator(CategorySchema, 'effectiveDate')],
         endEffectiveDate: ['', zodFieldValidator(CategorySchema, 'endEffectiveDate')]
@@ -143,7 +144,7 @@ export class CategoryDialogComponent implements OnInit {
       paramValue:       this.category.paramValue,
       paramName:        this.category.paramName,
       description:      this.category.description,
-      componentCode:    this.category.componentCode,
+      componentCode:    this.category.componentCode ? this.category.componentCode.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
       isActive:         this.category.isActive,
       effectiveDate:    this.mode === 'copy' ? '' : toLocalISO(this.category.effectiveDate),
       endEffectiveDate: this.mode === 'copy' ? '' : toLocalISO(this.category.endEffectiveDate)
@@ -159,18 +160,22 @@ export class CategoryDialogComponent implements OnInit {
     if (!this.category) return true;
     const formValue = this.dialogForm.getRawValue();
 
-    const normalizeDate = (val: any) => {
+    const normalizeDate = (val: string | number | Date | null | undefined) => {
       if (!val) return '';
       const d = new Date(val);
       return isNaN(d.getTime()) ? '' : d.toISOString();
     };
 
-    const fields = ['paramName', 'description', 'componentCode', 'isActive'];
+    const fields: (keyof GroupCategoryResponse)[] = ['paramName', 'description', 'isActive'];
     for (const f of fields) {
-      const orig = (this.category as any)[f] != null ? String((this.category as any)[f]).trim() : '';
-      const curr = formValue[f]       != null ? String(formValue[f]).trim()   : '';
+      const orig = this.category[f] != null ? String(this.category[f]).trim() : '';
+      const curr = formValue[f]     != null ? String(formValue[f]).trim()   : '';
       if (orig !== curr) return true;
     }
+
+    const origComponentCode = (this.category.componentCode || '').split(',').map((s: string) => s.trim()).filter(Boolean).sort().join(', ');
+    const currComponentCode = (formValue.componentCode || []).map((s: string) => s.trim()).filter(Boolean).sort().join(', ');
+    if (origComponentCode !== currComponentCode) return true;
 
     if (normalizeDate(this.category.effectiveDate) !== normalizeDate(formValue.effectiveDate)) return true;
     if (normalizeDate(this.category.endEffectiveDate) !== normalizeDate(formValue.endEffectiveDate)) return true;
@@ -180,11 +185,15 @@ export class CategoryDialogComponent implements OnInit {
 
   onSubmit(sendForApproval = false) {
     const raw = this.dialogForm.getRawValue();
-    const parseResult = CategorySchema.safeParse(raw);
+    const mappedRaw = {
+      ...raw,
+      componentCode: Array.isArray(raw.componentCode) ? raw.componentCode.join(', ') : (raw.componentCode || '')
+    };
+    const parseResult = CategorySchema.safeParse(mappedRaw);
 
     if (!parseResult.success) {
       this.markFormGroupTouched(this.dialogForm);
-      const issues: any[] = (parseResult.error as any).issues ?? (parseResult.error as any).errors ?? [];
+      const issues = parseResult.error.issues;
       const firstError = issues[0];
       this.notificationService.error(firstError?.message ?? 'Dữ liệu nhập không hợp lệ');
       return;
@@ -196,9 +205,9 @@ export class CategoryDialogComponent implements OnInit {
     }
 
     const dto: GroupCategoryRequest = {
-      ...raw,
-      effectiveDate:    this.formatToISO(raw.effectiveDate),
-      endEffectiveDate: raw.endEffectiveDate ? this.formatToISO(raw.endEffectiveDate) : undefined
+      ...mappedRaw,
+      effectiveDate:    this.formatToISO(mappedRaw.effectiveDate),
+      endEffectiveDate: mappedRaw.endEffectiveDate ? this.formatToISO(mappedRaw.endEffectiveDate) : undefined
     };
 
     if (this.mode === 'edit' && this.category) {
@@ -214,7 +223,7 @@ export class CategoryDialogComponent implements OnInit {
                     this.notificationService.success('Thành công!', 'Cập nhật và Gửi duyệt thành công', '/categories/detail/' + this.category!.id);
                     this.goBack();
                   },
-                  error: (err: any) => {
+                  error: (err: HttpErrorResponse) => {
                     this.notificationService.error('Lỗi gửi duyệt: ' + (err.error?.message || err.message));
                     this.goBack();
                   }
@@ -224,7 +233,7 @@ export class CategoryDialogComponent implements OnInit {
               this.goBack();
             }
           },
-          error: (err: any) => {
+          error: (err: HttpErrorResponse) => {
             this.notificationService.error('Lỗi cập nhật: ' + (err.error?.message || err.message));
           }
         });
@@ -242,7 +251,7 @@ export class CategoryDialogComponent implements OnInit {
                     this.notificationService.success('Thành công!', 'Thêm mới và Gửi duyệt thành công', '/categories/detail/' + newId);
                     this.goBack();
                   },
-                  error: (err: any) => {
+                  error: (err: HttpErrorResponse) => {
                     this.notificationService.error('Đã lưu bản ghi, nhưng lỗi gửi duyệt: ' + (err.error?.message || err.message));
                     this.goBack();
                   }
@@ -252,7 +261,7 @@ export class CategoryDialogComponent implements OnInit {
               this.goBack();
             }
           },
-          error: (err: any) => {
+          error: (err: HttpErrorResponse) => {
             this.notificationService.error('Lỗi thêm mới: ' + (err.error?.message || err.message));
           }
         });
@@ -266,10 +275,18 @@ export class CategoryDialogComponent implements OnInit {
   private markFormGroupTouched(formGroup: FormGroup) {
     Object.values(formGroup.controls).forEach(control => {
       control.markAsTouched();
-      if ((control as any).controls) {
-        this.markFormGroupTouched(control as FormGroup);
+      if (control instanceof FormGroup) {
+        this.markFormGroupTouched(control);
       }
     });
+  }
+
+  selectAllComponents() {
+    this.dialogForm.get('componentCode')?.setValue(this.componentItems);
+  }
+
+  clearAllComponents() {
+    this.dialogForm.get('componentCode')?.setValue([]);
   }
 
   goBack() {

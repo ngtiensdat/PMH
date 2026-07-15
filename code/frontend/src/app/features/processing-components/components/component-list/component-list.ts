@@ -9,6 +9,7 @@ import { parseDateString } from '../../../../shared/utils/date.utils';
 import { NotificationService } from '../../../../shared/components/notification/notification.service';
 import { ProcessingComponentResponse } from '../../../../shared/models/component.model';
 import { AuditLogItem } from '../../../../shared/models/audit-log.model';
+import { HttpErrorResponse } from '@angular/common/http';
 
 import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
 
@@ -47,6 +48,7 @@ export class ComponentListComponent implements OnInit {
   sortDirection = signal<string>('desc');
 
   selectedCodes = signal<string[]>([]);
+  isLoading = signal<boolean>(false);
 
   componentCodesList: { value: string; label: string }[] = [];
   componentNamesList: { value: string; label: string }[] = [];
@@ -121,7 +123,7 @@ export class ComponentListComponent implements OnInit {
     { id: 'checkToken', label: 'Kiểm tra Token/ký số', isFixed: false, width: 180 },
     { id: 'status', label: 'Trạng thái tham số', isFixed: false, width: 180 },
     { id: 'isActive', label: 'Tình trạng hoạt động', isFixed: false, width: 180 },
-    { id: 'actions', label: 'Thao tác', isFixed: false, width: 180 }
+    { id: 'actions', label: 'Thao tác', isFixed: false, width: 250 }
   ];
 
   draggedColumnIndex: number | null = null;
@@ -204,6 +206,12 @@ export class ComponentListComponent implements OnInit {
   ngOnInit() {
     console.log('[ComponentListComponent] ngOnInit - loading filter options and data...');
     this.loadFilterOptions();
+    const savedState = this.componentService.getListState();
+    if (savedState) {
+      this.page.set(savedState.page);
+      this.size.set(savedState.size);
+      this.searchForm.patchValue(savedState.filters);
+    }
     this.loadData();
   }
 
@@ -225,6 +233,17 @@ export class ComponentListComponent implements OnInit {
 
   loadData() {
     console.log('[ComponentListComponent] loadData called');
+    // Auto save list state
+    this.componentService.setListState({
+      page: this.page(),
+      size: this.size(),
+      filters: this.searchForm.value,
+      viewMode: 'jpa',
+      activeTabIndex: 0
+    });
+
+    this.isLoading.set(true);
+
     const rawFilters = this.searchForm.value;
     const selectPlaceholder = this.languageService.labels().common.selectValue;
     const filters = {
@@ -256,9 +275,11 @@ export class ComponentListComponent implements OnInit {
         this.components.set(content);
         this.totalElements.set(res.data.page?.totalElements ?? res.data.totalElements ?? 0);
         this.selectedCodes.set([]);
+        this.isLoading.set(false);
       },
       error: (err: any) => {
         this.notificationService.error('Lỗi tải dữ liệu: ' + (err.error?.message || err.message));
+        this.isLoading.set(false);
       }
     });
   }
@@ -330,8 +351,22 @@ export class ComponentListComponent implements OnInit {
 
   // History Dialog state
   isHistoryOpen = false;
-  historyData: any[] = [];
+  historyData = signal<any[]>([]);
   historyTargetName = '';
+  historyPage = signal<number>(0);
+  readonly historyPageSize = 5;
+
+  paginatedHistoryData = computed(() => {
+    const data = this.historyData();
+    const pageVal = this.historyPage();
+    const sizeVal = this.historyPageSize;
+    const startIndex = pageVal * sizeVal;
+    return data.slice(startIndex, startIndex + sizeVal);
+  });
+
+  historyTotalPages = computed(() => {
+    return Math.ceil(this.historyData().length / this.historyPageSize) || 1;
+  });
 
   onBatchApprove() {
     const codes = this.selectedCodes();
@@ -400,11 +435,12 @@ export class ComponentListComponent implements OnInit {
             },
             date: dateStr,
             action: log.action,
-            ip: '127.0.0.1',
+            ip: log.ipAddress || '127.0.0.1',
             content: log.description
           };
         });
-        this.historyData = mapped;
+        this.historyData.set(mapped);
+        this.historyPage.set(0);
         this.isHistoryOpen = true;
         this.cdr.detectChanges();
       },
@@ -461,7 +497,7 @@ export class ComponentListComponent implements OnInit {
   onExportExcel() {
     this.componentService.exportExcel().subscribe({
       next: (res) => {
-        const data = res.data || [];
+        const data = (res.data || []) as unknown as ProcessingComponentResponse[];
         if (data.length === 0) {
           this.notificationService.warning('Không có dữ liệu cấu phần để xuất!');
           return;
@@ -470,10 +506,10 @@ export class ComponentListComponent implements OnInit {
         let csvContent = 'data:text/csv;charset=utf-8,\uFEFF';
         csvContent += 'Mã cấu phần,Tên cấu phần,Chuẩn tin điện,Phương thức kết nối,Kiểm tra Token,Trạng thái duyệt,Hoạt động,Ngày hiệu lực\n';
         
-        data.forEach((row: any) => {
-          const statusLabel = row['status'] === 4 ? 'Đã duyệt' : 'Chưa duyệt';
-          const activeLabel = row['isActive'] === 1 ? 'Hoạt động' : 'Không hoạt động';
-          csvContent += `"${row['componentCode']}","${row['componentName']}","${row['messageType'] || ''}","${row['connectionMethod'] || ''}","${row['checkToken']}","${statusLabel}","${activeLabel}","${row['effectiveDate']}"\n`;
+        data.forEach((row: ProcessingComponentResponse) => {
+          const statusLabel = row.status === 4 ? 'Đã duyệt' : 'Chưa duyệt';
+          const activeLabel = row.isActive === 1 ? 'Hoạt động' : 'Không hoạt động';
+          csvContent += `"${row.componentCode}","${row.componentName}","${row.messageType || ''}","${row.connectionMethod || ''}","${row.checkToken}","${statusLabel}","${activeLabel}","${row.effectiveDate}"\n`;
         });
 
         const encodedUri = encodeURI(csvContent);
@@ -484,7 +520,7 @@ export class ComponentListComponent implements OnInit {
         link.click();
         document.body.removeChild(link);
       },
-      error: (err: any) => {
+      error: (err: HttpErrorResponse) => {
         this.notificationService.error('Lỗi xuất Excel: ' + (err.error?.message || err.message));
       }
     });

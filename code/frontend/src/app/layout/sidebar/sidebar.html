@@ -1,38 +1,50 @@
 <!-- 1. SIDEBAR CHÍNH DỌC NGOÀI CÙNG (Màu xanh ngọc bích sẫm) -->
 <aside class="sidebar-main">
   <div class="sidebar-logo-icon">
-    <span class="hub-icon">⚙</span>
+    <span class="hub-icon">
+      <tui-icon icon="@tui.settings"></tui-icon>
+    </span>
   </div>
   <nav class="sidebar-nav">
-    <a class="nav-item">
-      <span class="icon">🏠</span>
+    <a class="nav-item" [class.active]="activeMenu() === 'dashboard'" (click)="selectMainMenu('dashboard')">
+      <span class="icon">
+        <tui-icon icon="@tui.house"></tui-icon>
+      </span>
       <span class="text">{{ languageService.labels().navigation.dashboard }}</span>
     </a>
-    <a class="nav-item active">
-      <span class="icon">📄</span>
+    <a class="nav-item" [class.active]="activeMenu() === 'params'" (click)="selectMainMenu('params')">
+      <span class="icon">
+        <tui-icon icon="@tui.box"></tui-icon>
+      </span>
       <span class="text">{{ languageService.labels().navigation.paramSetting }}</span>
     </a>
   </nav>
   <div class="sidebar-footer">
     <a class="nav-item logout">
-      <span class="icon">🚪</span>
+      <span class="icon">
+        <tui-icon icon="@tui.arrow-right"></tui-icon>
+      </span>
       <span class="text">{{ languageService.labels().navigation.logout }}</span>
     </a>
   </div>
 </aside>
 
 <!-- 2. SIDEBAR PHỤ (SUB-MENU) màu trắng -->
-<aside class="sidebar-sub">
+<aside class="sidebar-sub" *ngIf="activeMenu() === 'params'">
   <div class="sub-menu-header">
     <h3>{{ languageService.labels().navigation.systemParams }}</h3>
   </div>
   <ul class="sub-menu-list">
     <li routerLink="/components" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
-      <span class="sub-menu-icon">🔧</span>
+      <span class="sub-menu-icon">
+        <tui-icon icon="@tui.wrench"></tui-icon>
+      </span>
       {{ languageService.labels().navigation.processingComponents }}
     </li>
     <li routerLink="/categories" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
-      <span class="sub-menu-icon">📋</span>
+      <span class="sub-menu-icon">
+        <tui-icon icon="@tui.clipboard"></tui-icon>
+      </span>
       {{ languageService.labels().navigation.groupCategory }}
     </li>
   </ul>

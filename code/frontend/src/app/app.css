@@ -1,7 +1,7 @@
-/* Reset & Cấu trúc layout chung */
 .app-layout {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-family);

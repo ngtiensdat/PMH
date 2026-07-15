@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ComponentService } from '../../services/component.service';
 import { NotificationService } from '../../../../shared/components/notification/notification.service';
@@ -24,6 +25,7 @@ export class ComponentDetailComponent implements OnInit {
 
   component: ProcessingComponentResponse | null = null;
   code: string | null = null;
+  isLoading = signal<boolean>(false);
 
   fields = [
     'componentCode',
@@ -54,41 +56,44 @@ export class ComponentDetailComponent implements OnInit {
   }
 
   private loadComponentData(code: string) {
+    this.isLoading.set(true);
     this.componentService.getByCode(code).subscribe({
       next: (res) => {
         this.component = res.data;
+        this.isLoading.set(false);
       },
-      error: (err: any) => {
+      error: (err: HttpErrorResponse) => {
         this.notificationService.error('Không thể nạp dữ liệu chi tiết cấu phần: ' + (err.error?.message || err.message));
+        this.isLoading.set(false);
         this.goBack();
       }
     });
   }
 
-  get parsedNewData(): any {
+  get parsedNewData(): Record<string, unknown> | null {
     if (!this.component?.newData) return null;
     try {
       return typeof this.component.newData === 'string' ? JSON.parse(this.component.newData) : this.component.newData;
     } catch { return null; }
   }
 
-  get oldData(): any {
+  get oldData(): Record<string, unknown> {
     if (!this.component) return {};
     
     if (this.component.status === 1 || (this.component.status === 3 && !this.component.createdBy)) {
       return {};
     }
-    return this.component;
+    return this.component as unknown as Record<string, unknown>;
   }
 
-  get newData(): any {
+  get newData(): Record<string, unknown> {
     if (!this.component) return {};
     
     const nd = this.parsedNewData;
     if (nd) {
       return nd;
     }
-    return this.component;
+    return this.component as unknown as Record<string, unknown>;
   }
 
   getFieldLabel(field: string): string {
@@ -106,12 +111,12 @@ export class ComponentDetailComponent implements OnInit {
     return labels[field] || field;
   }
 
-  formatValue(field: string, val: any): string {
+  formatValue(field: string, val: unknown): string {
     if (val === undefined || val === null || val === '') return '-';
     
     if (field === 'effectiveDate' || field === 'endEffectiveDate') {
-      const d = new Date(val);
-      if (isNaN(d.getTime())) return val;
+      const d = new Date(val as string | number | Date);
+      if (isNaN(d.getTime())) return String(val);
       const pad = (n: number) => n.toString().padStart(2, '0');
       return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     }
@@ -139,7 +144,7 @@ export class ComponentDetailComponent implements OnInit {
           this.notificationService.success('Xóa thành công!');
           this.goBack();
         },
-        error: (err: any) => {
+        error: (err: HttpErrorResponse) => {
           this.notificationService.error('Không thể xóa: ' + (err.error?.message || err.message));
         }
       });
@@ -152,7 +157,7 @@ export class ComponentDetailComponent implements OnInit {
         this.notificationService.success('Gửi duyệt thành công!');
         this.goBack();
       },
-      error: (err: any) => {
+      error: (err: HttpErrorResponse) => {
         this.notificationService.error('Lỗi gửi duyệt: ' + (err.error?.message || err.message));
       }
     });
@@ -165,11 +170,11 @@ export class ComponentDetailComponent implements OnInit {
   onApproveRecord() {
     if (confirm('Bạn có chắc chắn muốn duyệt cấu phần xử lý này?')) {
       this.componentService.batchApprove([this.component!.componentCode]).subscribe({
-        next: (res: any) => {
+        next: () => {
           this.notificationService.success('Duyệt cấu phần thành công!');
           this.goBack();
         },
-        error: (err: any) => {
+        error: (err: HttpErrorResponse) => {
           this.notificationService.error('Lỗi khi duyệt: ' + (err.error?.message || err.message));
         }
       });
@@ -189,12 +194,12 @@ export class ComponentDetailComponent implements OnInit {
     const reason = this.rejectReason.trim();
     this.isRejectOpen = false;
 
-    this.componentService.batchReject([this.component!.componentCode]).subscribe({
-      next: (res: any) => {
+    this.componentService.batchReject([this.component!.componentCode], reason).subscribe({
+      next: () => {
         this.notificationService.success('Từ chối duyệt thành công! Lý do: ' + reason);
         this.goBack();
       },
-      error: (err: any) => {
+      error: (err: HttpErrorResponse) => {
         this.notificationService.error('Lỗi khi từ chối: ' + (err.error?.message || err.message));
       }
     });

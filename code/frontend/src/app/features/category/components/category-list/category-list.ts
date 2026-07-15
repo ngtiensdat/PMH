@@ -9,8 +9,21 @@ import { parseDateString } from '../../../../shared/utils/date.utils';
 import { NotificationService } from '../../../../shared/components/notification/notification.service';
 import { GroupCategoryResponse } from '../../../../shared/models/group-category.model';
 import { AuditLogItem } from '../../../../shared/models/audit-log.model';
+import { HttpErrorResponse } from '@angular/common/http';
 
 import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
+
+interface MappedHistoryItem {
+  user: {
+    name: string;
+    code: string;
+    avatar: string;
+  };
+  date: string;
+  action: string;
+  ip: string;
+  content: string;
+}
 
 @Component({
   selector: 'app-category-list',
@@ -52,6 +65,7 @@ export class CategoryListComponent implements OnInit {
 
   joinedCategories = signal<GroupCategoryResponse[]>([]);
   selectedIds = signal<number[]>([]);
+  isLoading = signal<boolean>(false);
 
   // Dùng shared STATUS_MAP từ constants
   statusMap = STATUS_MAP;
@@ -119,7 +133,7 @@ export class CategoryListComponent implements OnInit {
     { id: 'endEffectiveDate', label: 'Ngày hết hiệu lực', isFixed: false, width: 180 },
     { id: 'status', label: 'Trạng thái tham số', isFixed: false, width: 180 },
     { id: 'isActive', label: 'Tình trạng hoạt động', isFixed: false, width: 180 },
-    { id: 'actions', label: 'Thao tác', isFixed: false, width: 180 }
+    { id: 'actions', label: 'Thao tác', isFixed: false, width: 250 }
   ];
 
   draggedColumnIndex: number | null = null;
@@ -200,16 +214,16 @@ export class CategoryListComponent implements OnInit {
       this.loadData();
     } else {
       const list = [...this.joinedCategories()];
-      list.sort((a: any, b: any) => {
-        let valA = a[colId];
-        let valB = b[colId];
+      list.sort((a: GroupCategoryResponse, b: GroupCategoryResponse) => {
+        let valA = a[colId as keyof GroupCategoryResponse];
+        let valB = b[colId as keyof GroupCategoryResponse];
         if (valA === undefined || valA === null) valA = '';
         if (valB === undefined || valB === null) valB = '';
 
         if (typeof valA === 'string') {
           return newDir === 'asc' 
-            ? valA.localeCompare(valB)
-            : valB.localeCompare(valA);
+            ? (valA as string).localeCompare(valB as string)
+            : (valB as string).localeCompare(valA as string);
         } else {
           return newDir === 'asc'
             ? (valA > valB ? 1 : -1)
@@ -222,11 +236,30 @@ export class CategoryListComponent implements OnInit {
 
   ngOnInit() {
     console.log('[CategoryListComponent] ngOnInit - loading data...');
+    const savedState = this.categoryService.getListState();
+    if (savedState) {
+      this.viewMode.set(savedState.viewMode);
+      this.activeTabIndex = savedState.activeTabIndex;
+      this.page.set(savedState.page);
+      this.size.set(savedState.size);
+      this.searchForm.patchValue(savedState.filters);
+    }
     this.loadData();
   }
 
   loadData() {
     console.log('[CategoryListComponent] loadData - viewMode:', this.viewMode());
+    // Auto save list state
+    this.categoryService.setListState({
+      page: this.page(),
+      size: this.size(),
+      filters: this.searchForm.value,
+      viewMode: this.viewMode(),
+      activeTabIndex: this.activeTabIndex
+    });
+
+    this.isLoading.set(true);
+
     if (this.viewMode() === 'native') {
       this.loadJoinedData();
       return;
@@ -263,9 +296,11 @@ export class CategoryListComponent implements OnInit {
         this.categories.set(content);
         this.totalElements.set(res.data.page?.totalElements ?? res.data.totalElements ?? 0);
         this.selectedIds.set([]);
+        this.isLoading.set(false);
       },
-      error: (err: any) => {
+      error: (err: HttpErrorResponse) => {
         this.notificationService.error('Lỗi tải dữ liệu: ' + (err.error?.message || err.message));
+        this.isLoading.set(false);
       }
     });
   }
@@ -291,9 +326,11 @@ export class CategoryListComponent implements OnInit {
         });
         this.joinedCategories.set(content);
         this.selectedIds.set([]);
+        this.isLoading.set(false);
       },
-      error: (err: any) => {
+      error: (err: HttpErrorResponse) => {
         this.notificationService.error('Lỗi tải dữ liệu liên kết: ' + (err.error?.message || err.message));
+        this.isLoading.set(false);
       }
     });
   }
@@ -341,11 +378,11 @@ export class CategoryListComponent implements OnInit {
     this.router.navigate(['/categories/add']);
   }
 
-  openEditDialog(item: any) {
+  openEditDialog(item: GroupCategoryResponse) {
     this.router.navigate(['/categories/edit', item.id]);
   }
 
-  openCopyDialog(item: any) {
+  openCopyDialog(item: GroupCategoryResponse) {
     this.router.navigate(['/categories/copy', item.id]);
   }
 
@@ -354,7 +391,7 @@ export class CategoryListComponent implements OnInit {
   confirmTitle = '';
   confirmMessage = '';
   confirmAction: 'approve' | 'reject' | 'delete' | 'sendApproval' | 'batchApprove' | 'batchReject' | null = null;
-  confirmTargetId: any = null;
+  confirmTargetId: number | null = null;
 
   onDelete(id: number) {
     this.confirmTitle = 'Xóa bản ghi';
@@ -372,7 +409,7 @@ export class CategoryListComponent implements OnInit {
     this.isConfirmOpen = true;
   }
 
-  onViewDetail(item: any) {
+  onViewDetail(item: GroupCategoryResponse) {
     this.router.navigate(['/categories/detail', item.id]);
   }
 
@@ -383,8 +420,22 @@ export class CategoryListComponent implements OnInit {
 
   // History Dialog state
   isHistoryOpen = false;
-  historyData: any[] = [];
+  historyData = signal<MappedHistoryItem[]>([]);
   historyTargetName = '';
+  historyPage = signal<number>(0);
+  readonly historyPageSize = 5;
+
+  paginatedHistoryData = computed(() => {
+    const data = this.historyData();
+    const pageVal = this.historyPage();
+    const sizeVal = this.historyPageSize;
+    const startIndex = pageVal * sizeVal;
+    return data.slice(startIndex, startIndex + sizeVal);
+  });
+
+  historyTotalPages = computed(() => {
+    return Math.ceil(this.historyData().length / this.historyPageSize) || 1;
+  });
 
   onBatchApprove() {
     const ids = this.selectedIds();
@@ -422,11 +473,11 @@ export class CategoryListComponent implements OnInit {
 
     this.categoryService.batchReject(ids, reason).subscribe({
       next: (res) => {
-        const successCount = (res.data || []).filter((r: any) => r['success']).length;
+        const successCount = (res.data || []).filter((r: Record<string, unknown>) => r['success']).length;
         this.notificationService.success(`Đã từ chối thành công ${successCount}/${ids.length} bản ghi! Lý do: ${reason}`);
         this.loadData();
       },
-      error: (err: any) => {
+      error: (err: HttpErrorResponse) => {
         this.notificationService.error('Lỗi thực hiện từ chối duyệt: ' + (err.error?.message || err.message));
       }
     });
@@ -453,15 +504,16 @@ export class CategoryListComponent implements OnInit {
             },
             date: dateStr,
             action: log.action,
-            ip: '127.0.0.1',
+            ip: log.ipAddress || '127.0.0.1',
             content: log.description
           };
         });
-        this.historyData = mapped;
+        this.historyData.set(mapped);
+        this.historyPage.set(0);
         this.isHistoryOpen = true;
         this.cdr.detectChanges();
       },
-      error: (err: any) => {
+      error: (err: HttpErrorResponse) => {
         this.notificationService.error('Không thể tải lịch sử thao tác: ' + (err.error?.message || err.message));
       }
     });
@@ -476,23 +528,23 @@ export class CategoryListComponent implements OnInit {
     const id = this.confirmTargetId;
     this.isConfirmOpen = false;
 
-    if (action === 'delete') {
+    if (action === 'delete' && id !== null) {
       this.categoryService.delete(id).subscribe({
         next: () => {
           this.notificationService.success('Xóa thành công!');
           this.loadData();
         },
-        error: (err: any) => {
+        error: (err: HttpErrorResponse) => {
           this.notificationService.error('Không thể xóa: ' + (err.error?.message || err.message));
         }
       });
-    } else if (action === 'sendApproval') {
+    } else if (action === 'sendApproval' && id !== null) {
       this.categoryService.sendApproval(id).subscribe({
         next: () => {
           this.notificationService.success('Gửi duyệt thành công!');
           this.loadData();
         },
-        error: (err: any) => {
+        error: (err: HttpErrorResponse) => {
           this.notificationService.error('Lỗi gửi duyệt: ' + (err.error?.message || err.message));
         }
       });
@@ -500,11 +552,11 @@ export class CategoryListComponent implements OnInit {
       const ids = this.selectedIds();
       this.categoryService.batchApprove(ids).subscribe({
         next: (res) => {
-          const successCount = (res.data || []).filter((r: any) => r['success']).length;
+          const successCount = (res.data || []).filter((r: Record<string, unknown>) => r['success']).length;
           this.notificationService.success(`Đã duyệt thành công ${successCount}/${ids.length} bản ghi!`);
           this.loadData();
         },
-        error: (err: any) => {
+        error: (err: HttpErrorResponse) => {
           this.notificationService.error('Lỗi thực hiện duyệt hàng loạt: ' + (err.error?.message || err.message));
         }
       });
@@ -514,7 +566,7 @@ export class CategoryListComponent implements OnInit {
   onExportExcel() {
     this.categoryService.exportExcel().subscribe({
       next: (res) => {
-        const data = res.data || [];
+        const data = (res.data || []) as unknown as GroupCategoryResponse[];
         if (data.length === 0) {
           this.notificationService.warning('Không có dữ liệu để xuất!');
           return;
@@ -523,10 +575,10 @@ export class CategoryListComponent implements OnInit {
         let csvContent = 'data:text/csv;charset=utf-8,\uFEFF';
         csvContent += 'ID,Danh mục theo nhóm,Giá trị thành phần,Tên thành phần,Mô tả,Trạng thái duyệt,Hoạt động,Ngày hiệu lực\n';
         
-        data.forEach((row: any) => {
-          const statusLabel = row['status'] === 4 ? 'Đã duyệt' : 'Chưa duyệt';
-          const activeLabel = row['isActive'] === 1 ? 'Hoạt động' : 'Không hoạt động';
-          csvContent += `"${row['id']}","${row['paramType']}","${row['paramValue']}","${row['paramName']}","${row['description']}","${statusLabel}","${activeLabel}","${row['effectiveDate']}"\n`;
+        data.forEach((row: GroupCategoryResponse) => {
+          const statusLabel = row.status === 4 ? 'Đã duyệt' : 'Chưa duyệt';
+          const activeLabel = row.isActive === 1 ? 'Hoạt động' : 'Không hoạt động';
+          csvContent += `"${row.id}","${row.paramType}","${row.paramValue}","${row.paramName}","${row.description || ''}","${statusLabel}","${activeLabel}","${row.effectiveDate}"\n`;
         });
 
         const encodedUri = encodeURI(csvContent);
@@ -537,7 +589,7 @@ export class CategoryListComponent implements OnInit {
         link.click();
         document.body.removeChild(link);
       },
-      error: (err) => {
+      error: (err: HttpErrorResponse) => {
         this.notificationService.error('Lỗi xuất dữ liệu: ' + (err.error?.message || err.message));
       }
     });

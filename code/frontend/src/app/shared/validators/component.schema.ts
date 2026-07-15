@@ -137,6 +137,12 @@ export function zodFieldValidator(schema: z.ZodObject<any>, field: string): Vali
     if (partialData['checkToken'] !== undefined && typeof partialData['checkToken'] === 'boolean') {
       partialData['checkToken'] = partialData['checkToken'] ? 'Y' : 'N';
     }
+    if (Array.isArray(partialData['messageType'])) {
+      partialData['messageType'] = partialData['messageType'].join(', ');
+    }
+    if (Array.isArray(partialData['connectionMethod'])) {
+      partialData['connectionMethod'] = partialData['connectionMethod'].join(', ');
+    }
 
     const result = schema.safeParse(partialData);
     if (result.success) return null;
@@ -153,6 +159,12 @@ export function zodFormValidator(schema: z.ZodType<any>): ValidatorFn {
     const rawValue = { ...control.value };
     if (rawValue['checkToken'] !== undefined && typeof rawValue['checkToken'] === 'boolean') {
       rawValue['checkToken'] = rawValue['checkToken'] ? 'Y' : 'N';
+    }
+    if (Array.isArray(rawValue['messageType'])) {
+      rawValue['messageType'] = rawValue['messageType'].join(', ');
+    }
+    if (Array.isArray(rawValue['connectionMethod'])) {
+      rawValue['connectionMethod'] = rawValue['connectionMethod'].join(', ');
     }
     const result = schema.safeParse(rawValue);
     if (result.success) return null;

@@ -55,8 +55,12 @@ export class ComponentService {
     return this.http.get<ApiResponse<ProcessingComponentResponse>>(`${this.apiUrl}/${code}`);
   }
 
-  getActiveList(): Observable<ApiResponse<ProcessingComponentResponse[]>> {
-    return this.http.get<ApiResponse<ProcessingComponentResponse[]>>(`${this.apiUrl}/active-list`);
+  getActiveList(status?: number): Observable<ApiResponse<ProcessingComponentResponse[]>> {
+    let params = new HttpParams();
+    if (status !== undefined && status !== null) {
+      params = params.set('status', status.toString());
+    }
+    return this.http.get<ApiResponse<ProcessingComponentResponse[]>>(`${this.apiUrl}/active-list`, { params });
   }
 
   create(dto: ProcessingComponentRequest, username: string = 'USER01'): Observable<ApiResponse<ProcessingComponentResponse>> {
@@ -94,5 +98,26 @@ export class ComponentService {
 
   getHistory(code: string): Observable<ApiResponse<AuditLogItem[]>> {
     return this.http.get<ApiResponse<AuditLogItem[]>>(`${environment.apiBase}/api/audit-log/component/${code}`);
+  }
+
+  // Cache state for list pagination and filters
+  private listState: {
+    page: number;
+    size: number;
+    filters: any;
+    viewMode: 'jpa' | 'native';
+    activeTabIndex: number;
+  } | null = null;
+
+  setListState(state: any) {
+    this.listState = state;
+  }
+
+  getListState() {
+    return this.listState;
+  }
+
+  clearListState() {
+    this.listState = null;
   }
 }
