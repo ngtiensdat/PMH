@@ -14,10 +14,12 @@ export class ComponentService {
 
   constructor(private http: HttpClient) {}
 
-  private getHeaders(username: string = 'USER01'): HttpHeaders {
+  private getHeaders(username?: string): HttpHeaders {
+    const activeUser = localStorage.getItem('app_usercode') || 'USER01';
+    const finalUser = (username === 'USER01' || username === 'APPROVER' || !username) ? activeUser : username;
     return new HttpHeaders({
       'Content-Type': 'application/json',
-      'X-Username': username
+      'X-Username': finalUser
     });
   }
 
@@ -71,8 +73,8 @@ export class ComponentService {
     return this.http.put<ApiResponse<ProcessingComponentResponse>>(`${this.apiUrl}/${code}`, dto, { headers: this.getHeaders(username) });
   }
 
-  delete(code: string): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${code}`);
+  delete(code: string, username: string = 'USER01'): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${code}`, { headers: this.getHeaders(username) });
   }
 
   sendApproval(code: string, username: string = 'USER01'): Observable<ApiResponse<ProcessingComponentResponse>> {

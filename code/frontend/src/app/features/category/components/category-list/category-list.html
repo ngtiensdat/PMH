@@ -8,7 +8,8 @@
     </div>
     <div class="title-action-row">
       <h1 class="page-title">{{ languageService.labels().category.title }}</h1>
-      <button tuiButton type="button" class="btn-primary-pmh" (click)="openAddDialog()">
+      <button *ngIf="languageService.userCode() === 'USER01'" tuiButton type="button" class="btn-primary-pmh"
+        (click)="openAddDialog()">
         + {{ languageService.labels().common.addNew }}
       </button>
     </div>
@@ -80,15 +81,18 @@
         <span class="grid-count-badge">{{ totalElements() }}</span>
       </div>
       <div class="grid-actions">
-        <button tuiButton appearance="secondary" type="button" (click)="onBatchApprove()"
-          [disabled]="selectedIds().length === 0" class="btn-approve-secondary" iconStart="@tui.check">
+        <button *ngIf="languageService.userCode() === 'APPROVER'" tuiButton appearance="secondary" type="button"
+          (click)="onBatchApprove()" [disabled]="selectedIds().length === 0" class="btn-approve-secondary"
+          iconStart="@tui.check">
           {{ languageService.labels().common.batchApprove }}
         </button>
-        <button tuiButton appearance="secondary" type="button" (click)="onBatchReject()"
-          [disabled]="selectedIds().length === 0" class="btn-reject-secondary" iconStart="@tui.x">
+        <button *ngIf="languageService.userCode() === 'APPROVER'" tuiButton appearance="secondary" type="button"
+          (click)="onBatchReject()" [disabled]="selectedIds().length === 0" class="btn-reject-secondary"
+          iconStart="@tui.x">
           {{ languageService.labels().common.batchReject }}
         </button>
-        <button tuiButton appearance="secondary" type="button" class="clear-btn-secondary" (click)="onExportExcel()" iconStart="@tui.download">
+        <button tuiButton appearance="secondary" type="button" class="clear-btn-secondary" (click)="onExportExcel()"
+          iconStart="@tui.download">
           {{ languageService.labels().common.exportExcel }}
         </button>
       </div>
@@ -97,14 +101,15 @@
     <!-- BẢNG DỮ LIỆU DÙNG CHUNG -->
     <div style="overflow-x: auto; width: 100%; position: relative; min-height: 250px;">
       <!-- Spinner loading cho table -->
-      <div class="loading-overlay" *ngIf="isLoading()" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255, 255, 255, 0.6); display: flex; justify-content: center; align-items: center; z-index: 100;">
+      <div class="loading-overlay" *ngIf="isLoading()"
+        style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255, 255, 255, 0.6); display: flex; justify-content: center; align-items: center; z-index: 100;">
         <tui-loader size="l"></tui-loader>
       </div>
 
       <table class="tui-table" style="width: 100%; border-collapse: collapse; table-layout: fixed; text-align: left;">
         <thead>
           <tr style="border-bottom: 2px solid #e2e8f0; background-color: #f8fafc;">
-            <th *ngFor="let col of columns; let colIdx = index" [style.width.px]="col.width"
+            <th *ngFor="let col of displayColumns; let colIdx = index" [style.width.px]="col.width"
               [style.min-width.px]="col.width" [style.max-width.px]="col.width"
               [attr.draggable]="!col.isFixed ? 'true' : null" (dragstart)="onDragStart(colIdx)"
               (dragover)="onDragOver($event, colIdx)" (dragleave)="onDragLeave()" (drop)="onDrop(colIdx)"
@@ -153,7 +158,7 @@
             (dblclick)="onViewDetail(item)"
             style="border-bottom: 1px solid #f1f5f9; transition: background-color 0.15s; cursor: pointer;">
 
-            <ng-container *ngFor="let col of columns">
+            <ng-container *ngFor="let col of displayColumns">
               <td [style.width.px]="col.width" [style.min-width.px]="col.width" [style.max-width.px]="col.width"
                 style="padding: 0.75rem 1rem; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                 <ng-container [ngSwitch]="col.id">
@@ -229,12 +234,13 @@
                       [ngClass]="item.status === 5 && item.isDisplay === 2 ? 'badge-canceled' : statusMap[item.status]?.css">
                       <span class="dot" *ngIf="item.status !== 4"></span>
                       <span class="check-icon" *ngIf="item.status === 4">
-                        <tui-icon icon="@tui.check" style="--tui-icon-size: 12px; display: inline-block; vertical-align: middle;"></tui-icon>
+                        <tui-icon icon="@tui.check"
+                          style="--tui-icon-size: 12px; display: inline-block; vertical-align: middle;"></tui-icon>
                       </span>
                       <span class="label">
                         {{
                         item.status === 5 && item.isDisplay === 2
-                        ? '6 - Hủy duyệt'
+                        ? '7 - Hủy duyệt'
                         : (languageService.labels().common.status[statusMap[item.status]?.labelKey || 'new'])
                         }}
                       </span>
@@ -258,11 +264,12 @@
                         [title]="languageService.labels().common.viewDetail">
                         <tui-icon icon="@tui.eye" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
-                      <button (click)="openEditDialog(item)" class="action-btn edit"
-                        [title]="languageService.labels().common.edit">
+                      <button *ngIf="languageService.userCode() === 'USER01'" (click)="openEditDialog(item)"
+                        class="action-btn edit" [title]="languageService.labels().common.edit">
                         <tui-icon icon="@tui.pencil" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
-                      <button *ngIf="viewMode() === 'jpa'" (click)="openCopyDialog(item)" class="action-btn copy"
+                      <button *ngIf="viewMode() === 'jpa' && languageService.userCode() === 'USER01'"
+                        (click)="openCopyDialog(item)" class="action-btn copy"
                         [title]="languageService.labels().common.copy">
                         <tui-icon icon="@tui.copy" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
@@ -270,12 +277,13 @@
                         style="color: #64748b;">
                         <tui-icon icon="@tui.history" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
-                      <button *ngIf="viewMode() === 'jpa'" (click)="onDelete(item.id)" class="action-btn delete"
-                        [title]="languageService.labels().common.delete"
-                        [class.invisible]="item.isDisplay !== 1">
+                      <button *ngIf="viewMode() === 'jpa' && languageService.userCode() === 'USER01'"
+                        (click)="onDelete(item.id)" class="action-btn delete"
+                        [title]="languageService.labels().common.delete" [class.invisible]="item.isDisplay !== 1">
                         <tui-icon icon="@tui.trash" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
-                      <button *ngIf="viewMode() === 'jpa'" (click)="onSendApproval(item.id)" class="action-btn approve"
+                      <button *ngIf="viewMode() === 'jpa' && languageService.userCode() === 'USER01'"
+                        (click)="onSendApproval(item.id)" class="action-btn approve"
                         [title]="languageService.labels().common.sendApproval"
                         [class.invisible]="item.status !== 1 && item.status !== 5">
                         <tui-icon icon="@tui.send" style="--tui-icon-size: 14px;"></tui-icon>

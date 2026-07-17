@@ -8,7 +8,8 @@
     </div>
     <div class="title-action-row">
       <h1 class="page-title">{{ languageService.labels().components.title }}</h1>
-      <button tuiButton type="button" class="btn-primary-pmh" (click)="openAddDialog()">
+      <button *ngIf="languageService.userCode() === 'USER01'" tuiButton type="button" class="btn-primary-pmh"
+        (click)="openAddDialog()">
         + {{ languageService.labels().common.addNew }}
       </button>
     </div>
@@ -19,50 +20,26 @@
     <div class="search-grid-inline">
       <tui-textfield tuiChevron>
         <label tuiLabel>{{ languageService.labels().components.code }}</label>
-        <input
-          tuiSelect
-          formControlName="componentCode"
-        />
-        <tui-data-list-wrapper
-          *tuiDropdown
-          [items]="componentCodeItems"
-        />
+        <input tuiSelect formControlName="componentCode" />
+        <tui-data-list-wrapper *tuiDropdown [items]="componentCodeItems" />
       </tui-textfield>
 
       <tui-textfield tuiChevron>
         <label tuiLabel>{{ languageService.labels().components.name }}</label>
-        <input
-          tuiSelect
-          formControlName="componentName"
-        />
-        <tui-data-list-wrapper
-          *tuiDropdown
-          [items]="componentNameItems"
-        />
+        <input tuiSelect formControlName="componentName" />
+        <tui-data-list-wrapper *tuiDropdown [items]="componentNameItems" />
       </tui-textfield>
 
       <tui-textfield tuiChevron [stringify]="stringifyStatus">
         <label tuiLabel>{{ languageService.labels().components.paramStatus }}</label>
-        <input
-          tuiSelect
-          formControlName="status"
-        />
-        <tui-data-list-wrapper
-          *tuiDropdown
-          [items]="statusCodes"
-        />
+        <input tuiSelect formControlName="status" />
+        <tui-data-list-wrapper *tuiDropdown [items]="statusCodes" />
       </tui-textfield>
 
       <tui-textfield tuiChevron [stringify]="stringifyActive">
         <label tuiLabel>{{ languageService.labels().components.activeStatus }}</label>
-        <input
-          tuiSelect
-          formControlName="isActive"
-        />
-        <tui-data-list-wrapper
-          *tuiDropdown
-          [items]="activeCodes"
-        />
+        <input tuiSelect formControlName="isActive" />
+        <tui-data-list-wrapper *tuiDropdown [items]="activeCodes" />
       </tui-textfield>
 
       <div class="search-button-container">
@@ -81,13 +58,18 @@
         <span class="grid-count-badge">{{ totalElements() }}</span>
       </div>
       <div class="grid-actions">
-        <button tuiButton appearance="secondary" type="button" (click)="onBatchApprove()" [disabled]="selectedCodes().length === 0" class="btn-approve-secondary" iconStart="@tui.check">
+        <button *ngIf="languageService.userCode() === 'APPROVER'" tuiButton appearance="secondary" type="button"
+          (click)="onBatchApprove()" [disabled]="selectedCodes().length === 0" class="btn-approve-secondary"
+          iconStart="@tui.check">
           {{ languageService.labels().common.batchApprove }}
         </button>
-        <button tuiButton appearance="secondary" type="button" (click)="onBatchReject()" [disabled]="selectedCodes().length === 0" class="btn-reject-secondary" iconStart="@tui.x">
+        <button *ngIf="languageService.userCode() === 'APPROVER'" tuiButton appearance="secondary" type="button"
+          (click)="onBatchReject()" [disabled]="selectedCodes().length === 0" class="btn-reject-secondary"
+          iconStart="@tui.x">
           {{ languageService.labels().common.batchReject }}
         </button>
-        <button tuiButton appearance="secondary" type="button" class="clear-btn-secondary" (click)="onExportExcel()" iconStart="@tui.download">
+        <button tuiButton appearance="secondary" type="button" class="clear-btn-secondary" (click)="onExportExcel()"
+          iconStart="@tui.download">
           Xuất Excel
         </button>
       </div>
@@ -96,27 +78,20 @@
     <!-- BẢNG DỮ LIỆU DÙNG CHUNG -->
     <div style="overflow-x: auto; width: 100%; position: relative; min-height: 250px;">
       <!-- Spinner loading cho table -->
-      <div class="loading-overlay" *ngIf="isLoading()" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255, 255, 255, 0.6); display: flex; justify-content: center; align-items: center; z-index: 100;">
+      <div class="loading-overlay" *ngIf="isLoading()"
+        style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255, 255, 255, 0.6); display: flex; justify-content: center; align-items: center; z-index: 100;">
         <tui-loader size="l"></tui-loader>
       </div>
 
       <table class="tui-table" style="width: 100%; border-collapse: collapse; table-layout: fixed; text-align: left;">
         <thead>
           <tr style="border-bottom: 2px solid #e2e8f0; background-color: #f8fafc;">
-            <th 
-              *ngFor="let col of columns; let colIdx = index"
-              [style.width.px]="col.width"
-              [style.min-width.px]="col.width"
-              [style.max-width.px]="col.width"
-              [attr.draggable]="!col.isFixed ? 'true' : null"
-              (dragstart)="onDragStart(colIdx)"
-              (dragover)="onDragOver($event, colIdx)"
-              (dragleave)="onDragLeave()"
-              (drop)="onDrop(colIdx)"
-              [class.draggable-col]="!col.isFixed"
-              [class.drag-over]="dragOverColumnIndex === colIdx"
-              style="padding: 0.75rem 1rem; position: relative; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-            >
+            <th *ngFor="let col of displayColumns; let colIdx = index" [style.width.px]="col.width"
+              [style.min-width.px]="col.width" [style.max-width.px]="col.width"
+              [attr.draggable]="!col.isFixed ? 'true' : null" (dragstart)="onDragStart(colIdx)"
+              (dragover)="onDragOver($event, colIdx)" (dragleave)="onDragLeave()" (drop)="onDrop(colIdx)"
+              [class.draggable-col]="!col.isFixed" [class.drag-over]="dragOverColumnIndex === colIdx"
+              style="padding: 0.75rem 1rem; position: relative; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
               <!-- Cell content by column ID -->
               <ng-container [ngSwitch]="col.id">
                 <!-- Checkbox -->
@@ -156,23 +131,19 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let item of components(); let i = index" 
-              (dblclick)="onViewDetail(item)"
-              style="border-bottom: 1px solid #f1f5f9; transition: background-color 0.15s; cursor: pointer;">
-            
-            <ng-container *ngFor="let col of columns">
-              <td 
-                [style.width.px]="col.width"
-                [style.min-width.px]="col.width"
-                [style.max-width.px]="col.width"
-                style="padding: 0.75rem 1rem; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-              >
+          <tr *ngFor="let item of components(); let i = index" (dblclick)="onViewDetail(item)"
+            style="border-bottom: 1px solid #f1f5f9; transition: background-color 0.15s; cursor: pointer;">
+
+            <ng-container *ngFor="let col of displayColumns">
+              <td [style.width.px]="col.width" [style.min-width.px]="col.width" [style.max-width.px]="col.width"
+                style="padding: 0.75rem 1rem; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                 <ng-container [ngSwitch]="col.id">
-                  
+
                   <!-- Checkbox -->
                   <ng-container *ngSwitchCase="'checkbox'">
                     <div style="text-align: center;" (click)="$event.stopPropagation()">
-                      <input type="checkbox" [checked]="selectedCodes().includes(item.componentCode)" (change)="toggleItemSelection(item.componentCode, $event)" />
+                      <input type="checkbox" [checked]="selectedCodes().includes(item.componentCode)"
+                        (change)="toggleItemSelection(item.componentCode, $event)" />
                     </div>
                   </ng-container>
 
@@ -185,7 +156,8 @@
 
                   <!-- Component Code -->
                   <ng-container *ngSwitchCase="'componentCode'">
-                    <span style="font-family: monospace; font-size: 0.82rem; color: #475569; background: #f8fafc; padding: 0.2rem 0.4rem; border-radius: 4px;">
+                    <span
+                      style="font-family: monospace; font-size: 0.82rem; color: #475569; background: #f8fafc; padding: 0.2rem 0.4rem; border-radius: 4px;">
                       {{ item.componentCode }}
                     </span>
                   </ng-container>
@@ -212,25 +184,30 @@
                   <!-- Check Token -->
                   <ng-container *ngSwitchCase="'checkToken'">
                     <div style="text-align: center;">
-                      <span class="token-badge" [class.token-yes]="item.checkToken === 'Y'" [class.token-no]="item.checkToken !== 'Y'">
-                        <tui-icon *ngIf="item.checkToken === 'Y'" icon="@tui.check" style="--tui-icon-size: 12px; display: inline-block; vertical-align: middle;"></tui-icon>
-                        <tui-icon *ngIf="item.checkToken !== 'Y'" icon="@tui.x" style="--tui-icon-size: 12px; display: inline-block; vertical-align: middle;"></tui-icon>
+                      <span class="token-badge" [class.token-yes]="item.checkToken === 'Y'"
+                        [class.token-no]="item.checkToken !== 'Y'">
+                        <tui-icon *ngIf="item.checkToken === 'Y'" icon="@tui.check"
+                          style="--tui-icon-size: 12px; display: inline-block; vertical-align: middle;"></tui-icon>
+                        <tui-icon *ngIf="item.checkToken !== 'Y'" icon="@tui.x"
+                          style="--tui-icon-size: 12px; display: inline-block; vertical-align: middle;"></tui-icon>
                       </span>
                     </div>
                   </ng-container>
 
                   <!-- Status -->
                   <ng-container *ngSwitchCase="'status'">
-                    <span class="dot-badge" [ngClass]="item.status === 5 && item.isDisplay === 2 ? 'badge-canceled' : statusMap[item.status]?.css">
+                    <span class="dot-badge"
+                      [ngClass]="item.status === 5 && item.isDisplay === 2 ? 'badge-canceled' : statusMap[item.status]?.css">
                       <span class="dot" *ngIf="item.status !== 4"></span>
                       <span class="check-icon" *ngIf="item.status === 4">
-                        <tui-icon icon="@tui.check" style="--tui-icon-size: 12px; display: inline-block; vertical-align: middle;"></tui-icon>
+                        <tui-icon icon="@tui.check"
+                          style="--tui-icon-size: 12px; display: inline-block; vertical-align: middle;"></tui-icon>
                       </span>
                       <span class="label">
-                        {{ 
-                          item.status === 5 && item.isDisplay === 2 
-                          ? '6 - Hủy duyệt' 
-                          : (languageService.labels().common.status[statusMap[item.status]?.labelKey || 'new'])
+                        {{
+                        item.status === 5 && item.isDisplay === 2
+                        ? '7 - Hủy duyệt'
+                        : (languageService.labels().common.status[statusMap[item.status]?.labelKey || 'new'])
                         }}
                       </span>
                     </span>
@@ -240,29 +217,40 @@
                   <ng-container *ngSwitchCase="'isActive'">
                     <span class="dot-badge" [class.active]="item.isActive === 1" [class.inactive]="item.isActive !== 1">
                       <span class="dot"></span>
-                      <span class="label">{{ item.isActive === 1 ? languageService.labels().common.active : languageService.labels().common.inactive }}</span>
+                      <span class="label">{{ item.isActive === 1 ? languageService.labels().common.active :
+                        languageService.labels().common.inactive }}</span>
                     </span>
                   </ng-container>
 
                   <!-- Actions -->
                   <ng-container *ngSwitchCase="'actions'">
-                    <div style="display: flex; gap: 0.35rem; justify-content: center;" (click)="$event.stopPropagation()">
-                      <button (click)="onViewDetail(item)" class="action-btn view" [title]="languageService.labels().common.viewDetail">
+                    <div style="display: flex; gap: 0.35rem; justify-content: center;"
+                      (click)="$event.stopPropagation()">
+                      <button (click)="onViewDetail(item)" class="action-btn view"
+                        [title]="languageService.labels().common.viewDetail">
                         <tui-icon icon="@tui.eye" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
-                      <button (click)="openEditDialog(item)" class="action-btn edit" [title]="languageService.labels().common.edit">
+                      <button *ngIf="languageService.userCode() === 'USER01'" (click)="openEditDialog(item)"
+                        class="action-btn edit" [title]="languageService.labels().common.edit">
                         <tui-icon icon="@tui.pencil" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
-                      <button (click)="openCopyDialog(item)" class="action-btn copy" [title]="languageService.labels().common.copy">
+                      <button *ngIf="languageService.userCode() === 'USER01'" (click)="openCopyDialog(item)"
+                        class="action-btn copy" [title]="languageService.labels().common.copy">
                         <tui-icon icon="@tui.copy" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
-                      <button (click)="openHistoryDialog(item)" class="action-btn history" title="Xem lịch sử thao tác" style="color: #64748b;">
+                      <button (click)="openHistoryDialog(item)" class="action-btn history" title="Xem lịch sử thao tác"
+                        style="color: #64748b;">
                         <tui-icon icon="@tui.history" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
-                      <button (click)="onDelete(item.componentCode)" class="action-btn delete" [title]="languageService.labels().common.delete" [class.invisible]="item.isDisplay !== 1">
+                      <button *ngIf="languageService.userCode() === 'USER01'" (click)="onDelete(item.componentCode)"
+                        class="action-btn delete" [title]="languageService.labels().common.delete"
+                        [class.invisible]="item.isDisplay !== 1">
                         <tui-icon icon="@tui.trash" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
-                      <button (click)="onSendApproval(item.componentCode)" class="action-btn approve" [title]="languageService.labels().common.sendApproval" [class.invisible]="item.status !== 1 && item.status !== 5">
+                      <button *ngIf="languageService.userCode() === 'USER01'"
+                        (click)="onSendApproval(item.componentCode)" class="action-btn approve"
+                        [title]="languageService.labels().common.sendApproval"
+                        [class.invisible]="item.status !== 1 && item.status !== 5">
                         <tui-icon icon="@tui.send" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
                     </div>
@@ -278,11 +266,7 @@
 
     <!-- PHÂN TRANG -->
     <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
-      <tui-pagination
-        [length]="totalPages()"
-        [index]="page()"
-        (indexChange)="setPage($event)"
-      ></tui-pagination>
+      <tui-pagination [length]="totalPages()" [index]="page()" (indexChange)="setPage($event)"></tui-pagination>
     </div>
   </div>
 </div>
@@ -290,59 +274,71 @@
 <!-- Hộp thoại xác nhận -->
 <ng-template [(tuiDialog)]="isConfirmOpen" [tuiDialogOptions]="{label: confirmTitle, size: 's'}">
   <div class="confirm-modal-body" style="display: flex; gap: 1rem; align-items: flex-start; padding: 1rem 0;">
-    <div class="confirm-icon-circle" style="width: 32px; height: 32px; border-radius: 50%; background-color: #fef3c7; border: 1px solid #fde68a; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #d97706; font-size: 1.15rem; font-weight: bold; line-height: 1;">
+    <div class="confirm-icon-circle"
+      style="width: 32px; height: 32px; border-radius: 50%; background-color: #fef3c7; border: 1px solid #fde68a; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #d97706; font-size: 1.15rem; font-weight: bold; line-height: 1;">
       !
     </div>
-    <div class="confirm-message-text" style="flex: 1; font-size: 0.88rem; color: #475569; line-height: 1.5; padding-top: 0.15rem; font-weight: 550;">
+    <div class="confirm-message-text"
+      style="flex: 1; font-size: 0.88rem; color: #475569; line-height: 1.5; padding-top: 0.15rem; font-weight: 550;">
       {{ confirmMessage }}
     </div>
   </div>
-  
-  <div class="confirm-modal-footer" style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; border-top: 1px solid #f1f5f9; padding-top: 0.75rem;">
-    <button tuiButton appearance="outline" type="button" (click)="isConfirmOpen = false">{{ languageService.labels().common.cancel }}</button>
+
+  <div class="confirm-modal-footer"
+    style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; border-top: 1px solid #f1f5f9; padding-top: 0.75rem;">
+    <button tuiButton appearance="outline" type="button" (click)="isConfirmOpen = false">{{
+      languageService.labels().common.cancel }}</button>
     <button tuiButton type="button" (click)="onConfirmExecute()">{{ languageService.labels().common.confirm }}</button>
   </div>
 </ng-template>
 
 <!-- Hộp thoại nhập Lý do từ chối -->
-<ng-template [(tuiDialog)]="isRejectOpen" [tuiDialogOptions]="{label: languageService.labels().common.reasonReject, size: 's'}">
+<ng-template [(tuiDialog)]="isRejectOpen"
+  [tuiDialogOptions]="{label: languageService.labels().common.reasonReject, size: 's'}">
   <div class="reject-modal-body" style="padding: 0.5rem 0;">
     <textarea
       style="width: 100%; min-height: 100px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.75rem; font-size: 0.85rem; font-family: inherit; resize: none; outline: none; transition: border-color 0.2s;"
-      [placeholder]="languageService.labels().common.reasonRejectPlaceholder"
-      [value]="rejectReason"
-      (input)="onRejectReasonInput($any($event.target).value)"
-      maxLength="500"
-    ></textarea>
+      [placeholder]="languageService.labels().common.reasonRejectPlaceholder" [value]="rejectReason"
+      (input)="onRejectReasonInput($any($event.target).value)" maxLength="500"></textarea>
     <div style="text-align: right; font-size: 0.72rem; color: #94a3b8; margin-top: 0.25rem;">
       {{ rejectReason.length }}/500
     </div>
   </div>
-  
-  <div class="reject-modal-footer" style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; border-top: 1px solid #f1f5f9; padding-top: 0.75rem;">
-    <button tuiButton appearance="outline" type="button" (click)="isRejectOpen = false">{{ languageService.labels().common.cancel }}</button>
-    <button tuiButton type="button" [disabled]="!rejectReason.trim()" (click)="onConfirmReject()">{{ languageService.labels().common.confirm }}</button>
+
+  <div class="reject-modal-footer"
+    style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; border-top: 1px solid #f1f5f9; padding-top: 0.75rem;">
+    <button tuiButton appearance="outline" type="button" (click)="isRejectOpen = false">{{
+      languageService.labels().common.cancel }}</button>
+    <button tuiButton type="button" [disabled]="!rejectReason.trim()" (click)="onConfirmReject()">{{
+      languageService.labels().common.confirm }}</button>
   </div>
 </ng-template>
 
 <!-- Hộp thoại Lịch sử thao tác -->
-<ng-template [(tuiDialog)]="isHistoryOpen" [tuiDialogOptions]="{label: languageService.labels().common.historyTitle + ' - ' + historyTargetName, size: 'l'}">
+<ng-template [(tuiDialog)]="isHistoryOpen"
+  [tuiDialogOptions]="{label: languageService.labels().common.historyTitle + ' - ' + historyTargetName, size: 'l'}">
   <div class="history-dialog-content" style="padding: 0.5rem 0;">
     <div style="overflow-x: auto;">
       <table class="history-table" style="width: 100%; border-collapse: collapse; text-align: left;">
         <thead>
           <tr style="border-bottom: 2px solid #e2e8f0; background-color: #f8fafc;">
-            <th style="padding: 0.75rem 1rem; font-size: 0.8rem; font-weight: 700; color: #475569;">{{ languageService.labels().common.user }}</th>
-            <th style="padding: 0.75rem 1rem; font-size: 0.8rem; font-weight: 700; color: #475569;">{{ languageService.labels().common.datePerform }}</th>
-            <th style="padding: 0.75rem 1rem; font-size: 0.8rem; font-weight: 700; color: #475569;">{{ languageService.labels().common.actionHistory }}</th>
+            <th style="padding: 0.75rem 1rem; font-size: 0.8rem; font-weight: 700; color: #475569;">{{
+              languageService.labels().common.user }}</th>
+            <th style="padding: 0.75rem 1rem; font-size: 0.8rem; font-weight: 700; color: #475569;">{{
+              languageService.labels().common.datePerform }}</th>
+            <th style="padding: 0.75rem 1rem; font-size: 0.8rem; font-weight: 700; color: #475569;">{{
+              languageService.labels().common.actionHistory }}</th>
             <th style="padding: 0.75rem 1rem; font-size: 0.8rem; font-weight: 700; color: #475569;">IP</th>
-            <th style="padding: 0.75rem 1rem; font-size: 0.8rem; font-weight: 700; color: #475569;">{{ languageService.labels().common.contentHistory }}</th>
+            <th style="padding: 0.75rem 1rem; font-size: 0.8rem; font-weight: 700; color: #475569;">{{
+              languageService.labels().common.contentHistory }}</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let h of paginatedHistoryData()" style="border-bottom: 1px solid #f1f5f9; transition: background-color 0.15s;" class="history-row-item">
+          <tr *ngFor="let h of paginatedHistoryData()"
+            style="border-bottom: 1px solid #f1f5f9; transition: background-color 0.15s;" class="history-row-item">
             <td style="padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.75rem;">
-              <div class="history-avatar" style="width: 32px; height: 32px; border-radius: 50%; background-color: #005953; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: #ffffff;">
+              <div class="history-avatar"
+                style="width: 32px; height: 32px; border-radius: 50%; background-color: #005953; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: #ffffff;">
                 {{ h.user.avatar }}
               </div>
               <div style="display: flex; flex-direction: column;">
@@ -354,7 +350,8 @@
               {{ h.date }}
             </td>
             <td style="padding: 0.75rem 1rem; font-size: 0.8rem;">
-              <span class="action-pill {{ getActionPillClass(h.action) }}" style="padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">
+              <span class="action-pill {{ getActionPillClass(h.action) }}"
+                style="padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 700; font-size: 0.72rem;">
                 {{ h.action }}
               </span>
             </td>
@@ -370,12 +367,10 @@
     </div>
 
     <!-- Phân trang thực tế dưới Dialog sử dụng tui-pagination -->
-    <div class="history-pagination" style="display: flex; justify-content: flex-end; align-items: center; margin-top: 1.25rem; border-top: 1px solid #f1f5f9; padding-top: 0.75rem;">
-      <tui-pagination
-        [length]="historyTotalPages()"
-        [index]="historyPage()"
-        (indexChange)="historyPage.set($event)"
-      ></tui-pagination>
+    <div class="history-pagination"
+      style="display: flex; justify-content: flex-end; align-items: center; margin-top: 1.25rem; border-top: 1px solid #f1f5f9; padding-top: 0.75rem;">
+      <tui-pagination [length]="historyTotalPages()" [index]="historyPage()"
+        (indexChange)="historyPage.set($event)"></tui-pagination>
     </div>
   </div>
 </ng-template>

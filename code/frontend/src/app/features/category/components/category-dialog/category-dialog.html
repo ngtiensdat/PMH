@@ -20,13 +20,24 @@
       <button class="action-btn-circle" (click)="goBack()" [title]="languageService.labels().common.cancel">&times;</button>
       
       <!-- Nút Lưu -->
-      <button tuiButton appearance="secondary" type="button" (click)="onSubmit(false)">
-        💾 {{ languageService.labels().common.save }}
+      <button
+        tuiButton
+        appearance="secondary"
+        type="button"
+        iconStart="@tui.save"
+        (click)="onSubmit(false)"
+      >
+        {{ languageService.labels().common.save }}
       </button>
       
       <!-- Nút Lưu và gửi duyệt -->
-      <button tuiButton type="button" (click)="onSubmit(true)">
-        ✈ {{ languageService.labels().common.save }} & {{ languageService.labels().common.sendApproval }}
+      <button
+        tuiButton
+        type="button"
+        iconStart="@tui.send"
+        (click)="onSubmit(true)"
+      >
+        {{ languageService.labels().common.save }} & {{ languageService.labels().common.sendApproval }}
       </button>
     </div>
   </div>

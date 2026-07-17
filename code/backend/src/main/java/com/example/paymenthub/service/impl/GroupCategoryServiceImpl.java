@@ -215,26 +215,50 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
     // ─── Delete ──────────────────────────────────────────────────────────────
 
     @Override
-    public void delete(Long id) {
-        log.info("[GroupCategory] Deleting. id={}", id);
+    public void delete(Long id, String username) {
+        log.info("[GroupCategory] Deleting. id={}, user={}", id, username);
+        
+        // Phân quyền: Chỉ Maker mới được phép xóa/hủy yêu cầu
+        if (!"USER01".equalsIgnoreCase(username)) {
+            throw new IllegalStateException("Chỉ Chuyên viên (Maker) mới có quyền thực hiện chức năng xóa/hủy!");
+        }
+
         GroupCategory entity = getById(id);
 
         if (entity.getIsDisplay() == 2) {
-            throw new IllegalStateException("Bản ghi đã duyệt (IS_DISPLAY = 2), không được phép xóa!");
+            // Bản ghi đã được duyệt trước đó (isDisplay == 2):
+            // Nếu bản ghi đang có thay đổi chờ duyệt (status = 3) hoặc bị từ chối (status = 5):
+            // Hành động xóa sẽ đóng vai trò hủy bỏ yêu cầu chỉnh sửa này và khôi phục về bản duyệt cũ.
+            if (entity.getStatus() == 3 || entity.getStatus() == 5) {
+                String oldJson = toJson(snapshot(entity));
+                entity.setNewData(null);
+                entity.setStatus(4); // Khôi phục trạng thái đã phê duyệt
+                entity.setUpdatedBy(username);
+                GroupCategory saved = repository.save(entity);
+                
+                // Ghi audit log
+                auditLogService.log(
+                        MODULE, String.valueOf(id),
+                        "Hủy yêu cầu sửa", username,
+                        oldJson, toJson(snapshot(saved)),
+                        String.format("Hủy yêu cầu chỉnh sửa và khôi phục trạng thái đã duyệt cho ID=%d", id),
+                        3, 4);
+                return;
+            }
+            throw new IllegalStateException("Bản ghi đã phê duyệt và đang vận hành (STATUS = 4), không được phép xóa!");
         }
 
+        // Bản ghi chưa từng được duyệt (isDisplay == 1): Xóa vật lý
         String oldJson = toJson(snapshot(entity));
-        String performedBy = entity.getUpdatedBy() != null ? entity.getUpdatedBy() : "SYSTEM";
-
         repository.delete(entity);
         log.info("[GroupCategory] Deleted. id={}", id);
 
         // Ghi audit log (sau khi delete để lưu oldData đầy đủ)
         auditLogService.log(
                 MODULE, String.valueOf(id),
-                "Xóa", performedBy,
+                "Xóa", username,
                 oldJson, null,
-                String.format("Xóa tham số: %s / %s / %s", entity.getParamName(), entity.getParamValue(),
+                String.format("Xóa tham số chưa duyệt: %s / %s / %s", entity.getParamName(), entity.getParamValue(),
                         entity.getParamType()),
                 entity.getStatus(), null);
     }
@@ -336,6 +360,12 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
             try {
                 transactionTemplate.executeWithoutResult(status -> {
                     GroupCategory entity = getById(id);
+                    
+                    // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
+                    if (approver.equalsIgnoreCase(entity.getCreatedBy()) || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
+                        throw new IllegalStateException("Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
+                    }
+
                     int statusBefore = entity.getStatus();
 
                     // Apply NEW_DATA nếu có (cập nhật đang chờ duyệt)
@@ -429,6 +459,12 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
             try {
                 transactionTemplate.executeWithoutResult(status -> {
                     GroupCategory entity = getById(id);
+                    
+                    // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
+                    if (approver.equalsIgnoreCase(entity.getCreatedBy()) || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
+                        throw new IllegalStateException("Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
+                    }
+
                     int statusBefore = entity.getStatus();
 
                     StoredProcedureQuery query = entityManager.createStoredProcedureQuery("PROC_REJECT_GROUP_CATEGORY");

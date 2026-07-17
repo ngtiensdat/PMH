@@ -100,8 +100,11 @@ public class ComponentController extends BaseController {
     }
 
     @DeleteMapping("/{code}")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable String code) {
-        service.delete(code);
+    public ResponseEntity<ApiResponse<Void>> delete(
+            @PathVariable String code,
+            @RequestHeader(value = "X-Username", defaultValue = "SYSTEM") String username
+    ) {
+        service.delete(code, username);
         return ok(null, "Xóa cấu phần thành công");
     }
 

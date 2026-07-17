@@ -136,6 +136,13 @@ export class CategoryListComponent implements OnInit {
     { id: 'actions', label: 'Thao tác', isFixed: false, width: 250 }
   ];
 
+  get displayColumns() {
+    if (this.languageService.userCode() === 'USER01') {
+      return this.columns.filter(c => c.id !== 'checkbox');
+    }
+    return this.columns;
+  }
+
   draggedColumnIndex: number | null = null;
   dragOverColumnIndex: number | null = null;
 

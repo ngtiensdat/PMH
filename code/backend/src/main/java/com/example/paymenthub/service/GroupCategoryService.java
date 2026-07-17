@@ -25,7 +25,7 @@ public interface GroupCategoryService {
 
     GroupCategory update(Long id, GroupCategoryDTO dto, String username);
 
-    void delete(Long id);
+    void delete(Long id, String username);
 
     GroupCategory sendForApproval(Long id, String username);
 

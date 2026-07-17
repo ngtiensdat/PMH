@@ -207,26 +207,50 @@ public class ComponentServiceImpl implements ComponentService {
     }
 
     @Override
-    public void delete(String code) {
-        log.info("[Component] Deleting. code={}", code);
+    public void delete(String code, String username) {
+        log.info("[Component] Deleting. code={}, user={}", code, username);
+        
+        // Phân quyền: Chỉ Maker mới được phép xóa/hủy yêu cầu
+        if (!"USER01".equalsIgnoreCase(username)) {
+            throw new IllegalStateException("Chỉ Chuyên viên (Maker) mới có quyền thực hiện chức năng xóa/hủy!");
+        }
+
         ProcessingComponent entity = getByCode(code);
 
         if (entity.getIsDisplay() == 2) {
-            throw new IllegalStateException("Bản ghi đã duyệt, không được phép xóa!");
+            // Bản ghi đã được duyệt trước đó (isDisplay == 2):
+            // Nếu bản ghi đang có thay đổi chờ duyệt (status = 3) hoặc bị từ chối (status = 5):
+            // Hành động xóa sẽ đóng vai trò hủy bỏ yêu cầu chỉnh sửa này và khôi phục về bản duyệt cũ.
+            if (entity.getStatus() == 3 || entity.getStatus() == 5) {
+                String oldJson = toJson(snapshot(entity));
+                entity.setNewData(null);
+                entity.setStatus(4); // Khôi phục trạng thái đã phê duyệt
+                entity.setUpdatedBy(username);
+                ProcessingComponent saved = repository.save(entity);
+                
+                // Ghi audit log
+                auditLogService.log(
+                        MODULE, code,
+                        "Hủy yêu cầu sửa", username,
+                        oldJson, toJson(snapshot(saved)),
+                        String.format("Hủy yêu cầu chỉnh sửa và khôi phục trạng thái đã duyệt cho cấu phần Code=%s", code),
+                        3, 4);
+                return;
+            }
+            throw new IllegalStateException("Bản ghi đã phê duyệt và đang vận hành (STATUS = 4), không được phép xóa!");
         }
 
+        // Bản ghi chưa từng được duyệt (isDisplay == 1): Xóa vật lý
         String oldJson = toJson(snapshot(entity));
-        String performedBy = entity.getUpdatedBy() != null ? entity.getUpdatedBy() : "SYSTEM";
-
         repository.delete(entity);
         log.info("[Component] Deleted. code={}", code);
 
         // Ghi audit log
         auditLogService.log(
                 MODULE, code,
-                "Xóa", performedBy,
+                "Xóa", username,
                 oldJson, null,
-                String.format("Xóa cấu phần: %s - %s", entity.getComponentCode(), entity.getComponentName()),
+                String.format("Xóa cấu phần chưa duyệt: %s - %s", entity.getComponentCode(), entity.getComponentName()),
                 entity.getStatus(), null);
     }
 
@@ -291,6 +315,12 @@ public class ComponentServiceImpl implements ComponentService {
             try {
                 transactionTemplate.executeWithoutResult(status -> {
                     ProcessingComponent entity = getByCode(code);
+                    
+                    // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
+                    if (approver.equalsIgnoreCase(entity.getCreatedBy()) || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
+                        throw new IllegalStateException("Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
+                    }
+
                     int statusBefore = entity.getStatus();
 
                     if (entity.getNewData() != null && !entity.getNewData().isEmpty()) {
@@ -380,6 +410,12 @@ public class ComponentServiceImpl implements ComponentService {
             try {
                 transactionTemplate.executeWithoutResult(status -> {
                     ProcessingComponent entity = getByCode(code);
+                    
+                    // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
+                    if (approver.equalsIgnoreCase(entity.getCreatedBy()) || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
+                        throw new IllegalStateException("Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
+                    }
+
                     int statusBefore = entity.getStatus();
 
                     StoredProcedureQuery query = entityManager.createStoredProcedureQuery("PROC_REJECT_COMPONENT");

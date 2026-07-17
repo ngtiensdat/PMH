@@ -39,7 +39,7 @@ export const APPROVAL_STATUS_OPTIONS = [
   { value: APPROVAL_STATUS.PENDING, label: '3 - Chờ duyệt' },
   { value: APPROVAL_STATUS.APPROVED, label: '4 - Đã phê duyệt' },
   { value: APPROVAL_STATUS.REJECTED, label: '5 - Từ chối' },
-  { value: APPROVAL_STATUS.CANCELED, label: '6 - Hủy duyệt' }
+  { value: APPROVAL_STATUS.CANCELED, label: '7 - Hủy duyệt' }
 ];
 
 export const IS_ACTIVE_OPTIONS = [

@@ -84,7 +84,7 @@
     <!-- Nút hành động ở dưới cùng bên phải -->
     <div class="form-footer-actions">
       <!-- Maker actions: Mới (1), Từ chối (5), Hủy duyệt (7) -->
-      <ng-container *ngIf="component.status === 1 || component.status === 5 || component.status === 7">
+      <ng-container *ngIf="(component.status === 1 || component.status === 5 || component.status === 7) && languageService.userCode() === 'USER01'">
         <button tuiButton appearance="secondary" type="button" (click)="onDeleteRecord()" style="margin-right: 0.75rem; --tui-primary: #ef4444; --tui-primary-hover: #dc2626;">
           {{ languageService.labels().common.delete }}
         </button>
@@ -94,7 +94,7 @@
       </ng-container>
 
       <!-- Checker actions: Chờ duyệt (3) -->
-      <ng-container *ngIf="component.status === 3">
+      <ng-container *ngIf="component.status === 3 && languageService.userCode() === 'APPROVER'">
         <button tuiButton appearance="secondary" type="button" (click)="onRejectRecord()" style="margin-right: 0.75rem; --tui-primary: #ef4444; --tui-primary-hover: #dc2626;">
           {{ languageService.labels().common.reject }}
         </button>

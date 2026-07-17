@@ -7,12 +7,12 @@
   <div class="header-right">
     <!-- Icon chuông thông báo -->
     @if (notificationCount() > 0) {
-      <div class="notification-badge-container">
-        <span class="bell-icon">
-          <tui-icon icon="@tui.bell"></tui-icon>
-        </span>
-        <span class="badge-count">{{ notificationCount() }}</span>
-      </div>
+    <div class="notification-badge-container">
+      <span class="bell-icon">
+        <tui-icon icon="@tui.bell"></tui-icon>
+      </span>
+      <span class="badge-count">{{ notificationCount() }}</span>
+    </div>
     }
 
     <!-- Dropdown VIE/EN động -->
@@ -22,25 +22,44 @@
         <span class="arrow-down">∨</span>
       </div>
       @if (isLangDropdownOpen()) {
-        <div class="lang-popover">
-          <div class="lang-item" [class.active]="languageService.currentLang() === 'VIE'" (click)="selectLanguage('VIE')">VIE (Tiếng Việt)</div>
-          <div class="lang-item" [class.active]="languageService.currentLang() === 'EN'" (click)="selectLanguage('EN')">EN (English)</div>
-        </div>
+      <div class="lang-popover">
+        <div class="lang-item" [class.active]="languageService.currentLang() === 'VIE'" (click)="selectLanguage('VIE')">
+          VIE (Tiếng Việt)</div>
+        <div class="lang-item" [class.active]="languageService.currentLang() === 'EN'" (click)="selectLanguage('EN')">EN
+          (English)</div>
+      </div>
       }
     </div>
 
     <!-- User Profile (Hỗ trợ click để đổi tên động không fix cứng) -->
-    <div class="user-profile clickable" (click)="editUserProfile()" title="Click để chỉnh sửa thông tin cá nhân">
-      <div class="user-avatar">
-        <span class="avatar-placeholder">{{ languageService.avatarText() }}</span>
+    <div class="user-profile-wrapper" style="position: relative;">
+      <div class="user-profile clickable" (click)="toggleUserDropdown()" title="Click để đổi vai trò giả lập">
+        <div class="user-avatar">
+          <span class="avatar-placeholder">{{ languageService.avatarText() }}</span>
+        </div>
+        <div class="user-info">
+          <span class="user-name">{{ languageService.userName() }}</span>
+          <span class="user-role-label">{{ languageService.userRole() }}</span>
+        </div>
+        <span class="edit-profile-icon">
+          <tui-icon icon="@tui.wifi-high"></tui-icon>
+        </span>
       </div>
-      <div class="user-info">
-        <span class="user-name">{{ languageService.userName() }}</span>
-        <span class="user-role-label">{{ languageService.userRole() }}</span>
+      @if (isUserDropdownOpen()) {
+      <div class="user-popover">
+        <div class="user-popover-header">Chọn vai trò</div>
+        <div class="user-popover-item" [class.active]="languageService.userCode() === 'USER01'"
+          (click)="selectUser('Hoàng Văn Tạo', 'Chuyên viên (Maker)', 'USER01')">
+          <div class="popover-name">Hoàng Văn Tạo</div>
+          <div class="popover-role">Maker - Chuyên viên</div>
+        </div>
+        <div class="user-popover-item" [class.active]="languageService.userCode() === 'APPROVER'"
+          (click)="selectUser('Nguyễn Văn Duyệt', 'Kiểm soát viên (Checker)', 'APPROVER')">
+          <div class="popover-name">Nguyễn Văn Duyệt</div>
+          <div class="popover-role">Checker - Kiểm soát</div>
+        </div>
       </div>
-      <span class="edit-profile-icon">
-        <tui-icon icon="@tui.pencil"></tui-icon>
-      </span>
+      }
     </div>
   </div>
 </header>

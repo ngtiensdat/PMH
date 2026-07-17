@@ -8,9 +8,9 @@ export const APP_LABELS_VN = {
     processingComponents: 'Tham số Cấu phần xử lý',
     groupCategory: 'Tham số danh mục theo nhóm',
     user: {
-      name: 'Hoàng Văn Thuận',
-      role: 'Chuyên viên',
-      avatar: 'HVT'
+      name: 'Quản trị viên',
+      role: 'Admin',
+      avatar: 'QT'
     }
   },
 
@@ -61,7 +61,7 @@ export const APP_LABELS_VN = {
       pending: '3 - Chờ duyệt',
       approved: '4 - Đã phê duyệt',
       rejected: '5 - Từ chối',
-      canceled: '6 - Hủy duyệt'
+      canceled: '7 - Hủy duyệt'
     }
   },
 
@@ -166,7 +166,7 @@ export const APP_LABELS_EN = {
       pending: '3 - Pending',
       approved: '4 - Approved',
       rejected: '5 - Rejected',
-      canceled: '6 - Canceled'
+      canceled: '7 - Canceled'
     }
   },
 

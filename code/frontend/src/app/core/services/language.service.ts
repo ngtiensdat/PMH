@@ -13,9 +13,10 @@ export class LanguageService {
     return this.currentLang() === 'VIE' ? APP_LABELS_VN : APP_LABELS_EN;
   });
 
-  // Tên người dùng và vai trò đọc động từ localStorage hoặc lấy mặc định từ nhãn ngôn ngữ
+  // Tên người dùng, vai trò và mã người dùng đọc động từ localStorage
   userName = signal<string>(localStorage.getItem('app_username') || '');
   userRole = signal<string>(localStorage.getItem('app_userrole') || '');
+  userCode = signal<string>(localStorage.getItem('app_usercode') || 'USER01');
 
   avatarText = computed(() => {
     const name = this.userName() || this.labels().navigation.user.name;
@@ -34,6 +35,9 @@ export class LanguageService {
     }
     if (!this.userRole()) {
       this.userRole.set(this.labels().navigation.user.role);
+    }
+    if (!localStorage.getItem('app_usercode')) {
+      localStorage.setItem('app_usercode', 'USER01');
     }
   }
 
@@ -60,10 +64,12 @@ export class LanguageService {
     }
   }
 
-  updateUserProfile(name: string, role: string) {
+  updateUserProfile(name: string, role: string, code: string) {
     this.userName.set(name);
     this.userRole.set(role);
+    this.userCode.set(code);
     localStorage.setItem('app_username', name);
     localStorage.setItem('app_userrole', role);
+    localStorage.setItem('app_usercode', code);
   }
 }

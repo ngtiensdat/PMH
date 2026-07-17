@@ -28,7 +28,7 @@ public interface ComponentService {
 
     ProcessingComponent update(String code, ComponentDTO dto, String username);
 
-    void delete(String code);
+    void delete(String code, String username);
 
     ProcessingComponent sendForApproval(String code, String username);
 

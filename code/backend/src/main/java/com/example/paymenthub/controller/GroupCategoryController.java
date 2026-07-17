@@ -100,8 +100,11 @@ public class GroupCategoryController extends BaseController {
      * Xóa bằng JPA
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
-        service.delete(id);
+    public ResponseEntity<ApiResponse<Void>> delete(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Username", defaultValue = "SYSTEM") String username
+    ) {
+        service.delete(id, username);
         return ok(null, "Xóa tham số thành công");
     }
 

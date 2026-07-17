@@ -17,9 +17,14 @@ export class HeaderComponent {
 
   protected readonly notificationCount = signal(0);
   protected isLangDropdownOpen = signal(false);
+  protected isUserDropdownOpen = signal(false);
 
   toggleLangDropdown() {
     this.isLangDropdownOpen.update(v => !v);
+  }
+
+  toggleUserDropdown() {
+    this.isUserDropdownOpen.update(v => !v);
   }
 
   selectLanguage(lang: 'VIE' | 'EN') {
@@ -27,7 +32,10 @@ export class HeaderComponent {
     this.isLangDropdownOpen.set(false);
   }
 
-  editUserProfile() {
-    this.notificationService.info('Tính năng chỉnh sửa hồ sơ đang được phát triển.');
+  selectUser(name: string, role: string, code: string) {
+    this.languageService.updateUserProfile(name, role, code);
+    this.isUserDropdownOpen.set(false);
+    this.notificationService.success('Đã chuyển sang vai trò: ' + role);
+    window.location.reload();
   }
 }

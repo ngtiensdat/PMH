@@ -14,10 +14,12 @@ export class CategoryService {
 
   constructor(private http: HttpClient) {}
 
-  private getHeaders(username: string = 'USER01'): HttpHeaders {
+  private getHeaders(username?: string): HttpHeaders {
+    const activeUser = localStorage.getItem('app_usercode') || 'USER01';
+    const finalUser = (username === 'USER01' || username === 'APPROVER' || !username) ? activeUser : username;
     return new HttpHeaders({
       'Content-Type': 'application/json',
-      'X-Username': username
+      'X-Username': finalUser
     });
   }
 
@@ -60,8 +62,8 @@ export class CategoryService {
     return this.http.put<ApiResponse<GroupCategoryResponse>>(`${this.apiUrl}/${id}`, dto, { headers: this.getHeaders(username) });
   }
 
-  delete(id: number): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${id}`);
+  delete(id: number, username: string = 'USER01'): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${id}`, { headers: this.getHeaders(username) });
   }
 
   sendApproval(id: number, username: string = 'USER01'): Observable<ApiResponse<GroupCategoryResponse>> {
