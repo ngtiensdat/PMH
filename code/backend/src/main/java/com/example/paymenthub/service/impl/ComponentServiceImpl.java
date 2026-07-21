@@ -310,91 +310,95 @@ public class ComponentServiceImpl implements ComponentService {
         transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
 
         for (String code : codes) {
-            Map<String, Object> res = new HashMap<>();
-            res.put("code", code);
-            try {
-                transactionTemplate.executeWithoutResult(status -> {
-                    ProcessingComponent entity = getByCode(code);
-                    
-                    // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
-                    if (approver.equalsIgnoreCase(entity.getCreatedBy()) || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
-                        throw new IllegalStateException("Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
-                    }
-
-                    int statusBefore = entity.getStatus();
-
-                    if (entity.getNewData() != null && !entity.getNewData().isEmpty()) {
-                        try {
-                            Map<String, Object> changes = objectMapper.readValue(
-                                    entity.getNewData(),
-                                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
-                                    });
-                            if (changes.containsKey("componentName"))
-                                entity.setComponentName((String) changes.get("componentName"));
-                            if (changes.containsKey("messageType"))
-                                entity.setMessageType((String) changes.get("messageType"));
-                            if (changes.containsKey("connectionMethod"))
-                                entity.setConnectionMethod((String) changes.get("connectionMethod"));
-                            if (changes.containsKey("checkToken"))
-                                entity.setCheckToken((String) changes.get("checkToken"));
-                            if (changes.containsKey("description"))
-                                entity.setDescription((String) changes.get("description"));
-                            if (changes.containsKey("isActive") && changes.get("isActive") != null)
-                                entity.setIsActive((Integer) changes.get("isActive"));
-                            if (changes.containsKey("effectiveDate") && changes.get("effectiveDate") != null)
-                                entity.setEffectiveDate(LocalDateTime.parse((String) changes.get("effectiveDate")));
-                            if (changes.containsKey("endEffectiveDate") && changes.get("endEffectiveDate") != null)
-                                entity.setEndEffectiveDate(
-                                        LocalDateTime.parse((String) changes.get("endEffectiveDate")));
-                            entity.setNewData(null);
-                            repository.saveAndFlush(entity);
-                        } catch (Exception ex) {
-                            throw new RuntimeException("Lỗi giải mã dữ liệu thay đổi: " + ex.getMessage(), ex);
-                        }
-                    }
-
-                    StoredProcedureQuery query = entityManager.createStoredProcedureQuery("PROC_APPROVE_COMPONENT");
-                    query.registerStoredProcedureParameter("p_code", String.class, ParameterMode.IN);
-                    query.registerStoredProcedureParameter("p_user", String.class, ParameterMode.IN);
-                    query.registerStoredProcedureParameter("p_status", Integer.class, ParameterMode.OUT);
-                    query.registerStoredProcedureParameter("p_message", String.class, ParameterMode.OUT);
-                    query.setParameter("p_code", code);
-                    query.setParameter("p_user", approver);
-                    query.execute();
-
-                    Object spStatusObj = query.getOutputParameterValue("p_status");
-                    String spMessage = (String) query.getOutputParameterValue("p_message");
-                    boolean success = false;
-                    if (spStatusObj instanceof Number) {
-                        success = ((Number) spStatusObj).intValue() == 1;
-                    }
-
-                    res.put("success", success);
-                    res.put("message", spMessage);
-
-                    if (success) {
-                        // Ghi audit log
-                        auditLogService.log(
-                                MODULE, code,
-                                "Phê duyệt", approver,
-                                null, null,
-                                String.format("Phê duyệt cấu phần Code=%s. SP: %s", code, spMessage),
-                                statusBefore, 4);
-                    } else {
-                        throw new RuntimeException(spMessage);
-                    }
-                });
-            } catch (Exception e) {
-                res.put("success", false);
-                res.put("message", e.getMessage() != null ? e.getMessage() : "Lỗi thực thi");
-                log.error("[Component] Batch approve failed for code={}. error={}", code, e.getMessage());
-            }
-            results.add(res);
+            results.add(approveSingleComponent(code, approver, transactionTemplate));
         }
 
         long successCount = results.stream().filter(r -> Boolean.TRUE.equals(r.get("success"))).count();
         log.info("[Component] Batch approve done. success={}/{}", successCount, codes.size());
         return results;
+    }
+
+    private Map<String, Object> approveSingleComponent(String code, String approver, TransactionTemplate transactionTemplate) {
+        Map<String, Object> res = new HashMap<>();
+        res.put("code", code);
+        try {
+            transactionTemplate.executeWithoutResult(status -> {
+                ProcessingComponent entity = getByCode(code);
+                
+                // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
+                if (approver.equalsIgnoreCase(entity.getCreatedBy()) || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
+                    throw new IllegalStateException("Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
+                }
+
+                int statusBefore = entity.getStatus();
+
+                if (entity.getNewData() != null && !entity.getNewData().isEmpty()) {
+                    try {
+                        Map<String, Object> changes = objectMapper.readValue(
+                                entity.getNewData(),
+                                new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
+                                });
+                        if (changes.containsKey("componentName"))
+                            entity.setComponentName((String) changes.get("componentName"));
+                        if (changes.containsKey("messageType"))
+                            entity.setMessageType((String) changes.get("messageType"));
+                        if (changes.containsKey("connectionMethod"))
+                            entity.setConnectionMethod((String) changes.get("connectionMethod"));
+                        if (changes.containsKey("checkToken"))
+                            entity.setCheckToken((String) changes.get("checkToken"));
+                        if (changes.containsKey("description"))
+                            entity.setDescription((String) changes.get("description"));
+                        if (changes.containsKey("isActive") && changes.get("isActive") != null)
+                            entity.setIsActive((Integer) changes.get("isActive"));
+                        if (changes.containsKey("effectiveDate") && changes.get("effectiveDate") != null)
+                            entity.setEffectiveDate(LocalDateTime.parse((String) changes.get("effectiveDate")));
+                        if (changes.containsKey("endEffectiveDate") && changes.get("endEffectiveDate") != null)
+                            entity.setEndEffectiveDate(
+                                    LocalDateTime.parse((String) changes.get("endEffectiveDate")));
+                        entity.setNewData(null);
+                        repository.saveAndFlush(entity);
+                    } catch (Exception ex) {
+                        throw new RuntimeException("Lỗi giải mã dữ liệu thay đổi: " + ex.getMessage(), ex);
+                    }
+                }
+
+                StoredProcedureQuery query = entityManager.createStoredProcedureQuery("PROC_APPROVE_COMPONENT");
+                query.registerStoredProcedureParameter("p_code", String.class, ParameterMode.IN);
+                query.registerStoredProcedureParameter("p_user", String.class, ParameterMode.IN);
+                query.registerStoredProcedureParameter("p_status", Integer.class, ParameterMode.OUT);
+                query.registerStoredProcedureParameter("p_message", String.class, ParameterMode.OUT);
+                query.setParameter("p_code", code);
+                query.setParameter("p_user", approver);
+                query.execute();
+
+                Object spStatusObj = query.getOutputParameterValue("p_status");
+                String spMessage = (String) query.getOutputParameterValue("p_message");
+                boolean success = false;
+                if (spStatusObj instanceof Number) {
+                    success = ((Number) spStatusObj).intValue() == 1;
+                }
+
+                res.put("success", success);
+                res.put("message", spMessage);
+
+                if (success) {
+                    // Ghi audit log
+                    auditLogService.log(
+                            MODULE, code,
+                            "Phê duyệt", approver,
+                            null, null,
+                            String.format("Phê duyệt cấu phần Code=%s. SP: %s", code, spMessage),
+                            statusBefore, 4);
+                } else {
+                    throw new RuntimeException(spMessage);
+                }
+            });
+        } catch (Exception e) {
+            res.put("success", false);
+            res.put("message", e.getMessage() != null ? e.getMessage() : "Lỗi thực thi");
+            log.error("[Component] Batch approve failed for code={}. error={}", code, e.getMessage());
+        }
+        return res;
     }
 
     @Override
@@ -405,62 +409,66 @@ public class ComponentServiceImpl implements ComponentService {
         transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
 
         for (String code : codes) {
-            Map<String, Object> res = new HashMap<>();
-            res.put("code", code);
-            try {
-                transactionTemplate.executeWithoutResult(status -> {
-                    ProcessingComponent entity = getByCode(code);
-                    
-                    // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
-                    if (approver.equalsIgnoreCase(entity.getCreatedBy()) || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
-                        throw new IllegalStateException("Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
-                    }
-
-                    int statusBefore = entity.getStatus();
-
-                    StoredProcedureQuery query = entityManager.createStoredProcedureQuery("PROC_REJECT_COMPONENT");
-                    query.registerStoredProcedureParameter("p_code", String.class, ParameterMode.IN);
-                    query.registerStoredProcedureParameter("p_user", String.class, ParameterMode.IN);
-                    query.registerStoredProcedureParameter("p_status", Integer.class, ParameterMode.OUT);
-                    query.registerStoredProcedureParameter("p_message", String.class, ParameterMode.OUT);
-                    query.setParameter("p_code", code);
-                    query.setParameter("p_user", approver);
-                    query.execute();
-
-                    Object spStatusObj = query.getOutputParameterValue("p_status");
-                    String spMessage = (String) query.getOutputParameterValue("p_message");
-                    boolean success = false;
-                    if (spStatusObj instanceof Number) {
-                        success = ((Number) spStatusObj).intValue() == 1;
-                    }
-
-                    res.put("success", success);
-                    res.put("message", spMessage);
-
-                    if (success) {
-                        auditLogService.log(
-                                MODULE, code,
-                                "Từ chối", approver,
-                                null, null,
-                                reason != null && !reason.trim().isEmpty()
-                                        ? String.format("Từ chối duyệt cấu phần Code=%s. Lý do: %s. SP: %s", code,
-                                                reason, spMessage)
-                                        : String.format("Từ chối duyệt cấu phần Code=%s. SP: %s", code, spMessage),
-                                statusBefore, 5);
-                    } else {
-                        throw new RuntimeException(spMessage);
-                    }
-                });
-            } catch (Exception e) {
-                res.put("success", false);
-                res.put("message", e.getMessage() != null ? e.getMessage() : "Lỗi thực thi");
-                log.error("[Component] Batch reject failed for code={}. error={}", code, e.getMessage());
-            }
-            results.add(res);
+            results.add(rejectSingleComponent(code, reason, approver, transactionTemplate));
         }
 
         long successCount = results.stream().filter(r -> Boolean.TRUE.equals(r.get("success"))).count();
         log.info("[Component] Batch reject done. success={}/{}", successCount, codes.size());
         return results;
+    }
+
+    private Map<String, Object> rejectSingleComponent(String code, String reason, String approver, TransactionTemplate transactionTemplate) {
+        Map<String, Object> res = new HashMap<>();
+        res.put("code", code);
+        try {
+            transactionTemplate.executeWithoutResult(status -> {
+                ProcessingComponent entity = getByCode(code);
+                
+                // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
+                if (approver.equalsIgnoreCase(entity.getCreatedBy()) || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
+                    throw new IllegalStateException("Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
+                }
+
+                int statusBefore = entity.getStatus();
+
+                StoredProcedureQuery query = entityManager.createStoredProcedureQuery("PROC_REJECT_COMPONENT");
+                query.registerStoredProcedureParameter("p_code", String.class, ParameterMode.IN);
+                query.registerStoredProcedureParameter("p_user", String.class, ParameterMode.IN);
+                query.registerStoredProcedureParameter("p_status", Integer.class, ParameterMode.OUT);
+                query.registerStoredProcedureParameter("p_message", String.class, ParameterMode.OUT);
+                query.setParameter("p_code", code);
+                query.setParameter("p_user", approver);
+                query.execute();
+
+                Object spStatusObj = query.getOutputParameterValue("p_status");
+                String spMessage = (String) query.getOutputParameterValue("p_message");
+                boolean success = false;
+                if (spStatusObj instanceof Number) {
+                    success = ((Number) spStatusObj).intValue() == 1;
+                }
+
+                res.put("success", success);
+                res.put("message", spMessage);
+
+                if (success) {
+                    auditLogService.log(
+                            MODULE, code,
+                            "Từ chối", approver,
+                            null, null,
+                            reason != null && !reason.trim().isEmpty()
+                                    ? String.format("Từ chối duyệt cấu phần Code=%s. Lý do: %s. SP: %s", code,
+                                            reason, spMessage)
+                                    : String.format("Từ chối duyệt cấu phần Code=%s. SP: %s", code, spMessage),
+                            statusBefore, 5);
+                } else {
+                    throw new RuntimeException(spMessage);
+                }
+            });
+        } catch (Exception e) {
+            res.put("success", false);
+            res.put("message", e.getMessage() != null ? e.getMessage() : "Lỗi thực thi");
+            log.error("[Component] Batch reject failed for code={}. error={}", code, e.getMessage());
+        }
+        return res;
     }
 }

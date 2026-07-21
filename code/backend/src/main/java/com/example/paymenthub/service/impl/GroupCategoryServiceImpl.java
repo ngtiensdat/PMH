@@ -161,39 +161,14 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         int statusAfter;
 
         if (entity.getStatus() == 4) {
-            // Đã duyệt → lưu NEW_DATA vào JSON, chuyển sang chờ duyệt sửa
-            try {
-                Map<String, Object> changes = new HashMap<>();
-                changes.put("paramName", dto.getParamName());
-                changes.put("paramValue", dto.getParamValue());
-                changes.put("paramType", dto.getParamType());
-                changes.put("description", dto.getDescription());
-                changes.put("componentCode", dto.getComponentCode());
-                changes.put("effectiveDate", dto.getEffectiveDate().toString());
-                changes.put("endEffectiveDate",
-                        dto.getEndEffectiveDate() != null ? dto.getEndEffectiveDate().toString() : null);
-                changes.put("isActive", dto.getIsActive());
-
-                entity.setNewData(objectMapper.writeValueAsString(changes));
-                entity.setStatus(3);
-                entity.setUpdatedBy(username);
-                saved = repository.save(entity);
-                action = "Gửi duyệt sửa";
-                statusAfter = 3;
-            } catch (Exception e) {
-                throw new RuntimeException("Lỗi chuyển đổi dữ liệu thay đổi sang JSON: " + e.getMessage());
-            }
-        } else {
-            entity.setParamName(dto.getParamName());
-            entity.setParamValue(dto.getParamValue());
-            entity.setParamType(dto.getParamType());
-            entity.setDescription(dto.getDescription());
-            entity.setComponentCode(dto.getComponentCode());
-            entity.setEffectiveDate(dto.getEffectiveDate());
-            entity.setEndEffectiveDate(dto.getEndEffectiveDate());
-            entity.setIsActive(dto.getIsActive());
+            entity.setNewData(buildNewDataJson(dto));
+            entity.setStatus(3);
             entity.setUpdatedBy(username);
-            entity.setStatus(1);
+            saved = repository.save(entity);
+            action = "Gửi duyệt sửa";
+            statusAfter = 3;
+        } else {
+            updateEntityFields(entity, dto, username);
             saved = repository.save(entity);
             action = "Cập nhật";
             statusAfter = 1;
@@ -210,6 +185,37 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 statusBefore, statusAfter);
 
         return saved;
+    }
+
+    private String buildNewDataJson(GroupCategoryDTO dto) {
+        try {
+            Map<String, Object> changes = new HashMap<>();
+            changes.put("paramName", dto.getParamName());
+            changes.put("paramValue", dto.getParamValue());
+            changes.put("paramType", dto.getParamType());
+            changes.put("description", dto.getDescription());
+            changes.put("componentCode", dto.getComponentCode());
+            changes.put("effectiveDate", dto.getEffectiveDate().toString());
+            changes.put("endEffectiveDate",
+                    dto.getEndEffectiveDate() != null ? dto.getEndEffectiveDate().toString() : null);
+            changes.put("isActive", dto.getIsActive());
+            return objectMapper.writeValueAsString(changes);
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi chuyển đổi dữ liệu thay đổi sang JSON: " + e.getMessage(), e);
+        }
+    }
+
+    private void updateEntityFields(GroupCategory entity, GroupCategoryDTO dto, String username) {
+        entity.setParamName(dto.getParamName());
+        entity.setParamValue(dto.getParamValue());
+        entity.setParamType(dto.getParamType());
+        entity.setDescription(dto.getDescription());
+        entity.setComponentCode(dto.getComponentCode());
+        entity.setEffectiveDate(dto.getEffectiveDate());
+        entity.setEndEffectiveDate(dto.getEndEffectiveDate());
+        entity.setIsActive(dto.getIsActive());
+        entity.setUpdatedBy(username);
+        entity.setStatus(1);
     }
 
     // ─── Delete ──────────────────────────────────────────────────────────────
@@ -355,93 +361,97 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
 
         for (Long id : ids) {
-            Map<String, Object> res = new HashMap<>();
-            res.put("id", id);
-            try {
-                transactionTemplate.executeWithoutResult(status -> {
-                    GroupCategory entity = getById(id);
-                    
-                    // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
-                    if (approver.equalsIgnoreCase(entity.getCreatedBy()) || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
-                        throw new IllegalStateException("Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
-                    }
-
-                    int statusBefore = entity.getStatus();
-
-                    // Apply NEW_DATA nếu có (cập nhật đang chờ duyệt)
-                    if (entity.getNewData() != null && !entity.getNewData().isEmpty()) {
-                        try {
-                            Map<String, Object> changes = objectMapper.readValue(
-                                    entity.getNewData(),
-                                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
-                                    });
-                            if (changes.containsKey("paramName"))
-                                entity.setParamName((String) changes.get("paramName"));
-                            if (changes.containsKey("paramValue"))
-                                entity.setParamValue((String) changes.get("paramValue"));
-                            if (changes.containsKey("paramType"))
-                                entity.setParamType((String) changes.get("paramType"));
-                            if (changes.containsKey("description"))
-                                entity.setDescription((String) changes.get("description"));
-                            if (changes.containsKey("componentCode"))
-                                entity.setComponentCode((String) changes.get("componentCode"));
-                            if (changes.containsKey("isActive"))
-                                entity.setIsActive((Integer) changes.get("isActive"));
-                            if (changes.containsKey("effectiveDate"))
-                                entity.setEffectiveDate(LocalDateTime.parse((String) changes.get("effectiveDate")));
-                            if (changes.containsKey("endEffectiveDate") && changes.get("endEffectiveDate") != null)
-                                entity.setEndEffectiveDate(
-                                        LocalDateTime.parse((String) changes.get("endEffectiveDate")));
-                            entity.setNewData(null);
-                            repository.saveAndFlush(entity);
-                        } catch (Exception ex) {
-                            throw new RuntimeException("Lỗi giải mã dữ liệu thay đổi: " + ex.getMessage(), ex);
-                        }
-                    }
-
-                    StoredProcedureQuery query = entityManager
-                            .createStoredProcedureQuery("PROC_APPROVE_GROUP_CATEGORY");
-                    query.registerStoredProcedureParameter("p_id", Long.class, ParameterMode.IN);
-                    query.registerStoredProcedureParameter("p_user", String.class, ParameterMode.IN);
-                    query.registerStoredProcedureParameter("p_status", Integer.class, ParameterMode.OUT);
-                    query.registerStoredProcedureParameter("p_message", String.class, ParameterMode.OUT);
-                    query.setParameter("p_id", id);
-                    query.setParameter("p_user", approver);
-                    query.execute();
-
-                    Object spStatusObj = query.getOutputParameterValue("p_status");
-                    String spMessage = (String) query.getOutputParameterValue("p_message");
-                    boolean success = false;
-                    if (spStatusObj instanceof Number) {
-                        success = ((Number) spStatusObj).intValue() == 1;
-                    }
-
-                    res.put("success", success);
-                    res.put("message", spMessage);
-
-                    if (success) {
-                        // Ghi audit log phê duyệt
-                        auditLogService.log(
-                                MODULE, String.valueOf(id),
-                                "Phê duyệt", approver,
-                                null, null,
-                                String.format("Phê duyệt tham số ID=%d. SP: %s", id, spMessage),
-                                statusBefore, 4);
-                    } else {
-                        throw new RuntimeException(spMessage);
-                    }
-                });
-            } catch (Exception e) {
-                res.put("success", false);
-                res.put("message", e.getMessage() != null ? e.getMessage() : "Lỗi thực thi");
-                log.error("[GroupCategory] Batch approve failed for id={}. error={}", id, e.getMessage());
-            }
-            results.add(res);
+            results.add(approveSingleCategory(id, approver, transactionTemplate));
         }
 
         long successCount = results.stream().filter(r -> Boolean.TRUE.equals(r.get("success"))).count();
         log.info("[GroupCategory] Batch approve done. success={}/{}", successCount, ids.size());
         return results;
+    }
+
+    private Map<String, Object> approveSingleCategory(Long id, String approver, TransactionTemplate transactionTemplate) {
+        Map<String, Object> res = new HashMap<>();
+        res.put("id", id);
+        try {
+            transactionTemplate.executeWithoutResult(status -> {
+                GroupCategory entity = getById(id);
+                
+                // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
+                if (approver.equalsIgnoreCase(entity.getCreatedBy()) || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
+                    throw new IllegalStateException("Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
+                }
+
+                int statusBefore = entity.getStatus();
+
+                // Apply NEW_DATA nếu có (cập nhật đang chờ duyệt)
+                if (entity.getNewData() != null && !entity.getNewData().isEmpty()) {
+                    try {
+                        Map<String, Object> changes = objectMapper.readValue(
+                                entity.getNewData(),
+                                new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
+                                });
+                        if (changes.containsKey("paramName"))
+                            entity.setParamName((String) changes.get("paramName"));
+                        if (changes.containsKey("paramValue"))
+                            entity.setParamValue((String) changes.get("paramValue"));
+                        if (changes.containsKey("paramType"))
+                            entity.setParamType((String) changes.get("paramType"));
+                        if (changes.containsKey("description"))
+                            entity.setDescription((String) changes.get("description"));
+                        if (changes.containsKey("componentCode"))
+                            entity.setComponentCode((String) changes.get("componentCode"));
+                        if (changes.containsKey("isActive"))
+                            entity.setIsActive((Integer) changes.get("isActive"));
+                        if (changes.containsKey("effectiveDate"))
+                            entity.setEffectiveDate(LocalDateTime.parse((String) changes.get("effectiveDate")));
+                        if (changes.containsKey("endEffectiveDate") && changes.get("endEffectiveDate") != null)
+                            entity.setEndEffectiveDate(
+                                    LocalDateTime.parse((String) changes.get("endEffectiveDate")));
+                        entity.setNewData(null);
+                        repository.saveAndFlush(entity);
+                    } catch (Exception ex) {
+                        throw new RuntimeException("Lỗi giải mã dữ liệu thay đổi: " + ex.getMessage(), ex);
+                    }
+                }
+
+                StoredProcedureQuery query = entityManager
+                        .createStoredProcedureQuery("PROC_APPROVE_GROUP_CATEGORY");
+                query.registerStoredProcedureParameter("p_id", Long.class, ParameterMode.IN);
+                query.registerStoredProcedureParameter("p_user", String.class, ParameterMode.IN);
+                query.registerStoredProcedureParameter("p_status", Integer.class, ParameterMode.OUT);
+                query.registerStoredProcedureParameter("p_message", String.class, ParameterMode.OUT);
+                query.setParameter("p_id", id);
+                query.setParameter("p_user", approver);
+                query.execute();
+
+                Object spStatusObj = query.getOutputParameterValue("p_status");
+                String spMessage = (String) query.getOutputParameterValue("p_message");
+                boolean success = false;
+                if (spStatusObj instanceof Number) {
+                    success = ((Number) spStatusObj).intValue() == 1;
+                }
+
+                res.put("success", success);
+                res.put("message", spMessage);
+
+                if (success) {
+                    // Ghi audit log phê duyệt
+                    auditLogService.log(
+                            MODULE, String.valueOf(id),
+                            "Phê duyệt", approver,
+                            null, null,
+                            String.format("Phê duyệt tham số ID=%d. SP: %s", id, spMessage),
+                            statusBefore, 4);
+                } else {
+                    throw new RuntimeException(spMessage);
+                }
+            });
+        } catch (Exception e) {
+            res.put("success", false);
+            res.put("message", e.getMessage() != null ? e.getMessage() : "Lỗi thực thi");
+            log.error("[GroupCategory] Batch approve failed for id={}. error={}", id, e.getMessage());
+        }
+        return res;
     }
 
     // ─── Batch Reject ────────────────────────────────────────────────────────
@@ -454,62 +464,66 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
 
         for (Long id : ids) {
-            Map<String, Object> res = new HashMap<>();
-            res.put("id", id);
-            try {
-                transactionTemplate.executeWithoutResult(status -> {
-                    GroupCategory entity = getById(id);
-                    
-                    // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
-                    if (approver.equalsIgnoreCase(entity.getCreatedBy()) || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
-                        throw new IllegalStateException("Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
-                    }
-
-                    int statusBefore = entity.getStatus();
-
-                    StoredProcedureQuery query = entityManager.createStoredProcedureQuery("PROC_REJECT_GROUP_CATEGORY");
-                    query.registerStoredProcedureParameter("p_id", Long.class, ParameterMode.IN);
-                    query.registerStoredProcedureParameter("p_user", String.class, ParameterMode.IN);
-                    query.registerStoredProcedureParameter("p_status", Integer.class, ParameterMode.OUT);
-                    query.registerStoredProcedureParameter("p_message", String.class, ParameterMode.OUT);
-                    query.setParameter("p_id", id);
-                    query.setParameter("p_user", approver);
-                    query.execute();
-
-                    Object spStatusObj = query.getOutputParameterValue("p_status");
-                    String spMessage = (String) query.getOutputParameterValue("p_message");
-                    boolean success = false;
-                    if (spStatusObj instanceof Number) {
-                        success = ((Number) spStatusObj).intValue() == 1;
-                    }
-
-                    res.put("success", success);
-                    res.put("message", spMessage);
-
-                    if (success) {
-                        auditLogService.log(
-                                MODULE, String.valueOf(id),
-                                "Từ chối", approver,
-                                null, null,
-                                reason != null && !reason.trim().isEmpty()
-                                        ? String.format("Từ chối duyệt tham số ID=%d. Lý do: %s. SP: %s", id, reason,
-                                                spMessage)
-                                        : String.format("Từ chối duyệt tham số ID=%d. SP: %s", id, spMessage),
-                                statusBefore, 5);
-                    } else {
-                        throw new RuntimeException(spMessage);
-                    }
-                });
-            } catch (Exception e) {
-                res.put("success", false);
-                res.put("message", e.getMessage() != null ? e.getMessage() : "Lỗi thực thi");
-                log.error("[GroupCategory] Batch reject failed for id={}. error={}", id, e.getMessage());
-            }
-            results.add(res);
+            results.add(rejectSingleCategory(id, reason, approver, transactionTemplate));
         }
 
         long successCount = results.stream().filter(r -> Boolean.TRUE.equals(r.get("success"))).count();
         log.info("[GroupCategory] Batch reject done. success={}/{}", successCount, ids.size());
         return results;
+    }
+
+    private Map<String, Object> rejectSingleCategory(Long id, String reason, String approver, TransactionTemplate transactionTemplate) {
+        Map<String, Object> res = new HashMap<>();
+        res.put("id", id);
+        try {
+            transactionTemplate.executeWithoutResult(status -> {
+                GroupCategory entity = getById(id);
+                
+                // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
+                if (approver.equalsIgnoreCase(entity.getCreatedBy()) || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
+                    throw new IllegalStateException("Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
+                }
+
+                int statusBefore = entity.getStatus();
+
+                StoredProcedureQuery query = entityManager.createStoredProcedureQuery("PROC_REJECT_GROUP_CATEGORY");
+                query.registerStoredProcedureParameter("p_id", Long.class, ParameterMode.IN);
+                query.registerStoredProcedureParameter("p_user", String.class, ParameterMode.IN);
+                query.registerStoredProcedureParameter("p_status", Integer.class, ParameterMode.OUT);
+                query.registerStoredProcedureParameter("p_message", String.class, ParameterMode.OUT);
+                query.setParameter("p_id", id);
+                query.setParameter("p_user", approver);
+                query.execute();
+
+                Object spStatusObj = query.getOutputParameterValue("p_status");
+                String spMessage = (String) query.getOutputParameterValue("p_message");
+                boolean success = false;
+                if (spStatusObj instanceof Number) {
+                    success = ((Number) spStatusObj).intValue() == 1;
+                }
+
+                res.put("success", success);
+                res.put("message", spMessage);
+
+                if (success) {
+                    auditLogService.log(
+                            MODULE, String.valueOf(id),
+                            "Từ chối", approver,
+                            null, null,
+                            reason != null && !reason.trim().isEmpty()
+                                    ? String.format("Từ chối duyệt tham số ID=%d. Lý do: %s. SP: %s", id, reason,
+                                            spMessage)
+                                    : String.format("Từ chối duyệt tham số ID=%d. SP: %s", id, spMessage),
+                            statusBefore, 5);
+                } else {
+                    throw new RuntimeException(spMessage);
+                }
+            });
+        } catch (Exception e) {
+            res.put("success", false);
+            res.put("message", e.getMessage() != null ? e.getMessage() : "Lỗi thực thi");
+            log.error("[GroupCategory] Batch reject failed for id={}. error={}", id, e.getMessage());
+        }
+        return res;
     }
 }
