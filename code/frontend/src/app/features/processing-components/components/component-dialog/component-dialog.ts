@@ -23,11 +23,11 @@ import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
   styleUrl: './component-dialog.css'
 })
 export class ComponentDialogComponent implements OnInit {
-  private fb         = inject(FormBuilder);
-  private componentService    = inject(ComponentService);
+  private fb = inject(FormBuilder);
+  private componentService = inject(ComponentService);
   private notificationService = inject(NotificationService);
-  private route      = inject(ActivatedRoute);
-  private router     = inject(Router);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private destroyRef = inject(DestroyRef);
   public languageService = inject(LanguageService);
 
@@ -39,6 +39,13 @@ export class ComponentDialogComponent implements OnInit {
 
   readonly messageTypeValues = ['ISO20022', 'MT', 'MX', 'ISO8583', 'SWIFT', 'JSON', 'XML'];
   readonly connectionMethodValues = ['API', 'MQ', 'SFTP', 'TCP/IP', 'WebService', 'Batch'];
+
+  activeCodes = [1, 0];
+  readonly stringifyActive = (val: number): string => {
+    if (val === 1) return this.languageService.labels().common.active;
+    if (val === 0) return this.languageService.labels().common.inactive;
+    return 'Chọn giá trị';
+  };
 
   // Dropdown items
   get messageTypeItems(): string[] {
@@ -99,14 +106,14 @@ export class ComponentDialogComponent implements OnInit {
   private initForm() {
     this.dialogForm = this.fb.group(
       {
-        componentCode:    ['', zodFieldValidator(ComponentSchema, 'componentCode')],
-        componentName:    ['', zodFieldValidator(ComponentSchema, 'componentName')],
-        messageType:      [[], zodFieldValidator(ComponentSchema, 'messageType')],
+        componentCode: ['', zodFieldValidator(ComponentSchema, 'componentCode')],
+        componentName: ['', zodFieldValidator(ComponentSchema, 'componentName')],
+        messageType: [[], zodFieldValidator(ComponentSchema, 'messageType')],
         connectionMethod: [[], zodFieldValidator(ComponentSchema, 'connectionMethod')],
-        checkToken:       [false, zodFieldValidator(ComponentSchema, 'checkToken')],
-        description:      ['', zodFieldValidator(ComponentSchema, 'description')],
-        isActive:         [1,  zodFieldValidator(ComponentSchema, 'isActive')],
-        effectiveDate:    ['', zodFieldValidator(ComponentSchema, 'effectiveDate')],
+        checkToken: [false, zodFieldValidator(ComponentSchema, 'checkToken')],
+        description: ['', zodFieldValidator(ComponentSchema, 'description')],
+        isActive: [1, zodFieldValidator(ComponentSchema, 'isActive')],
+        effectiveDate: ['', zodFieldValidator(ComponentSchema, 'effectiveDate')],
         endEffectiveDate: ['', zodFieldValidator(ComponentSchema, 'endEffectiveDate')]
       },
       { validators: zodFormValidator(ComponentSchema) }
@@ -124,14 +131,14 @@ export class ComponentDialogComponent implements OnInit {
 
     if (!this.component) return;
     this.dialogForm.patchValue({
-      componentCode:    this.component.componentCode,
-      componentName:    this.component.componentName,
-      messageType:      this.component.messageType ? this.component.messageType.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+      componentCode: this.component.componentCode,
+      componentName: this.component.componentName,
+      messageType: this.component.messageType ? this.component.messageType.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
       connectionMethod: this.component.connectionMethod ? this.component.connectionMethod.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
-      checkToken:       this.component.checkToken       === 'Y',
-      description:      this.component.description      || '',
-      isActive:         this.component.isActive          ?? 1,
-      effectiveDate:    this.mode === 'copy' ? '' : toLocalISO(this.component.effectiveDate),
+      checkToken: this.component.checkToken === 'Y',
+      description: this.component.description || '',
+      isActive: this.component.isActive ?? 1,
+      effectiveDate: this.mode === 'copy' ? '' : toLocalISO(this.component.effectiveDate),
       endEffectiveDate: this.mode === 'copy' ? '' : toLocalISO(this.component.endEffectiveDate)
     });
 
@@ -153,7 +160,7 @@ export class ComponentDialogComponent implements OnInit {
     const fields = ['componentName', 'description', 'isActive'];
     for (const f of fields) {
       const orig = (this.component as any)[f] != null ? String((this.component as any)[f]).trim() : '';
-      const curr = formValue[f]      != null ? String(formValue[f]).trim()      : '';
+      const curr = formValue[f] != null ? String(formValue[f]).trim() : '';
       if (orig !== curr) return true;
     }
 
@@ -200,7 +207,7 @@ export class ComponentDialogComponent implements OnInit {
 
     const dto: ProcessingComponentRequest = {
       ...mappedRaw,
-      effectiveDate:    this.formatToISO(mappedRaw.effectiveDate),
+      effectiveDate: this.formatToISO(mappedRaw.effectiveDate),
       endEffectiveDate: mappedRaw.endEffectiveDate ? this.formatToISO(mappedRaw.endEffectiveDate) : undefined
     };
 
@@ -279,7 +286,7 @@ export class ComponentDialogComponent implements OnInit {
 
   get dialogTitle(): string {
     switch (this.mode) {
-      case 'add':  return 'Thêm mới tham số cấu phần xử lý';
+      case 'add': return 'Thêm mới tham số cấu phần xử lý';
       case 'copy': return 'Thêm mới tham số cấu phần xử lý';
       case 'edit': return 'Sửa tham số cấu phần xử lý';
     }
@@ -287,7 +294,7 @@ export class ComponentDialogComponent implements OnInit {
 
   getBreadcrumbText(): string {
     switch (this.mode) {
-      case 'add':  return 'Thêm mới';
+      case 'add': return 'Thêm mới';
       case 'copy': return 'Thêm mới';
       case 'edit': return 'Sửa';
     }

@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 public class ComponentDTO {
 
     @NotBlank(message = "Mã cấu phần không được để trống")
-    @Size(max = 20, message = "Mã cấu phần tối đa 20 ký tự")
+    @Size(max = 200, message = "Mã cấu phần tối đa 200 ký tự")
     private String componentCode;
 
     @NotBlank(message = "Tên cấu phần không được để trống")

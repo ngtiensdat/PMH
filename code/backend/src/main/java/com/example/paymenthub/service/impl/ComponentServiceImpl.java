@@ -349,7 +349,7 @@ public class ComponentServiceImpl implements ComponentService {
                         if (changes.containsKey("description"))
                             entity.setDescription((String) changes.get("description"));
                         if (changes.containsKey("isActive") && changes.get("isActive") != null)
-                            entity.setIsActive((Integer) changes.get("isActive"));
+                            entity.setIsActive(((Number) changes.get("isActive")).intValue());
                         if (changes.containsKey("effectiveDate") && changes.get("effectiveDate") != null)
                             entity.setEffectiveDate(LocalDateTime.parse((String) changes.get("effectiveDate")));
                         if (changes.containsKey("endEffectiveDate") && changes.get("endEffectiveDate") != null)

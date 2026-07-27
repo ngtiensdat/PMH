@@ -400,8 +400,8 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                             entity.setDescription((String) changes.get("description"));
                         if (changes.containsKey("componentCode"))
                             entity.setComponentCode((String) changes.get("componentCode"));
-                        if (changes.containsKey("isActive"))
-                            entity.setIsActive((Integer) changes.get("isActive"));
+                        if (changes.containsKey("isActive") && changes.get("isActive") != null)
+                            entity.setIsActive(((Number) changes.get("isActive")).intValue());
                         if (changes.containsKey("effectiveDate"))
                             entity.setEffectiveDate(LocalDateTime.parse((String) changes.get("effectiveDate")));
                         if (changes.containsKey("endEffectiveDate") && changes.get("endEffectiveDate") != null)

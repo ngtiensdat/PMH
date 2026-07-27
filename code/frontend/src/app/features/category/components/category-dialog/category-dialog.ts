@@ -25,12 +25,12 @@ import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
   styleUrl: './category-dialog.css'
 })
 export class CategoryDialogComponent implements OnInit {
-  private fb         = inject(FormBuilder);
-  private categoryService  = inject(CategoryService);
+  private fb = inject(FormBuilder);
+  private categoryService = inject(CategoryService);
   private componentService = inject(ComponentService);
   private notificationService = inject(NotificationService);
-  private route      = inject(ActivatedRoute);
-  private router     = inject(Router);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private destroyRef = inject(DestroyRef);
   public languageService = inject(LanguageService);
 
@@ -41,7 +41,14 @@ export class CategoryDialogComponent implements OnInit {
   dialogForm!: FormGroup;
 
   componentsList: { value: string; label: string }[] = [];
-  
+
+  activeCodes = [1, 0];
+  readonly stringifyActive = (val: number): string => {
+    if (val === 1) return this.languageService.labels().common.active;
+    if (val === 0) return this.languageService.labels().common.inactive;
+    return 'Chọn giá trị';
+  };
+
   // Dynamic getter for select dropdown items
   get componentItems(): string[] {
     return this.componentsList.map(o => o.value);
@@ -116,13 +123,13 @@ export class CategoryDialogComponent implements OnInit {
   private initForm() {
     this.dialogForm = this.fb.group(
       {
-        paramType:        ['', zodFieldValidator(CategorySchema, 'paramType')],
-        paramValue:       ['', zodFieldValidator(CategorySchema, 'paramValue')],
-        paramName:        ['', zodFieldValidator(CategorySchema, 'paramName')],
-        description:      ['', zodFieldValidator(CategorySchema, 'description')],
-        componentCode:    [[], zodFieldValidator(CategorySchema, 'componentCode')],
-        isActive:         [1,  zodFieldValidator(CategorySchema, 'isActive')],
-        effectiveDate:    ['', zodFieldValidator(CategorySchema, 'effectiveDate')],
+        paramType: ['', zodFieldValidator(CategorySchema, 'paramType')],
+        paramValue: ['', zodFieldValidator(CategorySchema, 'paramValue')],
+        paramName: ['', zodFieldValidator(CategorySchema, 'paramName')],
+        description: ['', zodFieldValidator(CategorySchema, 'description')],
+        componentCode: [[], zodFieldValidator(CategorySchema, 'componentCode')],
+        isActive: [1, zodFieldValidator(CategorySchema, 'isActive')],
+        effectiveDate: ['', zodFieldValidator(CategorySchema, 'effectiveDate')],
         endEffectiveDate: ['', zodFieldValidator(CategorySchema, 'endEffectiveDate')]
       },
       { validators: zodFormValidator(CategorySchema) }
@@ -140,13 +147,13 @@ export class CategoryDialogComponent implements OnInit {
 
     if (!this.category) return;
     this.dialogForm.patchValue({
-      paramType:        this.category.paramType,
-      paramValue:       this.category.paramValue,
-      paramName:        this.category.paramName,
-      description:      this.category.description,
-      componentCode:    this.category.componentCode ? this.category.componentCode.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
-      isActive:         this.category.isActive,
-      effectiveDate:    this.mode === 'copy' ? '' : toLocalISO(this.category.effectiveDate),
+      paramType: this.category.paramType,
+      paramValue: this.category.paramValue,
+      paramName: this.category.paramName,
+      description: this.category.description,
+      componentCode: this.category.componentCode ? this.category.componentCode.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+      isActive: this.category.isActive,
+      effectiveDate: this.mode === 'copy' ? '' : toLocalISO(this.category.effectiveDate),
       endEffectiveDate: this.mode === 'copy' ? '' : toLocalISO(this.category.endEffectiveDate)
     });
 
@@ -169,7 +176,7 @@ export class CategoryDialogComponent implements OnInit {
     const fields: (keyof GroupCategoryResponse)[] = ['paramName', 'description', 'isActive'];
     for (const f of fields) {
       const orig = this.category[f] != null ? String(this.category[f]).trim() : '';
-      const curr = formValue[f]     != null ? String(formValue[f]).trim()   : '';
+      const curr = formValue[f] != null ? String(formValue[f]).trim() : '';
       if (orig !== curr) return true;
     }
 
@@ -206,7 +213,7 @@ export class CategoryDialogComponent implements OnInit {
 
     const dto: GroupCategoryRequest = {
       ...mappedRaw,
-      effectiveDate:    this.formatToISO(mappedRaw.effectiveDate),
+      effectiveDate: this.formatToISO(mappedRaw.effectiveDate),
       endEffectiveDate: mappedRaw.endEffectiveDate ? this.formatToISO(mappedRaw.endEffectiveDate) : undefined
     };
 
@@ -295,7 +302,7 @@ export class CategoryDialogComponent implements OnInit {
 
   get dialogTitle(): string {
     switch (this.mode) {
-      case 'add':  return 'Thêm mới tham số danh mục theo nhóm';
+      case 'add': return 'Thêm mới tham số danh mục theo nhóm';
       case 'copy': return 'Thêm mới tham số danh mục theo nhóm';
       case 'edit': return 'Sửa tham số danh mục theo nhóm';
     }
@@ -303,7 +310,7 @@ export class CategoryDialogComponent implements OnInit {
 
   getBreadcrumbText(): string {
     switch (this.mode) {
-      case 'add':  return 'Thêm mới';
+      case 'add': return 'Thêm mới';
       case 'copy': return 'Thêm mới';
       case 'edit': return 'Sửa';
     }

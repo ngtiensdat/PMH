@@ -14,29 +14,19 @@
       <span class="back-arrow">&lt;</span>
       <h1 class="form-page-title">{{ dialogTitle }}</h1>
     </div>
-    
+
     <div class="form-header-actions">
       <!-- Nút Hủy (X) -->
-      <button class="action-btn-circle" (click)="goBack()" [title]="languageService.labels().common.cancel">&times;</button>
-      
+      <button class="action-btn-circle" (click)="goBack()"
+        [title]="languageService.labels().common.cancel">&times;</button>
+
       <!-- Nút Lưu -->
-      <button
-        tuiButton
-        appearance="secondary"
-        type="button"
-        iconStart="@tui.save"
-        (click)="onSubmit(false)"
-      >
+      <button tuiButton appearance="secondary" type="button" iconStart="@tui.save" (click)="onSubmit(false)">
         {{ languageService.labels().common.save }}
       </button>
-      
+
       <!-- Nút Lưu và gửi duyệt -->
-      <button
-        tuiButton
-        type="button"
-        iconStart="@tui.send"
-        (click)="onSubmit(true)"
-      >
+      <button tuiButton type="button" iconStart="@tui.send" (click)="onSubmit(true)">
         {{ languageService.labels().common.save }} & {{ languageService.labels().common.sendApproval }}
       </button>
     </div>
@@ -44,18 +34,14 @@
 
   <!-- Panel chứa Form dữ liệu (Grid chia theo ảnh) -->
   <div class="form-content-card glass-panel" [formGroup]="dialogForm">
-    
+
     <!-- Hàng 1: 4 cột bằng nhau (thứ tự theo ảnh: Danh mục - Giá trị - Tên - Cấu phần) -->
     <div class="form-row-four">
       <div class="input-container">
         <tui-textfield>
           <label tuiLabel>{{ languageService.labels().category.groupName }} <span class="tui-required">*</span></label>
-          <input
-            tuiInput
-            id="paramType"
-            formControlName="paramType"
-            [placeholder]="languageService.labels().common.enterContent"
-          />
+          <input tuiInput id="paramType" formControlName="paramType"
+            [placeholder]="languageService.labels().common.enterContent" />
         </tui-textfield>
         <span *ngIf="getFieldError('paramType')" class="error-message">
           {{ getFieldError('paramType') }}
@@ -65,12 +51,8 @@
       <div class="input-container">
         <tui-textfield>
           <label tuiLabel>{{ languageService.labels().category.paramValue }} <span class="tui-required">*</span></label>
-          <input
-            tuiInput
-            id="paramValue"
-            formControlName="paramValue"
-            [placeholder]="languageService.labels().common.enterContent"
-          />
+          <input tuiInput id="paramValue" formControlName="paramValue"
+            [placeholder]="languageService.labels().common.enterContent" />
         </tui-textfield>
         <span *ngIf="getFieldError('paramValue')" class="error-message">
           {{ getFieldError('paramValue') }}
@@ -80,12 +62,8 @@
       <div class="input-container">
         <tui-textfield>
           <label tuiLabel>{{ languageService.labels().category.paramName }} <span class="tui-required">*</span></label>
-          <input
-            tuiInput
-            id="paramName"
-            formControlName="paramName"
-            [placeholder]="languageService.labels().common.enterContent"
-          />
+          <input tuiInput id="paramName" formControlName="paramName"
+            [placeholder]="languageService.labels().common.enterContent" />
         </tui-textfield>
         <span *ngIf="getFieldError('paramName')" class="error-message">
           {{ getFieldError('paramName') }}
@@ -94,17 +72,16 @@
 
       <div class="input-container">
         <tui-textfield multi [stringify]="stringifyComponentCode">
-          <label tuiLabel>{{ languageService.labels().category.componentCode }} <span class="tui-required">*</span></label>
-          <select
-            tuiMultiSelect
-            formControlName="componentCode"
-            [items]="componentItems"
-          ></select>
+          <label tuiLabel>{{ languageService.labels().category.componentCode }} <span
+              class="tui-required">*</span></label>
+          <select tuiMultiSelect formControlName="componentCode" [items]="componentItems"></select>
         </tui-textfield>
         <div class="multi-select-helpers">
-          <a (click)="selectAllComponents()" class="helper-link select-all">{{ languageService.labels().common.selectAll }}</a>
+          <a (click)="selectAllComponents()" class="helper-link select-all">{{ languageService.labels().common.selectAll
+            }}</a>
           <span class="helper-divider">|</span>
-          <a (click)="clearAllComponents()" class="helper-link clear-all">{{ languageService.labels().common.clearAll }}</a>
+          <a (click)="clearAllComponents()" class="helper-link clear-all">{{ languageService.labels().common.clearAll
+            }}</a>
         </div>
         <span *ngIf="getFieldError('componentCode')" class="error-message">
           {{ getFieldError('componentCode') }}
@@ -112,37 +89,45 @@
       </div>
     </div>
 
-    <!-- Hàng 2: 2 cột bằng nhau -->
-    <div class="form-row-two">
-      <div class="input-container">
+    <!-- Hàng 2: Gióng theo Grid 4 cột để thẳng hàng dọc chuẩn xác với Hàng 1 -->
+    <div class="form-row-four">
+      <!-- Ngày hiệu lực (Thêm mới: 50% / span 2, Sửa: 25% / span 1) -->
+      <div class="input-container" [style.grid-column]="mode === 'edit' ? 'span 1' : 'span 2'">
         <tui-textfield>
-          <label tuiLabel>{{ languageService.labels().category.effectiveDate }} <span class="tui-required">*</span></label>
-          <input
-            tuiInput
-            type="datetime-local"
-            id="effectiveDate"
-            formControlName="effectiveDate"
-          />
+          <label tuiLabel>{{ languageService.labels().category.effectiveDate }} <span
+              class="tui-required">*</span></label>
+          <input tuiInput type="datetime-local" id="effectiveDate" formControlName="effectiveDate" />
         </tui-textfield>
         <span *ngIf="getFieldError('effectiveDate')" class="error-message">
           {{ getFieldError('effectiveDate') }}
         </span>
       </div>
 
-      <div class="input-container">
+      <!-- Ngày hết hiệu lực (Thêm mới: 50% / span 2, Sửa: 25% / span 1) -->
+      <div class="input-container" [style.grid-column]="mode === 'edit' ? 'span 1' : 'span 2'">
         <tui-textfield>
           <label tuiLabel>{{ languageService.labels().category.endEffectiveDate }}</label>
-          <input
-            tuiInput
-            type="datetime-local"
-            id="endEffectiveDate"
-            formControlName="endEffectiveDate"
-          />
+          <input tuiInput type="datetime-local" id="endEffectiveDate" formControlName="endEffectiveDate" />
         </tui-textfield>
         <span *ngIf="getFieldError('endEffectiveDate') || getFormError('endEffectiveDate')" class="error-message">
           {{ getFieldError('endEffectiveDate') || getFormError('endEffectiveDate') }}
         </span>
       </div>
+
+      <!-- Trạng thái hoạt động (Chỉ xuất hiện ở màn hình Sửa, chiếm 25% / span 1) -->
+      <div class="input-container" *ngIf="mode === 'edit'" style="grid-column: span 1;">
+        <tui-textfield tuiChevron [stringify]="stringifyActive">
+          <label tuiLabel>{{ languageService.labels().category.activeStatus }} <span class="tui-required">*</span></label>
+          <input tuiSelect formControlName="isActive" />
+          <tui-data-list-wrapper *tuiDropdown [items]="activeCodes" />
+        </tui-textfield>
+        <span *ngIf="getFieldError('isActive')" class="error-message">
+          {{ getFieldError('isActive') }}
+        </span>
+      </div>
+
+      <!-- Ô trống giữ nhịp cho Grid 4 cột khi Sửa -->
+      <div *ngIf="mode === 'edit'" style="grid-column: span 1;"></div>
     </div>
 
     <!-- Hàng 3: Mô tả chiếm trọn chiều rộng -->
@@ -150,12 +135,8 @@
       <div class="input-container">
         <tui-textfield>
           <label tuiLabel>{{ languageService.labels().category.description }}</label>
-          <input
-            tuiInput
-            id="description"
-            formControlName="description"
-            [placeholder]="languageService.labels().common.enterContent"
-          />
+          <input tuiInput id="description" formControlName="description"
+            [placeholder]="languageService.labels().common.enterContent" />
         </tui-textfield>
         <span *ngIf="getFieldError('description')" class="error-message">
           {{ getFieldError('description') }}

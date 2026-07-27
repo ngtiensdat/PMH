@@ -2,6 +2,9 @@ server:
   port: 8080
 
 spring:
+  output:
+    ansi:
+      enabled: ALWAYS
   application:
     name: payment-hub
   
@@ -21,10 +24,10 @@ spring:
     database-platform: org.hibernate.dialect.OracleDialect
     hibernate:
       ddl-auto: none # Trả về none sau khi đã tự động cập nhật database cấu trúc xong
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
         use_sql_comments: true
 
 logging:

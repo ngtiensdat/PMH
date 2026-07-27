@@ -41,7 +41,7 @@ export const ComponentSchema = z.object({
   componentCode: z
     .string()
     .min(1, 'Mã cấu phần không được để trống')
-    .max(20, 'Mã cấu phần tối đa 20 ký tự')
+    .max(200, 'Mã cấu phần tối đa 200 ký tự')
     .regex(/^[A-Z0-9_]+$/, 'Mã cấu phần chỉ gồm chữ in hoa, số và dấu gạch dưới, không chứa tiếng Việt, khoảng trắng hay ký tự đặc biệt'),
 
   componentName: z
@@ -106,7 +106,7 @@ export const ComponentSchema = z.object({
 
 }).refine(data => {
   const start = parseDate(data.effectiveDate);
-  const end   = parseDate(data.endEffectiveDate);
+  const end = parseDate(data.endEffectiveDate);
   if (!start || !end) return true;
   return end.getTime() > start.getTime();
 }, {

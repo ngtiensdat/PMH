@@ -1,0 +1,104 @@
+<mxGraphModel>
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+    
+    <!-- Lifelines / Participants -->
+    <mxCell id="10" value="Maker (USER01)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+      <mxGeometry x="40" y="40" width="100" height="500" as="geometry" />
+    </mxCell>
+    
+    <mxCell id="11" value="Angular UI" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+      <mxGeometry x="180" y="40" width="100" height="500" as="geometry" />
+    </mxCell>
+    
+    <mxCell id="12" value="Spring Backend" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+      <mxGeometry x="330" y="40" width="110" height="500" as="geometry" />
+    </mxCell>
+    
+    <mxCell id="13" value="Checker (USER02)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+      <mxGeometry x="490" y="40" width="110" height="500" as="geometry" />
+    </mxCell>
+    
+    <mxCell id="14" value="Oracle DB / SP" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+      <mxGeometry x="640" y="40" width="110" height="500" as="geometry" />
+    </mxCell>
+
+    <!-- Message Arrows -->
+    <!-- Step 1: Maker edits record -->
+    <mxCell id="20" value="1. Chỉnh sửa tham số (Status = 4)" style="html=1;verticalAlign=bottom;startArrow=none;endArrow=block;rounded=0;" edge="1" parent="1" source="10" target="11">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="90" y="110" as="sourcePoint" />
+        <mxPoint x="230" y="110" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    
+    <mxCell id="21" value="2. PUT /api/group-category/{id}" style="html=1;verticalAlign=bottom;startArrow=none;endArrow=block;rounded=0;" edge="1" parent="1" source="11" target="12">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="230" y="140" as="sourcePoint" />
+        <mxPoint x="385" y="140" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    
+    <mxCell id="22" value="3. Lưu JSON vào NEW_DATA &amp; Status=3" style="html=1;verticalAlign=bottom;startArrow=none;endArrow=block;rounded=0;" edge="1" parent="1" source="12" target="14">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="385" y="170" as="sourcePoint" />
+        <mxPoint x="695" y="170" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    
+    <mxCell id="23" value="4. OK (Gửi duyệt sửa)" style="html=1;verticalAlign=bottom;startArrow=none;endArrow=open;dashed=1;rounded=0;" edge="1" parent="1" source="12" target="11">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="385" y="200" as="sourcePoint" />
+        <mxPoint x="230" y="200" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- Step 2: Checker approves -->
+    <mxCell id="24" value="5. Chọn danh sách &amp; bấm Duyệt hàng loạt" style="html=1;verticalAlign=bottom;startArrow=none;endArrow=block;rounded=0;" edge="1" parent="1" source="13" target="11">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="545" y="260" as="sourcePoint" />
+        <mxPoint x="230" y="260" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    
+    <mxCell id="25" value="6. POST /api/group-category/batch-approve" style="html=1;verticalAlign=bottom;startArrow=none;endArrow=block;rounded=0;" edge="1" parent="1" source="11" target="12">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="230" y="290" as="sourcePoint" />
+        <mxPoint x="385" y="290" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    
+    <mxCell id="26" value="7. Check Approver != Creator/Updater" style="html=1;verticalAlign=bottom;startArrow=none;endArrow=block;rounded=0;" edge="1" parent="1" source="12" target="12">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="385" y="320" as="sourcePoint" />
+        <mxPoint x="430" y="350" as="targetPoint" />
+        <Array as="points">
+          <mxPoint x="420" y="320" />
+          <mxPoint x="420" y="350" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <mxCell id="27" value="8. Parse JSON &amp; Gọi PROC_APPROVE_GROUP_CATEGORY" style="html=1;verticalAlign=bottom;startArrow=none;endArrow=block;rounded=0;" edge="1" parent="1" source="12" target="14">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="385" y="380" as="sourcePoint" />
+        <mxPoint x="695" y="380" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <mxCell id="28" value="9. Overwrite real columns, NEW_DATA=null, Status=4" style="html=1;verticalAlign=bottom;startArrow=none;endArrow=open;dashed=1;rounded=0;" edge="1" parent="1" source="14" target="12">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="695" y="410" as="sourcePoint" />
+        <mxPoint x="385" y="410" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    
+    <mxCell id="29" value="10. Trả về kết quả phê duyệt hàng loạt" style="html=1;verticalAlign=bottom;startArrow=none;endArrow=open;dashed=1;rounded=0;" edge="1" parent="1" source="12" target="11">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="385" y="440" as="sourcePoint" />
+        <mxPoint x="230" y="440" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+  </root>
+</mxGraphModel>

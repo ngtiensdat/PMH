@@ -14,29 +14,19 @@
       <span class="back-arrow">&lt;</span>
       <h1 class="form-page-title">{{ dialogTitle }}</h1>
     </div>
-    
+
     <div class="form-header-actions">
       <!-- Nút Hủy (X) -->
-      <button class="action-btn-circle" (click)="goBack()" [title]="languageService.labels().common.cancel">&times;</button>
-      
+      <button class="action-btn-circle" (click)="goBack()"
+        [title]="languageService.labels().common.cancel">&times;</button>
+
       <!-- Nút Lưu -->
-      <button
-        tuiButton
-        appearance="secondary"
-        type="button"
-        iconStart="@tui.save"
-        (click)="onSubmit(false)"
-      >
+      <button tuiButton appearance="secondary" type="button" iconStart="@tui.save" (click)="onSubmit(false)">
         {{ languageService.labels().common.save }}
       </button>
-      
+
       <!-- Nút Lưu và gửi duyệt -->
-      <button
-        tuiButton
-        type="button"
-        iconStart="@tui.send"
-        (click)="onSubmit(true)"
-      >
+      <button tuiButton type="button" iconStart="@tui.send" (click)="onSubmit(true)">
         {{ languageService.labels().common.save }} & {{ languageService.labels().common.sendApproval }}
       </button>
     </div>
@@ -44,18 +34,14 @@
 
   <!-- Panel chứa Form dữ liệu (Grid chia theo ảnh) -->
   <div class="form-content-card glass-panel" [formGroup]="dialogForm">
-    
-    <!-- Hàng 1: 3 cột bằng nhau -->
-    <div class="form-row-three">
+
+    <!-- Hàng 1: Mã cấu phần (50%), Tên cấu phần (25%), Chuẩn tin điện (25%) -->
+    <div class="form-row-component-row2">
       <div class="input-container">
         <tui-textfield>
           <label tuiLabel>{{ languageService.labels().components.code }} <span class="tui-required">*</span></label>
-          <input
-            tuiInput
-            id="dlgCode"
-            formControlName="componentCode"
-            [placeholder]="languageService.labels().common.enterContent"
-          />
+          <input tuiInput id="dlgCode" formControlName="componentCode"
+            [placeholder]="languageService.labels().common.enterContent" />
         </tui-textfield>
         <span *ngIf="getFieldError('componentCode')" class="error-message">
           {{ getFieldError('componentCode') }}
@@ -65,12 +51,8 @@
       <div class="input-container">
         <tui-textfield>
           <label tuiLabel>{{ languageService.labels().components.name }} <span class="tui-required">*</span></label>
-          <input
-            tuiInput
-            id="dlgName"
-            formControlName="componentName"
-            [placeholder]="languageService.labels().common.enterContent"
-          />
+          <input tuiInput id="dlgName" formControlName="componentName"
+            [placeholder]="languageService.labels().common.enterContent" />
         </tui-textfield>
         <span *ngIf="getFieldError('componentName')" class="error-message">
           {{ getFieldError('componentName') }}
@@ -80,11 +62,7 @@
       <div class="input-container">
         <tui-textfield multi>
           <label tuiLabel>{{ languageService.labels().components.messageType }}</label>
-          <select
-            tuiMultiSelect
-            formControlName="messageType"
-            [items]="messageTypeValues"
-          ></select>
+          <select tuiMultiSelect formControlName="messageType" [items]="messageTypeValues"></select>
         </tui-textfield>
         <span *ngIf="getFieldError('messageType')" class="error-message">
           {{ getFieldError('messageType') }}
@@ -92,16 +70,12 @@
       </div>
     </div>
 
-    <!-- Hàng 2: Tên kết nối, Ngày hiệu lực, Ngày hết hiệu lực -->
-    <div class="form-row-three">
+    <!-- Hàng 2: Tên kết nối (50%), Ngày hiệu lực (25%), Ngày hết hiệu lực (25%) -->
+    <div class="form-row-component-row2">
       <div class="input-container">
         <tui-textfield multi>
           <label tuiLabel>{{ languageService.labels().components.connectionMethod }}</label>
-          <select
-            tuiMultiSelect
-            formControlName="connectionMethod"
-            [items]="connectionMethodValues"
-          ></select>
+          <select tuiMultiSelect formControlName="connectionMethod" [items]="connectionMethodValues"></select>
         </tui-textfield>
         <span *ngIf="getFieldError('connectionMethod')" class="error-message">
           {{ getFieldError('connectionMethod') }}
@@ -110,13 +84,9 @@
 
       <div class="input-container">
         <tui-textfield>
-          <label tuiLabel>{{ languageService.labels().components.effectiveDate }} <span class="tui-required">*</span></label>
-          <input
-            tuiInput
-            type="datetime-local"
-            id="dlgEff"
-            formControlName="effectiveDate"
-          />
+          <label tuiLabel>{{ languageService.labels().components.effectiveDate }} <span
+              class="tui-required">*</span></label>
+          <input tuiInput type="datetime-local" id="dlgEff" formControlName="effectiveDate" />
         </tui-textfield>
         <span *ngIf="getFieldError('effectiveDate')" class="error-message">
           {{ getFieldError('effectiveDate') }}
@@ -126,12 +96,7 @@
       <div class="input-container">
         <tui-textfield>
           <label tuiLabel>{{ languageService.labels().components.endEffectiveDate }}</label>
-          <input
-            tuiInput
-            type="datetime-local"
-            id="dlgEndEff"
-            formControlName="endEffectiveDate"
-          />
+          <input tuiInput type="datetime-local" id="dlgEndEff" formControlName="endEffectiveDate" />
         </tui-textfield>
         <span *ngIf="getFieldError('endEffectiveDate') || getFormError('endEffectiveDate')" class="error-message">
           {{ getFieldError('endEffectiveDate') || getFormError('endEffectiveDate') }}
@@ -139,16 +104,31 @@
       </div>
     </div>
 
-    <!-- Hàng 3: Checkbox Kiểm tra Token/ký số -->
-    <div class="form-row-one" style="margin-top: 0.5rem;">
-      <label style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; font-weight: 600; color: #334155; cursor: pointer;">
-        <input
-          tuiCheckbox
-          type="checkbox"
-          formControlName="checkToken"
-        />
-        {{ languageService.labels().components.checkToken }}
-      </label>
+    <!-- Hàng 3: Checkbox Kiểm tra Token & Trạng thái hoạt động (Duy trì tỷ lệ 2fr 1fr 1fr để thẳng hàng dọc) -->
+    <div class="form-row-component-row2" style="margin-top: 0.5rem; align-items: center;">
+      <!-- Cột 1: Checkbox (50% / 2fr) -->
+      <div class="input-container">
+        <label
+          style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; font-weight: 600; color: #334155; cursor: pointer; padding-top: 0.75rem;">
+          <input tuiCheckbox type="checkbox" formControlName="checkToken" />
+          {{ languageService.labels().components.checkToken }}
+        </label>
+      </div>
+
+      <!-- Cột 2: Trạng thái hoạt động (25% / 1fr - Chỉ xuất hiện ở chế độ Sửa) -->
+      <div class="input-container" *ngIf="mode === 'edit'">
+        <tui-textfield tuiChevron [stringify]="stringifyActive">
+          <label tuiLabel>{{ languageService.labels().components.activeStatus }} <span class="tui-required">*</span></label>
+          <input tuiSelect formControlName="isActive" />
+          <tui-data-list-wrapper *tuiDropdown [items]="activeCodes" />
+        </tui-textfield>
+        <span *ngIf="getFieldError('isActive')" class="error-message">
+          {{ getFieldError('isActive') }}
+        </span>
+      </div>
+
+      <!-- Cột 3: Để trống giữ nhịp cho Grid khi Sửa (25% / 1fr) -->
+      <div *ngIf="mode === 'edit'"></div>
     </div>
 
   </div>

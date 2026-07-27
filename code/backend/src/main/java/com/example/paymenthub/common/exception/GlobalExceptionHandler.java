@@ -53,15 +53,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
+        java.util.StringJoiner joiner = new java.util.StringJoiner(", ");
         ex.getBindingResult().getAllErrors().forEach((error) -> {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
+            if (errorMessage != null) {
+                joiner.add(errorMessage);
+            }
         });
 
         ApiResponse<Map<String, String>> response = ApiResponse.<Map<String, String>>builder()
                 .success(false)
-                .message("Dữ liệu đầu vào không hợp lệ!")
+                .message("Dữ liệu đầu vào không hợp lệ: " + joiner.toString())
                 .data(errors)
                 .timestamp(LocalDateTime.now())
                 .build();
