@@ -40,44 +40,18 @@
     <div class="comparison-grid">
       
       <!-- Cột Dữ liệu cũ -->
-      <div class="comparison-card old-data-card">
-        <div class="comparison-card-header header-old">
-          <span class="card-header-icon orange-icon">
-            <tui-icon icon="@tui.triangle-alert" style="--tui-icon-size: 1.15rem;"></tui-icon>
-          </span>
-          <span class="card-header-title">{{ languageService.labels().common.oldData }}</span>
-        </div>
-        <div class="comparison-card-body">
-          <div 
-            class="info-row-detail" 
-            *ngFor="let field of fields"
-            [class.is-changed]="isFieldChanged(field)"
-          >
-            <span class="info-label-detail">{{ getFieldLabel(field) }}</span>
-            <span class="info-value-detail">{{ formatValue(field, oldData[field]) }}</span>
-          </div>
-        </div>
-      </div>
+      <app-comparison-card
+        [title]="languageService.labels().common.oldData"
+        cardType="old"
+        [rows]="oldDataRows"
+      ></app-comparison-card>
 
       <!-- Cột Dữ liệu mới (NEW_DATA) -->
-      <div class="comparison-card new-data-card">
-        <div class="comparison-card-header header-new">
-          <span class="card-header-icon green-icon">
-            <tui-icon icon="@tui.info" style="--tui-icon-size: 1.15rem;"></tui-icon>
-          </span>
-          <span class="card-header-title">{{ languageService.labels().common.newData }}</span>
-        </div>
-        <div class="comparison-card-body">
-          <div 
-            class="info-row-detail" 
-            *ngFor="let field of fields"
-            [class.is-changed]="isFieldChanged(field)"
-          >
-            <span class="info-label-detail">{{ getFieldLabel(field) }}</span>
-            <span class="info-value-detail">{{ formatValue(field, newData[field]) }}</span>
-          </div>
-        </div>
-      </div>
+      <app-comparison-card
+        [title]="languageService.labels().common.newData"
+        cardType="new"
+        [rows]="newDataRows"
+      ></app-comparison-card>
 
     </div>
 

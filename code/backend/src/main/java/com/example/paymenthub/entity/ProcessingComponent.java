@@ -51,6 +51,10 @@ public class ProcessingComponent extends BaseEntity {
     @Column(name = "END_EFFECTIVE_DATE")
     private LocalDateTime endEffectiveDate;
 
+    @Version
+    @Column(name = "VERSION")
+    private Long version;
+
     @PrePersist
     @Override
     protected void onCreate() {

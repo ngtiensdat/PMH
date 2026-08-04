@@ -1,6 +1,6 @@
 import { Component, OnInit, signal, inject, computed, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CategoryService } from '../../services/category.service';
 import { LanguageService } from '../../../../core/services/language.service';
@@ -31,6 +31,7 @@ interface MappedHistoryItem {
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    FormsModule,
     SharedTaigaModule
   ],
   templateUrl: './category-list.html',
@@ -145,21 +146,24 @@ export class CategoryListComponent implements OnInit {
 
   draggedColumnIndex: number | null = null;
   dragOverColumnIndex: number | null = null;
+  isResizing = false;
 
   // Column resizing implementation
-  onResizeStart(event: MouseEvent, index: number) {
+  onResizeStart(event: MouseEvent, col: any) {
     event.stopPropagation();
     event.preventDefault();
+    this.isResizing = true;
     const startX = event.clientX;
-    const startWidth = this.columns[index].width;
+    const startWidth = col.width;
     
     const onMouseMove = (moveEvent: MouseEvent) => {
       const deltaX = moveEvent.clientX - startX;
-      const minWidth = this.columns[index].id === 'checkbox' ? 40 : 80;
-      this.columns[index].width = Math.max(minWidth, startWidth + deltaX);
+      const minWidth = col.id === 'checkbox' ? 40 : 80;
+      col.width = Math.max(minWidth, startWidth + deltaX);
     };
     
     const onMouseUp = () => {
+      this.isResizing = false;
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
     };
@@ -169,13 +173,18 @@ export class CategoryListComponent implements OnInit {
   }
 
   // Column reordering implementation
-  onDragStart(index: number) {
-    if (this.columns[index].isFixed) return;
+  onDragStart(colId: string, event: DragEvent) {
+    const index = this.columns.findIndex(c => c.id === colId);
+    if (this.isResizing || index === -1 || this.columns[index].isFixed) {
+      event.preventDefault();
+      return;
+    }
     this.draggedColumnIndex = index;
   }
 
-  onDragOver(event: DragEvent, index: number) {
-    if (this.columns[index].isFixed || this.draggedColumnIndex === null) return;
+  onDragOver(event: DragEvent, colId: string) {
+    const index = this.columns.findIndex(c => c.id === colId);
+    if (index === -1 || this.columns[index].isFixed || this.draggedColumnIndex === null) return;
     event.preventDefault();
     this.dragOverColumnIndex = index;
   }
@@ -184,8 +193,9 @@ export class CategoryListComponent implements OnInit {
     this.dragOverColumnIndex = null;
   }
 
-  onDrop(index: number) {
-    if (this.draggedColumnIndex === null || this.columns[index].isFixed) {
+  onDrop(colId: string) {
+    const index = this.columns.findIndex(c => c.id === colId);
+    if (this.draggedColumnIndex === null || index === -1 || this.columns[index].isFixed) {
       this.draggedColumnIndex = null;
       this.dragOverColumnIndex = null;
       return;
@@ -208,12 +218,25 @@ export class CategoryListComponent implements OnInit {
     const currentField = this.sortField();
     const currentDir = this.sortDirection();
 
+    let newField = colId;
     let newDir = 'asc';
+
     if (currentField === colId) {
-      newDir = currentDir === 'asc' ? 'desc' : 'asc';
+      if (currentDir === 'asc') {
+        newDir = 'desc';
+      } else {
+        // If it is already desc, reset to default (updatedDate, desc)
+        // Unless we are already sorting by updatedDate, in which case we toggle back to asc
+        if (colId !== 'updatedDate') {
+          newField = 'updatedDate';
+          newDir = 'desc';
+        } else {
+          newDir = 'asc';
+        }
+      }
     }
 
-    this.sortField.set(colId);
+    this.sortField.set(newField);
     this.sortDirection.set(newDir);
 
     if (this.viewMode() === 'jpa') {
@@ -222,15 +245,17 @@ export class CategoryListComponent implements OnInit {
     } else {
       const list = [...this.joinedCategories()];
       list.sort((a: GroupCategoryResponse, b: GroupCategoryResponse) => {
-        let valA = a[colId as keyof GroupCategoryResponse];
-        let valB = b[colId as keyof GroupCategoryResponse];
+        let valA = a[newField as keyof GroupCategoryResponse];
+        let valB = b[newField as keyof GroupCategoryResponse];
         if (valA === undefined || valA === null) valA = '';
         if (valB === undefined || valB === null) valB = '';
 
-        if (typeof valA === 'string') {
+        if (valA === valB) return 0;
+
+        if (typeof valA === 'string' || typeof valB === 'string') {
           return newDir === 'asc' 
-            ? (valA as string).localeCompare(valB as string)
-            : (valB as string).localeCompare(valA as string);
+            ? String(valA).localeCompare(String(valB))
+            : String(valB).localeCompare(String(valA));
         } else {
           return newDir === 'asc'
             ? (valA > valB ? 1 : -1)
@@ -390,14 +415,14 @@ export class CategoryListComponent implements OnInit {
   }
 
   openCopyDialog(item: GroupCategoryResponse) {
-    this.router.navigate(['/categories/copy', item.id]);
+    this.router.navigate(['/categories/copy', item.id], { state: { data: item } });
   }
 
   // Confirmation dialog state
   isConfirmOpen = false;
   confirmTitle = '';
   confirmMessage = '';
-  confirmAction: 'approve' | 'reject' | 'delete' | 'sendApproval' | 'batchApprove' | 'batchReject' | null = null;
+  confirmAction: 'approve' | 'reject' | 'delete' | 'sendApproval' | 'cancelApproval' | 'batchApprove' | 'batchReject' | null = null;
   confirmTargetId: number | null = null;
 
   onDelete(id: number) {
@@ -416,8 +441,16 @@ export class CategoryListComponent implements OnInit {
     this.isConfirmOpen = true;
   }
 
+  onCancelApproval(id: number) {
+    this.confirmTitle = 'Hủy duyệt';
+    this.confirmMessage = 'Bạn có chắc chắn muốn hủy duyệt bản ghi này? Trạng thái sẽ chuyển về Hủy duyệt (7).';
+    this.confirmAction = 'cancelApproval';
+    this.confirmTargetId = id;
+    this.isConfirmOpen = true;
+  }
+
   onViewDetail(item: GroupCategoryResponse) {
-    this.router.navigate(['/categories/detail', item.id]);
+    this.router.navigate(['/categories/detail', item.id], { state: { data: item } });
   }
 
   // Reject Dialog state
@@ -477,6 +510,7 @@ export class CategoryListComponent implements OnInit {
     this.isRejectOpen = false;
 
     if (ids.length === 0) return;
+    this.isLoading.set(true);
 
     this.categoryService.batchReject(ids, reason).subscribe({
       next: (res) => {
@@ -486,6 +520,7 @@ export class CategoryListComponent implements OnInit {
       },
       error: (err: HttpErrorResponse) => {
         this.notificationService.error('Lỗi thực hiện từ chối duyệt: ' + (err.error?.message || err.message));
+        this.isLoading.set(false);
       }
     });
   }
@@ -534,6 +569,7 @@ export class CategoryListComponent implements OnInit {
     const action = this.confirmAction;
     const id = this.confirmTargetId;
     this.isConfirmOpen = false;
+    this.isLoading.set(true);
 
     if (action === 'delete' && id !== null) {
       this.categoryService.delete(id).subscribe({
@@ -543,6 +579,7 @@ export class CategoryListComponent implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.notificationService.error('Không thể xóa: ' + (err.error?.message || err.message));
+          this.isLoading.set(false);
         }
       });
     } else if (action === 'sendApproval' && id !== null) {
@@ -553,6 +590,18 @@ export class CategoryListComponent implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.notificationService.error('Lỗi gửi duyệt: ' + (err.error?.message || err.message));
+          this.isLoading.set(false);
+        }
+      });
+    } else if (action === 'cancelApproval' && id !== null) {
+      this.categoryService.cancelApproval(id).subscribe({
+        next: () => {
+          this.notificationService.success('Hủy duyệt thành công!');
+          this.loadData();
+        },
+        error: (err: HttpErrorResponse) => {
+          this.notificationService.error('Lỗi hủy duyệt: ' + (err.error?.message || err.message));
+          this.isLoading.set(false);
         }
       });
     } else if (action === 'batchApprove') {
@@ -565,6 +614,7 @@ export class CategoryListComponent implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.notificationService.error('Lỗi thực hiện duyệt hàng loạt: ' + (err.error?.message || err.message));
+          this.isLoading.set(false);
         }
       });
     }

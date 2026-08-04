@@ -70,6 +70,10 @@ export class CategoryService {
     return this.http.post<ApiResponse<GroupCategoryResponse>>(`${this.apiUrl}/${id}/send-approval`, {}, { headers: this.getHeaders(username) });
   }
 
+  cancelApproval(id: number, username: string = 'USER01'): Observable<ApiResponse<GroupCategoryResponse>> {
+    return this.http.post<ApiResponse<GroupCategoryResponse>>(`${this.apiUrl}/${id}/cancel-approval`, {}, { headers: this.getHeaders(username) });
+  }
+
   // --- DẠNG 2: NATIVE QUERY ---
 
   getComplexList(): Observable<ApiResponse<GroupCategoryResponse[]>> {

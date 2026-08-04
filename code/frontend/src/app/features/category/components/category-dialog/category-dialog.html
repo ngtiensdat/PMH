@@ -96,7 +96,8 @@
         <tui-textfield>
           <label tuiLabel>{{ languageService.labels().category.effectiveDate }} <span
               class="tui-required">*</span></label>
-          <input tuiInput type="datetime-local" id="effectiveDate" formControlName="effectiveDate" />
+          <input tuiInputDateTime id="effectiveDate" formControlName="effectiveDate" />
+          <tui-calendar *tuiDropdown></tui-calendar>
         </tui-textfield>
         <span *ngIf="getFieldError('effectiveDate')" class="error-message">
           {{ getFieldError('effectiveDate') }}
@@ -107,7 +108,8 @@
       <div class="input-container" [style.grid-column]="mode === 'edit' ? 'span 1' : 'span 2'">
         <tui-textfield>
           <label tuiLabel>{{ languageService.labels().category.endEffectiveDate }}</label>
-          <input tuiInput type="datetime-local" id="endEffectiveDate" formControlName="endEffectiveDate" />
+          <input tuiInputDateTime id="endEffectiveDate" formControlName="endEffectiveDate" />
+          <tui-calendar *tuiDropdown></tui-calendar>
         </tui-textfield>
         <span *ngIf="getFieldError('endEffectiveDate') || getFormError('endEffectiveDate')" class="error-message">
           {{ getFieldError('endEffectiveDate') || getFormError('endEffectiveDate') }}

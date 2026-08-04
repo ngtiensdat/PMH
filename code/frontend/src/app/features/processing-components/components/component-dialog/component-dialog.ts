@@ -8,6 +8,8 @@ import { NotificationService } from '../../../../shared/components/notification/
 import { ComponentSchema, zodFormValidator, zodFieldValidator } from '../../../../shared/validators/component.schema';
 import { ProcessingComponentResponse, ProcessingComponentRequest } from '../../../../shared/models/component.model';
 import { LanguageService } from '../../../../core/services/language.service';
+import { TUI_INPUT_DATE_TIME_OPTIONS, tuiInputDateTimeOptionsProvider } from '@taiga-ui/kit';
+import { DateTimeTransformer } from '../../../../shared/utils/datetime-transformer';
 
 import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
 
@@ -18,6 +20,11 @@ import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
     CommonModule,
     ReactiveFormsModule,
     SharedTaigaModule
+  ],
+  providers: [
+    tuiInputDateTimeOptionsProvider({
+      valueTransformer: new DateTimeTransformer()
+    })
   ],
   templateUrl: './component-dialog.html',
   styleUrl: './component-dialog.css'
@@ -34,6 +41,13 @@ export class ComponentDialogComponent implements OnInit {
   mode: 'add' | 'edit' | 'copy' = 'add';
   component: ProcessingComponentResponse | null = null;
   code: string | null = null;
+
+  constructor() {
+    const navigation = this.router.getCurrentNavigation();
+    if (navigation?.extras.state?.['data']) {
+      this.component = navigation.extras.state['data'];
+    }
+  }
 
   dialogForm!: FormGroup;
 
@@ -84,7 +98,11 @@ export class ComponentDialogComponent implements OnInit {
     const codeParam = this.route.snapshot.paramMap.get('code');
     if (codeParam) {
       this.code = codeParam;
-      this.loadComponentData(this.code);
+      if (this.mode === 'copy' && this.component) {
+        this.populateForm();
+      } else {
+        this.loadComponentData(this.code);
+      }
     }
   }
 
@@ -121,14 +139,6 @@ export class ComponentDialogComponent implements OnInit {
   }
 
   private populateForm() {
-    const toLocalISO = (dateStr?: string | null) => {
-      if (!dateStr) return '';
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return '';
-      const pad = (n: number) => n.toString().padStart(2, '0');
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    };
-
     if (!this.component) return;
     this.dialogForm.patchValue({
       componentCode: this.component.componentCode,
@@ -138,8 +148,8 @@ export class ComponentDialogComponent implements OnInit {
       checkToken: this.component.checkToken === 'Y',
       description: this.component.description || '',
       isActive: this.component.isActive ?? 1,
-      effectiveDate: this.mode === 'copy' ? '' : toLocalISO(this.component.effectiveDate),
-      endEffectiveDate: this.mode === 'copy' ? '' : toLocalISO(this.component.endEffectiveDate)
+      effectiveDate: this.mode === 'copy' ? '' : this.component.effectiveDate,
+      endEffectiveDate: this.mode === 'copy' ? '' : this.component.endEffectiveDate
     });
 
     if (this.mode === 'edit') {
@@ -270,7 +280,11 @@ export class ComponentDialogComponent implements OnInit {
   }
 
   private formatToISO(dateStr: string): string {
-    return new Date(dateStr).toISOString();
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   }
 
   private markFormGroupTouched(fg: FormGroup) {

@@ -9,7 +9,8 @@ import {
   TuiDropdown,
   TuiCheckbox,
   TuiLoader,
-  TuiDataList
+  TuiDataList,
+  TuiCalendar
 } from '@taiga-ui/core';
 import {
   TuiTabs,
@@ -17,7 +18,8 @@ import {
   TuiChevron,
   TuiSelect,
   TuiDataListWrapper,
-  TuiMultiSelect
+  TuiMultiSelect,
+  TuiInputDateTime
 } from '@taiga-ui/kit';
 
 const TAIGA_COMPONENTS: any[] = [
@@ -31,12 +33,14 @@ const TAIGA_COMPONENTS: any[] = [
   TuiCheckbox,
   TuiLoader,
   TuiDataList,
+  TuiCalendar,
   TuiTabs,
   TuiPagination,
   TuiChevron,
   TuiSelect,
   TuiDataListWrapper,
-  TuiMultiSelect
+  TuiMultiSelect,
+  TuiInputDateTime
 ];
 
 @NgModule({

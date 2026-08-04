@@ -88,8 +88,8 @@
           <tr style="border-bottom: 2px solid #e2e8f0; background-color: #f8fafc;">
             <th *ngFor="let col of displayColumns; let colIdx = index" [style.width.px]="col.width"
               [style.min-width.px]="col.width" [style.max-width.px]="col.width"
-              [attr.draggable]="!col.isFixed ? 'true' : null" (dragstart)="onDragStart(colIdx)"
-              (dragover)="onDragOver($event, colIdx)" (dragleave)="onDragLeave()" (drop)="onDrop(colIdx)"
+              [attr.draggable]="!col.isFixed ? 'true' : null" (dragstart)="onDragStart(col.id, $event)"
+              (dragover)="onDragOver($event, col.id)" (dragleave)="onDragLeave()" (drop)="onDrop(col.id)"
               [class.draggable-col]="!col.isFixed" [class.drag-over]="dragOverColumnIndex === colIdx"
               style="padding: 0.75rem 1rem; position: relative; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
               <!-- Cell content by column ID -->
@@ -97,7 +97,7 @@
                 <!-- Checkbox -->
                 <ng-container *ngSwitchCase="'checkbox'">
                   <div style="text-align: center; display: flex; justify-content: center; align-items: center;">
-                    <input type="checkbox" [checked]="isAllSelected()" (change)="toggleSelectAll($event)" />
+                    <input tuiCheckbox type="checkbox" [ngModel]="isAllSelected()" (change)="toggleSelectAll($event)" />
                   </div>
                 </ng-container>
 
@@ -126,7 +126,7 @@
               </ng-container>
 
               <!-- Resize handle -->
-              <div class="resize-handle" (mousedown)="onResizeStart($event, colIdx)"></div>
+              <div class="resize-handle" (mousedown)="onResizeStart($event, col)"></div>
             </th>
           </tr>
         </thead>
@@ -142,7 +142,7 @@
                   <!-- Checkbox -->
                   <ng-container *ngSwitchCase="'checkbox'">
                     <div style="text-align: center;" (click)="$event.stopPropagation()">
-                      <input type="checkbox" [checked]="selectedCodes().includes(item.componentCode)"
+                      <input tuiCheckbox type="checkbox" [ngModel]="selectedCodes().includes(item.componentCode)"
                         (change)="toggleItemSelection(item.componentCode, $event)" />
                     </div>
                   </ng-container>
@@ -226,31 +226,55 @@
                   <ng-container *ngSwitchCase="'actions'">
                     <div style="display: flex; gap: 0.35rem; justify-content: center;"
                       (click)="$event.stopPropagation()">
+                      <!-- Slot 1: View (Always visible) -->
                       <button (click)="onViewDetail(item)" class="action-btn view"
+                        [disabled]="isLoading()"
                         [title]="languageService.labels().common.viewDetail">
                         <tui-icon icon="@tui.eye" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
-                      <button *ngIf="languageService.userCode() === 'USER01'" (click)="openEditDialog(item)"
-                        class="action-btn edit" [title]="languageService.labels().common.edit">
-                        <tui-icon icon="@tui.pencil" style="--tui-icon-size: 14px;"></tui-icon>
+
+                      <!-- Slot 2: Edit or Cancel Approval (Maker only, occupying the same slot) -->
+                      <button *ngIf="languageService.userCode() === 'USER01'"
+                        (click)="item.status === 4 ? onCancelApproval(item.componentCode) : openEditDialog(item)"
+                        class="action-btn"
+                        [disabled]="isLoading()"
+                        [class.edit]="item.status !== 4"
+                        [class.cancel-approve]="item.status === 4"
+                        [class.invisible]="item.status !== 1 && item.status !== 5 && item.status !== 7 && item.status !== 4"
+                        [title]="item.status === 4 ? 'Hủy duyệt' : languageService.labels().common.edit">
+                        <tui-icon [icon]="item.status === 4 ? '@tui.ban' : '@tui.pencil'" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
+
+                      <!-- Slot 3: Copy (Maker only) -->
                       <button *ngIf="languageService.userCode() === 'USER01'" (click)="openCopyDialog(item)"
-                        class="action-btn copy" [title]="languageService.labels().common.copy">
+                        class="action-btn copy"
+                        [disabled]="isLoading()"
+                        [title]="languageService.labels().common.copy">
                         <tui-icon icon="@tui.copy" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
+
+                      <!-- Slot 4: History (Always visible) -->
                       <button (click)="openHistoryDialog(item)" class="action-btn history" title="Xem lịch sử thao tác"
+                        [disabled]="isLoading()"
                         style="color: #64748b;">
                         <tui-icon icon="@tui.history" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
-                      <button *ngIf="languageService.userCode() === 'USER01'" (click)="onDelete(item.componentCode)"
-                        class="action-btn delete" [title]="languageService.labels().common.delete"
+
+                      <!-- Slot 5: Delete (Maker only, occupies space when invisible) -->
+                      <button *ngIf="languageService.userCode() === 'USER01'"
+                        (click)="onDelete(item.componentCode)" class="action-btn delete"
+                        [disabled]="isLoading()"
+                        [title]="languageService.labels().common.delete"
                         [class.invisible]="item.isDisplay !== 1">
                         <tui-icon icon="@tui.trash" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
+
+                      <!-- Slot 6: Send Approval (Maker only, occupies space when invisible) -->
                       <button *ngIf="languageService.userCode() === 'USER01'"
                         (click)="onSendApproval(item.componentCode)" class="action-btn approve"
+                        [disabled]="isLoading()"
                         [title]="languageService.labels().common.sendApproval"
-                        [class.invisible]="item.status !== 1 && item.status !== 5">
+                        [class.invisible]="item.status !== 1 && item.status !== 5 && item.status !== 7">
                         <tui-icon icon="@tui.send" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
                     </div>

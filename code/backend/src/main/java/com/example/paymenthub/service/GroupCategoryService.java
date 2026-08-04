@@ -29,6 +29,8 @@ public interface GroupCategoryService {
 
     GroupCategory sendForApproval(Long id, String username);
 
+    GroupCategory cancelApproval(Long id, String username);
+
     List<Map<String, Object>> getJoinedList();
 
     List<Map<String, Object>> getRawDataForExport();

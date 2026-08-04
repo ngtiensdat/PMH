@@ -151,12 +151,19 @@ public class ComponentServiceImpl implements ComponentService {
         String oldJson = toJson(snapshot(entity));
         int statusBefore = entity.getStatus();
 
+        // 1. Kiểm tra trạng thái được phép sửa: Tạo mới (1), Từ chối (5), Hủy duyệt (7)
+        if (entity.getStatus() != 1 && entity.getStatus() != 5 && entity.getStatus() != 7) {
+            throw new IllegalStateException("Không được phép chỉnh sửa cấu phần đang ở trạng thái: " 
+                + (entity.getStatus() == 3 ? "Chờ duyệt" : "Đã duyệt"));
+        }
+
         ProcessingComponent saved;
         String action;
         int statusAfter;
 
-        if (entity.getStatus() == 4) {
+        if (entity.getIsDisplay() == 2) {
             try {
+                // Bản ghi đã từng được duyệt (isDisplay == 2): không sửa trực tiếp vào các cột, chỉ lưu vào NEW_DATA
                 Map<String, Object> changes = new HashMap<>();
                 changes.put("componentName", dto.getComponentName());
                 changes.put("messageType", dto.getMessageType());
@@ -169,15 +176,16 @@ public class ComponentServiceImpl implements ComponentService {
                         dto.getEndEffectiveDate() != null ? dto.getEndEffectiveDate().toString() : null);
 
                 entity.setNewData(objectMapper.writeValueAsString(changes));
-                entity.setStatus(3);
                 entity.setUpdatedBy(username);
+                entity.setStatus(7); // Khi sửa một thay đổi của bản ghi đã duyệt, đặt trạng thái về Hủy duyệt (7) để Maker gửi duyệt lại
                 saved = repository.save(entity);
-                action = "Gửi duyệt sửa";
-                statusAfter = 3;
+                action = "Lưu sửa nháp (Hủy duyệt)";
+                statusAfter = 7;
             } catch (Exception e) {
                 throw new RuntimeException("Lỗi serialize NEW_DATA: " + e.getMessage());
             }
         } else {
+            // Bản ghi chưa từng được duyệt (isDisplay == 1): cập nhật trực tiếp vào các cột
             entity.setComponentName(dto.getComponentName());
             entity.setMessageType(dto.getMessageType());
             entity.setConnectionMethod(dto.getConnectionMethod());
@@ -186,6 +194,7 @@ public class ComponentServiceImpl implements ComponentService {
             entity.setIsActive(dto.getIsActive());
             entity.setEffectiveDate(dto.getEffectiveDate());
             entity.setEndEffectiveDate(dto.getEndEffectiveDate());
+            entity.setNewData(null); // Xóa các thay đổi nháp cũ nếu có
             entity.setUpdatedBy(username);
             entity.setStatus(1);
             saved = repository.save(entity);
@@ -258,6 +267,11 @@ public class ComponentServiceImpl implements ComponentService {
     public ProcessingComponent sendForApproval(String code, String username) {
         log.info("[Component] Sending for approval. code={}, user={}", code, username);
         ProcessingComponent entity = getByCode(code);
+        
+        if (entity.getStatus() == 3) {
+            throw new IllegalStateException("Bản ghi đã ở trạng thái Chờ duyệt!");
+        }
+        
         int statusBefore = entity.getStatus();
 
         entity.setStatus(3);
@@ -271,6 +285,37 @@ public class ComponentServiceImpl implements ComponentService {
                 null, null,
                 String.format("Gửi duyệt cấu phần Code=%s: %s", code, entity.getComponentName()),
                 statusBefore, 3);
+
+        return saved;
+    }
+
+    @Override
+    public ProcessingComponent cancelApproval(String code, String username) {
+        log.info("[Component] Canceling approval. code={}, user={}", code, username);
+        
+        // Phân quyền: Chỉ Maker mới được phép hủy duyệt
+        if (!"USER01".equalsIgnoreCase(username)) {
+            throw new IllegalStateException("Chỉ Chuyên viên (Maker) mới có quyền thực hiện chức năng hủy duyệt!");
+        }
+
+        ProcessingComponent entity = getByCode(code);
+        if (entity.getStatus() != 4) {
+            throw new IllegalStateException("Chỉ được phép hủy duyệt bản ghi đang ở trạng thái đã phê duyệt (STATUS = 4)!");
+        }
+
+        int statusBefore = entity.getStatus();
+
+        entity.setStatus(7); // Hủy duyệt
+        entity.setUpdatedBy(username);
+        ProcessingComponent saved = repository.save(entity);
+
+        // Ghi audit log
+        auditLogService.log(
+                MODULE, code,
+                "Hủy duyệt", username,
+                null, null,
+                String.format("Hủy duyệt cấu phần Code=%s - %s", code, entity.getComponentName()),
+                statusBefore, 7);
 
         return saved;
     }

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import { ApiResponse, PageResponse } from '../../../shared/models/api-response.model';
 import { ProcessingComponentResponse, ProcessingComponentRequest } from '../../../shared/models/component.model';
@@ -11,6 +12,7 @@ import { AuditLogItem } from '../../../shared/models/audit-log.model';
 })
 export class ComponentService {
   private apiUrl = `${environment.apiBase}/api/components`;
+  private activeComponentsCache = new Map<string, ApiResponse<ProcessingComponentResponse[]>>();
 
   constructor(private http: HttpClient) {}
 
@@ -58,11 +60,17 @@ export class ComponentService {
   }
 
   getActiveList(status?: number): Observable<ApiResponse<ProcessingComponentResponse[]>> {
+    const cacheKey = status !== undefined && status !== null ? status.toString() : 'all';
+    if (this.activeComponentsCache.has(cacheKey)) {
+      return of(this.activeComponentsCache.get(cacheKey)!);
+    }
     let params = new HttpParams();
     if (status !== undefined && status !== null) {
       params = params.set('status', status.toString());
     }
-    return this.http.get<ApiResponse<ProcessingComponentResponse[]>>(`${this.apiUrl}/active-list`, { params });
+    return this.http.get<ApiResponse<ProcessingComponentResponse[]>>(`${this.apiUrl}/active-list`, { params }).pipe(
+      tap(res => this.activeComponentsCache.set(cacheKey, res))
+    );
   }
 
   create(dto: ProcessingComponentRequest, username: string = 'USER01'): Observable<ApiResponse<ProcessingComponentResponse>> {
@@ -79,6 +87,10 @@ export class ComponentService {
 
   sendApproval(code: string, username: string = 'USER01'): Observable<ApiResponse<ProcessingComponentResponse>> {
     return this.http.post<ApiResponse<ProcessingComponentResponse>>(`${this.apiUrl}/${code}/send-approval`, {}, { headers: this.getHeaders(username) });
+  }
+
+  cancelApproval(code: string, username: string = 'USER01'): Observable<ApiResponse<ProcessingComponentResponse>> {
+    return this.http.post<ApiResponse<ProcessingComponentResponse>>(`${this.apiUrl}/${code}/cancel-approval`, {}, { headers: this.getHeaders(username) });
   }
 
   exportExcel(): Observable<ApiResponse<Record<string, unknown>[]>> {

@@ -151,6 +151,12 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         String oldJson = toJson(snapshot(entity));
         int statusBefore = entity.getStatus();
 
+        // 1. Kiểm tra trạng thái được phép sửa: Tạo mới (1), Từ chối (5), Hủy duyệt (7)
+        if (entity.getStatus() != 1 && entity.getStatus() != 5 && entity.getStatus() != 7) {
+            throw new IllegalStateException("Không được phép chỉnh sửa bản ghi đang ở trạng thái: " 
+                + (entity.getStatus() == 3 ? "Chờ duyệt" : "Đã duyệt"));
+        }
+
         if (repository.existsByParamNameAndParamValueAndParamTypeAndIdNot(
                 dto.getParamName(), dto.getParamValue(), dto.getParamType(), id)) {
             throw new IllegalStateException("Đã tồn tại bản ghi khác có cùng bộ 3: Tên, Giá trị và Nhóm!");
@@ -160,15 +166,18 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         String action;
         int statusAfter;
 
-        if (entity.getStatus() == 4) {
+        if (entity.getIsDisplay() == 2) {
+            // Bản ghi đã từng được duyệt (isDisplay == 2): không sửa trực tiếp vào các cột, chỉ lưu vào NEW_DATA
             entity.setNewData(buildNewDataJson(dto));
-            entity.setStatus(3);
             entity.setUpdatedBy(username);
+            entity.setStatus(7); // Khi sửa một thay đổi của bản ghi đã duyệt, đặt trạng thái về Hủy duyệt (7) để Maker gửi duyệt lại
             saved = repository.save(entity);
-            action = "Gửi duyệt sửa";
-            statusAfter = 3;
+            action = "Lưu sửa nháp (Hủy duyệt)";
+            statusAfter = 7;
         } else {
+            // Bản ghi chưa từng được duyệt (isDisplay == 1): cập nhật trực tiếp vào các cột
             updateEntityFields(entity, dto, username);
+            entity.setNewData(null); // Xóa các thay đổi nháp cũ nếu có
             saved = repository.save(entity);
             action = "Cập nhật";
             statusAfter = 1;
@@ -275,6 +284,11 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
     public GroupCategory sendForApproval(Long id, String username) {
         log.info("[GroupCategory] Sending for approval. id={}, user={}", id, username);
         GroupCategory entity = getById(id);
+        
+        if (entity.getStatus() == 3) {
+            throw new IllegalStateException("Bản ghi đã ở trạng thái Chờ duyệt!");
+        }
+        
         int statusBefore = entity.getStatus();
 
         entity.setStatus(3);
@@ -288,6 +302,39 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 null, null,
                 String.format("Gửi duyệt tham số ID=%d: %s / %s", id, entity.getParamName(), entity.getParamValue()),
                 statusBefore, 3);
+
+        return saved;
+    }
+
+    // ─── Cancel Approval ─────────────────────────────────────────────────────
+
+    @Override
+    public GroupCategory cancelApproval(Long id, String username) {
+        log.info("[GroupCategory] Canceling approval. id={}, user={}", id, username);
+        
+        // Phân quyền: Chỉ Maker mới được phép hủy duyệt
+        if (!"USER01".equalsIgnoreCase(username)) {
+            throw new IllegalStateException("Chỉ Chuyên viên (Maker) mới có quyền thực hiện chức năng hủy duyệt!");
+        }
+
+        GroupCategory entity = getById(id);
+        if (entity.getStatus() != 4) {
+            throw new IllegalStateException("Chỉ được phép hủy duyệt bản ghi đang ở trạng thái đã phê duyệt (STATUS = 4)!");
+        }
+
+        int statusBefore = entity.getStatus();
+
+        entity.setStatus(7); // Hủy duyệt
+        entity.setUpdatedBy(username);
+        GroupCategory saved = repository.save(entity);
+
+        // Ghi audit log
+        auditLogService.log(
+                MODULE, String.valueOf(id),
+                "Hủy duyệt", username,
+                null, null,
+                String.format("Hủy duyệt tham số ID=%d: %s / %s", id, entity.getParamName(), entity.getParamValue()),
+                statusBefore, 7);
 
         return saved;
     }

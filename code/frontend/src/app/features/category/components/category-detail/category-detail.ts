@@ -7,11 +7,12 @@ import { GroupCategoryResponse } from '../../../../shared/models/group-category.
 import { LanguageService } from '../../../../core/services/language.service';
 import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
 import { HttpErrorResponse } from '@angular/common/http';
+import { ComparisonCardComponent } from '../../../../shared/components/comparison-card/comparison-card';
 
 @Component({
   selector: 'app-category-detail',
   standalone: true,
-  imports: [CommonModule, SharedTaigaModule],
+  imports: [CommonModule, SharedTaigaModule, ComparisonCardComponent],
   templateUrl: './category-detail.html',
   styleUrl: './category-detail.css'
 })
@@ -25,6 +26,13 @@ export class CategoryDetailComponent implements OnInit {
   category: GroupCategoryResponse | null = null;
   id: number | null = null;
   isLoading = signal<boolean>(false);
+
+  constructor() {
+    const navigation = this.router.getCurrentNavigation();
+    if (navigation?.extras.state?.['data']) {
+      this.category = navigation.extras.state['data'];
+    }
+  }
 
   fields = [
     'paramName',
@@ -77,7 +85,7 @@ export class CategoryDetailComponent implements OnInit {
   get oldData(): Record<string, unknown> {
     if (!this.category) return {};
 
-    if (this.category.status === 1 || (this.category.status === 3 && !this.category.createdBy)) {
+    if (this.category.status === 1 || this.category.isDisplay === 1) {
       return {};
     }
     return this.category as unknown as Record<string, unknown>;
@@ -124,6 +132,22 @@ export class CategoryDetailComponent implements OnInit {
 
     if (oldVal === '-' && newVal === '-') return false;
     return oldVal !== newVal;
+  }
+
+  get oldDataRows() {
+    return this.fields.map(f => ({
+      label: this.getFieldLabel(f),
+      value: this.formatValue(f, this.oldData[f]),
+      isChanged: this.isFieldChanged(f)
+    }));
+  }
+
+  get newDataRows() {
+    return this.fields.map(f => ({
+      label: this.getFieldLabel(f),
+      value: this.formatValue(f, this.newData[f]),
+      isChanged: this.isFieldChanged(f)
+    }));
   }
 
   onDeleteRecord() {

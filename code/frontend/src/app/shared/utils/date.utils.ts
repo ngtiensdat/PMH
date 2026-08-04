@@ -51,7 +51,11 @@ export function formatDateDisplay(dateStr: string | null | undefined): string {
  * Convert date string sang ISO string để gửi lên API.
  */
 export function formatToISO(dateStr: string): string {
-  return new Date(dateStr).toISOString();
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 /**

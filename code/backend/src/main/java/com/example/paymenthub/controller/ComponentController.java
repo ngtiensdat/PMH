@@ -117,6 +117,18 @@ public class ComponentController extends BaseController {
         return ok(ComponentResponseDTO.fromEntity(updated), "Gửi duyệt cấu phần thành công");
     }
 
+    /**
+     * Hủy duyệt bằng JPA
+     */
+    @PostMapping("/{code}/cancel-approval")
+    public ResponseEntity<ApiResponse<ComponentResponseDTO>> cancelApproval(
+            @PathVariable String code,
+            @RequestHeader(value = "X-Username", defaultValue = "SYSTEM") String username
+    ) {
+        ProcessingComponent updated = service.cancelApproval(code, username);
+        return ok(ComponentResponseDTO.fromEntity(updated), "Hủy duyệt cấu phần thành công");
+    }
+
     // ─── DẠNG 2: NATIVE QUERY ──────────────────────────────────────────────────
 
     @GetMapping("/export")

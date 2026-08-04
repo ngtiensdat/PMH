@@ -10,6 +10,8 @@ import { CategorySchema, zodFormValidator, zodFieldValidator } from '../../../..
 import { GroupCategoryResponse, GroupCategoryRequest } from '../../../../shared/models/group-category.model';
 import { LanguageService } from '../../../../core/services/language.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { TUI_INPUT_DATE_TIME_OPTIONS, tuiInputDateTimeOptionsProvider } from '@taiga-ui/kit';
+import { DateTimeTransformer } from '../../../../shared/utils/datetime-transformer';
 
 import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
 
@@ -20,6 +22,11 @@ import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
     CommonModule,
     ReactiveFormsModule,
     SharedTaigaModule
+  ],
+  providers: [
+    tuiInputDateTimeOptionsProvider({
+      valueTransformer: new DateTimeTransformer()
+    })
   ],
   templateUrl: './category-dialog.html',
   styleUrl: './category-dialog.css'
@@ -37,6 +44,13 @@ export class CategoryDialogComponent implements OnInit {
   mode: 'add' | 'edit' | 'copy' = 'add';
   category: GroupCategoryResponse | null = null;
   id: number | null = null;
+
+  constructor() {
+    const navigation = this.router.getCurrentNavigation();
+    if (navigation?.extras.state?.['data']) {
+      this.category = navigation.extras.state['data'];
+    }
+  }
 
   dialogForm!: FormGroup;
 
@@ -80,7 +94,11 @@ export class CategoryDialogComponent implements OnInit {
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.id = +idParam;
-      this.loadCategoryData(this.id);
+      if (this.mode === 'copy' && this.category) {
+        this.populateForm();
+      } else {
+        this.loadCategoryData(this.id);
+      }
     }
   }
 
@@ -137,14 +155,6 @@ export class CategoryDialogComponent implements OnInit {
   }
 
   private populateForm() {
-    const toLocalISO = (dateStr?: string | null) => {
-      if (!dateStr) return '';
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return '';
-      const pad = (n: number) => n.toString().padStart(2, '0');
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    };
-
     if (!this.category) return;
     this.dialogForm.patchValue({
       paramType: this.category.paramType,
@@ -153,8 +163,8 @@ export class CategoryDialogComponent implements OnInit {
       description: this.category.description,
       componentCode: this.category.componentCode ? this.category.componentCode.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
       isActive: this.category.isActive,
-      effectiveDate: this.mode === 'copy' ? '' : toLocalISO(this.category.effectiveDate),
-      endEffectiveDate: this.mode === 'copy' ? '' : toLocalISO(this.category.endEffectiveDate)
+      effectiveDate: this.mode === 'copy' ? '' : this.category.effectiveDate,
+      endEffectiveDate: this.mode === 'copy' ? '' : this.category.endEffectiveDate
     });
 
     if (this.mode === 'edit') {
@@ -276,7 +286,11 @@ export class CategoryDialogComponent implements OnInit {
   }
 
   private formatToISO(dateStr: string): string {
-    return new Date(dateStr).toISOString();
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   }
 
   private markFormGroupTouched(formGroup: FormGroup) {

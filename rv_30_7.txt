@@ -1,0 +1,39 @@
+Tham số có 2 trạng thái: Trạng thái tham số => Phục vụ cho luồng phê duyêt
+			 Trạng thái hoat động => Phục vụ cho việc sử dụng của hệ thống
+1. Các trạng thái được phép sửa: Tạo mới, Từ chối, hủy duyệt
+
+RULE: Bản ghi ở trạng thái đã phê duyệt => Hủy duyệt => Sửa: => giá trị sửa không được thay thế trực tiếp => Mà chỉ lưu vào NEW_DATA;
+2. kiểm tra lại về luồng xử lý của các trạng thái tham số. 
+==============note review be==================
+1. Tìm hiểu lại ý nghĩa các anotation trong BE
+2. Tìm hiểu lại contructor trong java
+3. Tìm hiểu lại về OOP
+4. Câu hỏi: Vẽ mô hình đường đi của 1 request qua các package trong springboot thee layer (Vẽ cả luồng exception)
+5. Tìm hiểu về sự khác nhau giữa interface và abstract Class. 3 điểm
+6. Câu hỏi: Bản chất jpa là gì? nó làm gì để tương tác với DB? Các hàm save, delete,... bản chất nó làm gì?
+7. Câu hỏi: Các trạng thái của 1 entity bao gồm?
+8. Tìm hiểu về @Transaction
+
+
+============note review frontend==============
+1. giải thích các toán tử: ?? và ||;
+
+const name = person.name || 'Nguyễn Tiến Đạt';
+const name = person.name ?? 'Nguyễn Tiến Đạt';
+
+
+2. Tìm hiểu về @input và @output trong angular. Thực hành nó với form đối chiếu
+
+3. tìm hiểu các method implements OnInit sẽ chạy vào thời điểm nào, hàm ngOnInit khởi chạy lúc nào
+4. inject(LanguageService); inject là gì? để làm gì
+
+
+
+
+
+
+
+
+	
+
+

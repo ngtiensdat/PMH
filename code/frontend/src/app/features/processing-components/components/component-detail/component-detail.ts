@@ -6,13 +6,14 @@ import { ComponentService } from '../../services/component.service';
 import { NotificationService } from '../../../../shared/components/notification/notification.service';
 import { ProcessingComponentResponse } from '../../../../shared/models/component.model';
 import { LanguageService } from '../../../../core/services/language.service';
+import { ComparisonCardComponent } from '../../../../shared/components/comparison-card/comparison-card';
 
 import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
 
 @Component({
   selector: 'app-component-detail',
   standalone: true,
-  imports: [CommonModule, SharedTaigaModule],
+  imports: [CommonModule, SharedTaigaModule, ComparisonCardComponent],
   templateUrl: './component-detail.html',
   styleUrl: './component-detail.css'
 })
@@ -26,6 +27,13 @@ export class ComponentDetailComponent implements OnInit {
   component: ProcessingComponentResponse | null = null;
   code: string | null = null;
   isLoading = signal<boolean>(false);
+
+  constructor() {
+    const navigation = this.router.getCurrentNavigation();
+    if (navigation?.extras.state?.['data']) {
+      this.component = navigation.extras.state['data'];
+    }
+  }
 
   fields = [
     'componentCode',
@@ -80,7 +88,7 @@ export class ComponentDetailComponent implements OnInit {
   get oldData(): Record<string, unknown> {
     if (!this.component) return {};
     
-    if (this.component.status === 1 || (this.component.status === 3 && !this.component.createdBy)) {
+    if (this.component.status === 1 || this.component.isDisplay === 1) {
       return {};
     }
     return this.component as unknown as Record<string, unknown>;
@@ -135,6 +143,22 @@ export class ComponentDetailComponent implements OnInit {
     
     if (oldVal === '-' && newVal === '-') return false;
     return oldVal !== newVal;
+  }
+
+  get oldDataRows() {
+    return this.fields.map(f => ({
+      label: this.getFieldLabel(f),
+      value: this.formatValue(f, this.oldData[f]),
+      isChanged: this.isFieldChanged(f)
+    }));
+  }
+
+  get newDataRows() {
+    return this.fields.map(f => ({
+      label: this.getFieldLabel(f),
+      value: this.formatValue(f, this.newData[f]),
+      isChanged: this.isFieldChanged(f)
+    }));
   }
 
   onDeleteRecord() {

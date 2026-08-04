@@ -507,6 +507,17 @@ code {
   border-color: #16a34a;
 }
 
+.action-btn.cancel-approve {
+  color: #ef4444;
+  border-color: #fecaca;
+}
+
+.action-btn.cancel-approve:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
 .action-btn.invisible {
   visibility: hidden;
   pointer-events: none;

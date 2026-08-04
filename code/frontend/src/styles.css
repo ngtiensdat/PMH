@@ -379,11 +379,13 @@ th.drag-over {
 }
 
 .sort-header {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 0.35rem;
   cursor: pointer;
   user-select: none;
+  width: 100%;
+  height: 100%;
 }
 
 .sort-icon {

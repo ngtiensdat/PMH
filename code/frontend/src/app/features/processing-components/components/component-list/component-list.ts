@@ -1,6 +1,6 @@
 import { Component, OnInit, signal, inject, computed, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ComponentService } from '../../services/component.service';
 import { LanguageService } from '../../../../core/services/language.service';
@@ -19,6 +19,7 @@ import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    FormsModule,
     SharedTaigaModule
   ],
   templateUrl: './component-list.html',
@@ -135,21 +136,24 @@ export class ComponentListComponent implements OnInit {
 
   draggedColumnIndex: number | null = null;
   dragOverColumnIndex: number | null = null;
+  isResizing = false;
 
   // Column resizing implementation
-  onResizeStart(event: MouseEvent, index: number) {
+  onResizeStart(event: MouseEvent, col: any) {
     event.stopPropagation();
     event.preventDefault();
+    this.isResizing = true;
     const startX = event.clientX;
-    const startWidth = this.columns[index].width;
+    const startWidth = col.width;
     
     const onMouseMove = (moveEvent: MouseEvent) => {
       const deltaX = moveEvent.clientX - startX;
-      const minWidth = this.columns[index].id === 'checkbox' ? 40 : 80;
-      this.columns[index].width = Math.max(minWidth, startWidth + deltaX);
+      const minWidth = col.id === 'checkbox' ? 40 : 80;
+      col.width = Math.max(minWidth, startWidth + deltaX);
     };
     
     const onMouseUp = () => {
+      this.isResizing = false;
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
     };
@@ -159,13 +163,18 @@ export class ComponentListComponent implements OnInit {
   }
 
   // Column reordering implementation
-  onDragStart(index: number) {
-    if (this.columns[index].isFixed) return;
+  onDragStart(colId: string, event: DragEvent) {
+    const index = this.columns.findIndex(c => c.id === colId);
+    if (this.isResizing || index === -1 || this.columns[index].isFixed) {
+      event.preventDefault();
+      return;
+    }
     this.draggedColumnIndex = index;
   }
 
-  onDragOver(event: DragEvent, index: number) {
-    if (this.columns[index].isFixed || this.draggedColumnIndex === null) return;
+  onDragOver(event: DragEvent, colId: string) {
+    const index = this.columns.findIndex(c => c.id === colId);
+    if (index === -1 || this.columns[index].isFixed || this.draggedColumnIndex === null) return;
     event.preventDefault();
     this.dragOverColumnIndex = index;
   }
@@ -174,8 +183,9 @@ export class ComponentListComponent implements OnInit {
     this.dragOverColumnIndex = null;
   }
 
-  onDrop(index: number) {
-    if (this.draggedColumnIndex === null || this.columns[index].isFixed) {
+  onDrop(colId: string) {
+    const index = this.columns.findIndex(c => c.id === colId);
+    if (this.draggedColumnIndex === null || index === -1 || this.columns[index].isFixed) {
       this.draggedColumnIndex = null;
       this.dragOverColumnIndex = null;
       return;
@@ -198,12 +208,25 @@ export class ComponentListComponent implements OnInit {
     const currentField = this.sortField();
     const currentDir = this.sortDirection();
 
+    let newField = colId;
     let newDir = 'asc';
+
     if (currentField === colId) {
-      newDir = currentDir === 'asc' ? 'desc' : 'asc';
+      if (currentDir === 'asc') {
+        newDir = 'desc';
+      } else {
+        // If it is already desc, reset to default (updatedDate, desc)
+        // Unless we are already sorting by updatedDate, in which case we toggle back to asc
+        if (colId !== 'updatedDate') {
+          newField = 'updatedDate';
+          newDir = 'desc';
+        } else {
+          newDir = 'asc';
+        }
+      }
     }
 
-    this.sortField.set(colId);
+    this.sortField.set(newField);
     this.sortDirection.set(newDir);
 
     this.page.set(0);
@@ -321,18 +344,18 @@ export class ComponentListComponent implements OnInit {
   }
 
   openCopyDialog(item: any) {
-    this.router.navigate(['/components/copy', item.componentCode]);
+    this.router.navigate(['/components/copy', item.componentCode], { state: { data: item } });
   }
 
   onViewDetail(item: any) {
-    this.router.navigate(['/components/detail', item.componentCode]);
+    this.router.navigate(['/components/detail', item.componentCode], { state: { data: item } });
   }
 
   // Confirmation dialog state
   isConfirmOpen = false;
   confirmTitle = '';
   confirmMessage = '';
-  confirmAction: 'approve' | 'reject' | 'delete' | 'sendApproval' | 'batchApprove' | 'batchReject' | null = null;
+  confirmAction: 'approve' | 'reject' | 'delete' | 'sendApproval' | 'cancelApproval' | 'batchApprove' | 'batchReject' | null = null;
   confirmTargetCode: string | null = null;
 
   onDelete(code: string) {
@@ -347,6 +370,14 @@ export class ComponentListComponent implements OnInit {
     this.confirmTitle = 'Gửi duyệt';
     this.confirmMessage = 'Bạn có chắc chắn muốn gửi duyệt cấu phần này?';
     this.confirmAction = 'sendApproval';
+    this.confirmTargetCode = code;
+    this.isConfirmOpen = true;
+  }
+
+  onCancelApproval(code: string) {
+    this.confirmTitle = 'Hủy duyệt';
+    this.confirmMessage = 'Bạn có chắc chắn muốn hủy duyệt cấu phần này? Trạng thái sẽ chuyển về Hủy duyệt (7).';
+    this.confirmAction = 'cancelApproval';
     this.confirmTargetCode = code;
     this.isConfirmOpen = true;
   }
@@ -408,6 +439,7 @@ export class ComponentListComponent implements OnInit {
     this.isRejectOpen = false;
 
     if (codes.length === 0) return;
+    this.isLoading.set(true);
 
     this.componentService.batchReject(codes, reason).subscribe({
       next: (res) => {
@@ -417,6 +449,7 @@ export class ComponentListComponent implements OnInit {
       },
       error: (err: any) => {
         this.notificationService.error('Lỗi thực hiện từ chối duyệt: ' + (err.error?.message || err.message));
+        this.isLoading.set(false);
       }
     });
   }
@@ -465,6 +498,7 @@ export class ComponentListComponent implements OnInit {
     const action = this.confirmAction;
     const code = this.confirmTargetCode;
     this.isConfirmOpen = false;
+    this.isLoading.set(true);
 
     if (action === 'delete' && code) {
       this.componentService.delete(code).subscribe({
@@ -474,6 +508,7 @@ export class ComponentListComponent implements OnInit {
         },
         error: (err: any) => {
           this.notificationService.error('Không thể xóa: ' + (err.error?.message || err.message));
+          this.isLoading.set(false);
         }
       });
     } else if (action === 'sendApproval' && code) {
@@ -484,6 +519,18 @@ export class ComponentListComponent implements OnInit {
         },
         error: (err: any) => {
           this.notificationService.error('Lỗi gửi duyệt: ' + (err.error?.message || err.message));
+          this.isLoading.set(false);
+        }
+      });
+    } else if (action === 'cancelApproval' && code) {
+      this.componentService.cancelApproval(code).subscribe({
+        next: () => {
+          this.notificationService.success('Hủy duyệt thành công!');
+          this.loadData();
+        },
+        error: (err: any) => {
+          this.notificationService.error('Lỗi hủy duyệt: ' + (err.error?.message || err.message));
+          this.isLoading.set(false);
         }
       });
     } else if (action === 'batchApprove') {
@@ -496,6 +543,7 @@ export class ComponentListComponent implements OnInit {
         },
         error: (err: any) => {
           this.notificationService.error('Lỗi duyệt hàng loạt: ' + (err.error?.message || err.message));
+          this.isLoading.set(false);
         }
       });
     }

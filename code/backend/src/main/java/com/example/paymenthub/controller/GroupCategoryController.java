@@ -120,6 +120,18 @@ public class GroupCategoryController extends BaseController {
         return ok(GroupCategoryResponseDTO.fromEntity(updated), "Gửi duyệt tham số thành công");
     }
 
+    /**
+     * Hủy duyệt bằng JPA
+     */
+    @PostMapping("/{id}/cancel-approval")
+    public ResponseEntity<ApiResponse<GroupCategoryResponseDTO>> cancelApproval(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Username", defaultValue = "SYSTEM") String username
+    ) {
+        GroupCategory updated = service.cancelApproval(id, username);
+        return ok(GroupCategoryResponseDTO.fromEntity(updated), "Hủy duyệt tham số thành công");
+    }
+
     // --- DẠNG 2: NATIVE QUERY ---
 
     /**

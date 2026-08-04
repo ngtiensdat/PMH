@@ -32,6 +32,8 @@ public interface ComponentService {
 
     ProcessingComponent sendForApproval(String code, String username);
 
+    ProcessingComponent cancelApproval(String code, String username);
+
     List<Map<String, Object>> getRawDataForExport();
 
     List<Map<String, Object>> batchApprove(List<String> codes, String approver);
