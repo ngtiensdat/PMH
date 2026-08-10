@@ -19,6 +19,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.paymenthub.common.exception.ResourceNotFoundException;
+import com.example.paymenthub.common.exception.ForbiddenAccessException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -53,6 +55,15 @@ public class ComponentServiceImpl implements ComponentService {
         this.objectMapper = objectMapper;
         this.auditLogService = auditLogService;
         this.transactionManager = transactionManager;
+    }
+
+    // ─── Helper: compute active status from effective dates ─────────────────
+    public static int computeActiveStatus(LocalDateTime effectiveDate, LocalDateTime endEffectiveDate) {
+        if (effectiveDate == null) return 0;
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(effectiveDate)) return 0; // Chưa đến ngày hiệu lực
+        if (endEffectiveDate != null && now.isAfter(endEffectiveDate)) return 0; // Đã quá ngày hết hiệu lực
+        return 1; // Đang trong khoảng hiệu lực
     }
 
     // ─── Helper: serialize entity sang JSON ─────────────────────────────────
@@ -98,7 +109,7 @@ public class ComponentServiceImpl implements ComponentService {
     @Transactional(readOnly = true)
     public ProcessingComponent getByCode(String code) {
         return repository.findById(code)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy cấu phần có mã: " + code));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy cấu phần có mã: " + code));
     }
 
     @Override
@@ -139,7 +150,7 @@ public class ComponentServiceImpl implements ComponentService {
                 .checkToken(dto.getCheckToken() != null ? dto.getCheckToken() : "N")
                 .description(dto.getDescription())
                 .status(1)
-                .isActive(dto.getIsActive() != null ? dto.getIsActive() : 1)
+                .isActive(computeActiveStatus(dto.getEffectiveDate(), dto.getEndEffectiveDate()))
                 .isDisplay(1)
                 .effectiveDate(dto.getEffectiveDate())
                 .endEffectiveDate(dto.getEndEffectiveDate())
@@ -187,7 +198,7 @@ public class ComponentServiceImpl implements ComponentService {
                 changes.put("connectionMethod", dto.getConnectionMethod());
                 changes.put("checkToken", dto.getCheckToken());
                 changes.put("description", dto.getDescription());
-                changes.put("isActive", dto.getIsActive());
+                changes.put("isActive", computeActiveStatus(dto.getEffectiveDate(), dto.getEndEffectiveDate()));
                 changes.put("effectiveDate", dto.getEffectiveDate() != null ? dto.getEffectiveDate().toString() : null);
                 changes.put("endEffectiveDate",
                         dto.getEndEffectiveDate() != null ? dto.getEndEffectiveDate().toString() : null);
@@ -209,7 +220,7 @@ public class ComponentServiceImpl implements ComponentService {
             entity.setConnectionMethod(dto.getConnectionMethod());
             entity.setCheckToken(dto.getCheckToken());
             entity.setDescription(dto.getDescription());
-            entity.setIsActive(dto.getIsActive());
+            entity.setIsActive(computeActiveStatus(dto.getEffectiveDate(), dto.getEndEffectiveDate()));
             entity.setEffectiveDate(dto.getEffectiveDate());
             entity.setEndEffectiveDate(dto.getEndEffectiveDate());
             entity.setNewData(null); // Xóa các thay đổi nháp cũ nếu có
@@ -239,7 +250,7 @@ public class ComponentServiceImpl implements ComponentService {
 
         // Phân quyền: Chỉ Maker mới được phép xóa/hủy yêu cầu
         if (!"USER01".equalsIgnoreCase(username)) {
-            throw new IllegalStateException("Chỉ Chuyên viên (Maker) mới có quyền thực hiện chức năng xóa/hủy!");
+            throw new ForbiddenAccessException("Chỉ Chuyên viên (Maker) mới có quyền thực hiện chức năng xóa/hủy!");
         }
 
         ProcessingComponent entity = getByCode(code);
@@ -316,7 +327,7 @@ public class ComponentServiceImpl implements ComponentService {
 
         // Phân quyền: Chỉ Maker mới được phép hủy duyệt
         if (!"USER01".equalsIgnoreCase(username)) {
-            throw new IllegalStateException("Chỉ Chuyên viên (Maker) mới có quyền thực hiện chức năng hủy duyệt!");
+            throw new ForbiddenAccessException("Chỉ Chuyên viên (Maker) mới có quyền thực hiện chức năng hủy duyệt!");
         }
 
         ProcessingComponent entity = getByCode(code);
@@ -393,11 +404,10 @@ public class ComponentServiceImpl implements ComponentService {
             transactionTemplate.executeWithoutResult(status -> {
                 ProcessingComponent entity = getByCode(code);
 
-                // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu
-                // cầu
+                // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
                 if (approver.equalsIgnoreCase(entity.getCreatedBy())
                         || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
-                    throw new IllegalStateException(
+                    throw new ForbiddenAccessException(
                             "Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
                 }
 
@@ -419,13 +429,12 @@ public class ComponentServiceImpl implements ComponentService {
                             entity.setCheckToken((String) changes.get("checkToken"));
                         if (changes.containsKey("description"))
                             entity.setDescription((String) changes.get("description"));
-                        if (changes.containsKey("isActive") && changes.get("isActive") != null)
-                            entity.setIsActive(((Number) changes.get("isActive")).intValue());
                         if (changes.containsKey("effectiveDate") && changes.get("effectiveDate") != null)
                             entity.setEffectiveDate(LocalDateTime.parse((String) changes.get("effectiveDate")));
                         if (changes.containsKey("endEffectiveDate") && changes.get("endEffectiveDate") != null)
                             entity.setEndEffectiveDate(
                                     LocalDateTime.parse((String) changes.get("endEffectiveDate")));
+                        entity.setIsActive(computeActiveStatus(entity.getEffectiveDate(), entity.getEndEffectiveDate()));
                         entity.setNewData(null);
                         repository.saveAndFlush(entity);
                     } catch (Exception ex) {
@@ -496,11 +505,10 @@ public class ComponentServiceImpl implements ComponentService {
             transactionTemplate.executeWithoutResult(status -> {
                 ProcessingComponent entity = getByCode(code);
 
-                // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu
-                // cầu
+                // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
                 if (approver.equalsIgnoreCase(entity.getCreatedBy())
                         || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
-                    throw new IllegalStateException(
+                    throw new ForbiddenAccessException(
                             "Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
                 }
 

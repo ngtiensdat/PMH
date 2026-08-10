@@ -17,6 +17,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.paymenthub.common.exception.ResourceNotFoundException;
+import com.example.paymenthub.common.exception.ForbiddenAccessException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -50,6 +52,15 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         this.objectMapper = objectMapper;
         this.auditLogService = auditLogService;
         this.transactionManager = transactionManager;
+    }
+
+    // ─── Helper: compute active status from effective dates ─────────────────
+    public static int computeActiveStatus(LocalDateTime effectiveDate, LocalDateTime endEffectiveDate) {
+        if (effectiveDate == null) return 0;
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(effectiveDate)) return 0; // Chưa đến ngày hiệu lực
+        if (endEffectiveDate != null && now.isAfter(endEffectiveDate)) return 0; // Đã quá ngày hết hiệu lực
+        return 1; // Đang trong khoảng hiệu lực
     }
 
     // ─── Helper: serialize entity sang JSON ─────────────────────────────────
@@ -97,7 +108,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
     @Transactional(readOnly = true)
     public GroupCategory getById(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy danh mục có ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy danh mục có ID: " + id));
     }
 
     // ─── Create ──────────────────────────────────────────────────────────────
@@ -121,7 +132,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 .description(dto.getDescription())
                 .componentCode(dto.getComponentCode())
                 .status(1)
-                .isActive(dto.getIsActive() != null ? dto.getIsActive() : 1)
+                .isActive(computeActiveStatus(dto.getEffectiveDate(), dto.getEndEffectiveDate()))
                 .isDisplay(1)
                 .effectiveDate(dto.getEffectiveDate())
                 .endEffectiveDate(dto.getEndEffectiveDate())
@@ -210,7 +221,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
             changes.put("effectiveDate", dto.getEffectiveDate().toString());
             changes.put("endEffectiveDate",
                     dto.getEndEffectiveDate() != null ? dto.getEndEffectiveDate().toString() : null);
-            changes.put("isActive", dto.getIsActive());
+            changes.put("isActive", computeActiveStatus(dto.getEffectiveDate(), dto.getEndEffectiveDate()));
             return objectMapper.writeValueAsString(changes);
         } catch (Exception e) {
             throw new RuntimeException("Lỗi chuyển đổi dữ liệu thay đổi sang JSON: " + e.getMessage(), e);
@@ -225,7 +236,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         entity.setComponentCode(dto.getComponentCode());
         entity.setEffectiveDate(dto.getEffectiveDate());
         entity.setEndEffectiveDate(dto.getEndEffectiveDate());
-        entity.setIsActive(dto.getIsActive());
+        entity.setIsActive(computeActiveStatus(dto.getEffectiveDate(), dto.getEndEffectiveDate()));
         entity.setUpdatedBy(username);
         entity.setStatus(1);
     }
@@ -238,7 +249,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         
         // Phân quyền: Chỉ Maker mới được phép xóa/hủy yêu cầu
         if (!"USER01".equalsIgnoreCase(username)) {
-            throw new IllegalStateException("Chỉ Chuyên viên (Maker) mới có quyền thực hiện chức năng xóa/hủy!");
+            throw new ForbiddenAccessException("Chỉ Chuyên viên (Maker) mới có quyền thực hiện chức năng xóa/hủy!");
         }
 
         GroupCategory entity = getById(id);
@@ -317,7 +328,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         
         // Phân quyền: Chỉ Maker mới được phép hủy duyệt
         if (!"USER01".equalsIgnoreCase(username)) {
-            throw new IllegalStateException("Chỉ Chuyên viên (Maker) mới có quyền thực hiện chức năng hủy duyệt!");
+            throw new ForbiddenAccessException("Chỉ Chuyên viên (Maker) mới có quyền thực hiện chức năng hủy duyệt!");
         }
 
         GroupCategory entity = getById(id);
@@ -428,7 +439,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 
                 // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
                 if (approver.equalsIgnoreCase(entity.getCreatedBy()) || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
-                    throw new IllegalStateException("Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
+                    throw new ForbiddenAccessException("Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
                 }
 
                 int statusBefore = entity.getStatus();
@@ -450,13 +461,12 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                             entity.setDescription((String) changes.get("description"));
                         if (changes.containsKey("componentCode"))
                             entity.setComponentCode((String) changes.get("componentCode"));
-                        if (changes.containsKey("isActive") && changes.get("isActive") != null)
-                            entity.setIsActive(((Number) changes.get("isActive")).intValue());
                         if (changes.containsKey("effectiveDate"))
                             entity.setEffectiveDate(LocalDateTime.parse((String) changes.get("effectiveDate")));
                         if (changes.containsKey("endEffectiveDate") && changes.get("endEffectiveDate") != null)
                             entity.setEndEffectiveDate(
                                     LocalDateTime.parse((String) changes.get("endEffectiveDate")));
+                        entity.setIsActive(computeActiveStatus(entity.getEffectiveDate(), entity.getEndEffectiveDate()));
                         entity.setNewData(null);
                         repository.saveAndFlush(entity);
                     } catch (Exception ex) {
@@ -531,7 +541,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 
                 // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
                 if (approver.equalsIgnoreCase(entity.getCreatedBy()) || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
-                    throw new IllegalStateException("Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
+                    throw new ForbiddenAccessException("Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
                 }
 
                 int statusBefore = entity.getStatus();

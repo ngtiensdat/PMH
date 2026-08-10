@@ -82,8 +82,9 @@ public class ComponentController extends BaseController {
     @PostMapping
     public ResponseEntity<ApiResponse<ComponentResponseDTO>> create(
             @Valid @RequestBody ComponentDTO dto,
-            @RequestHeader(value = "X-Username", defaultValue = "SYSTEM") String username
+            @RequestHeader(value = "X-Username", required = false) String username
     ) {
+        validateUsername(username);
         ProcessingComponent created = service.create(dto, username);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(ComponentResponseDTO.fromEntity(created), "Tạo mới cấu phần thành công"));
@@ -93,26 +94,29 @@ public class ComponentController extends BaseController {
     public ResponseEntity<ApiResponse<ComponentResponseDTO>> update(
             @PathVariable String code,
             @Valid @RequestBody ComponentDTO dto,
-            @RequestHeader(value = "X-Username", defaultValue = "SYSTEM") String username
+            @RequestHeader(value = "X-Username", required = false) String username
     ) {
+        validateUsername(username);
         ProcessingComponent updated = service.update(code, dto, username);
         return ok(ComponentResponseDTO.fromEntity(updated), "Cập nhật cấu phần thành công");
     }
 
     @DeleteMapping("/{code}")
-    public ResponseEntity<ApiResponse<Void>> delete(
+    public ResponseEntity<Void> delete(
             @PathVariable String code,
-            @RequestHeader(value = "X-Username", defaultValue = "SYSTEM") String username
+            @RequestHeader(value = "X-Username", required = false) String username
     ) {
+        validateUsername(username);
         service.delete(code, username);
-        return ok(null, "Xóa cấu phần thành công");
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{code}/send-approval")
     public ResponseEntity<ApiResponse<ComponentResponseDTO>> sendApproval(
             @PathVariable String code,
-            @RequestHeader(value = "X-Username", defaultValue = "SYSTEM") String username
+            @RequestHeader(value = "X-Username", required = false) String username
     ) {
+        validateUsername(username);
         ProcessingComponent updated = service.sendForApproval(code, username);
         return ok(ComponentResponseDTO.fromEntity(updated), "Gửi duyệt cấu phần thành công");
     }
@@ -123,8 +127,9 @@ public class ComponentController extends BaseController {
     @PostMapping("/{code}/cancel-approval")
     public ResponseEntity<ApiResponse<ComponentResponseDTO>> cancelApproval(
             @PathVariable String code,
-            @RequestHeader(value = "X-Username", defaultValue = "SYSTEM") String username
+            @RequestHeader(value = "X-Username", required = false) String username
     ) {
+        validateUsername(username);
         ProcessingComponent updated = service.cancelApproval(code, username);
         return ok(ComponentResponseDTO.fromEntity(updated), "Hủy duyệt cấu phần thành công");
     }
@@ -141,8 +146,9 @@ public class ComponentController extends BaseController {
     @PostMapping("/batch-approve")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> batchApprove(
             @RequestBody List<String> codes,
-            @RequestHeader(value = "X-Username", defaultValue = "APPROVER") String username
+            @RequestHeader(value = "X-Username", required = false) String username
     ) {
+        validateUsername(username);
         return ok(service.batchApprove(codes, username), "Phê duyệt hàng loạt thành công");
     }
 
@@ -150,8 +156,15 @@ public class ComponentController extends BaseController {
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> batchReject(
             @RequestBody List<String> codes,
             @RequestParam(required = false) String reason,
-            @RequestHeader(value = "X-Username", defaultValue = "APPROVER") String username
+            @RequestHeader(value = "X-Username", required = false) String username
     ) {
+        validateUsername(username);
         return ok(service.batchReject(codes, reason, username), "Từ chối/Hủy duyệt hàng loạt thành công");
+    }
+
+    private void validateUsername(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new com.example.paymenthub.common.exception.UnauthorizedAccessException("Yêu cầu cần có Header X-Username!");
+        }
     }
 }

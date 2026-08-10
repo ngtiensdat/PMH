@@ -485,10 +485,10 @@ export class ComponentListComponent implements OnInit {
           };
         });
         this.historyData.set(mapped);
-        
+
         const total = pageData.page?.totalPages ?? pageData.totalPages ?? 1;
         this.historyTotalPages.set(total);
-        
+
         this.isHistoryOpen = true;
         this.cdr.detectChanges();
       },

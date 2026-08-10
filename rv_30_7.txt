@@ -8,14 +8,17 @@ RULE: Bản ghi ở trạng thái đã phê duyệt => Hủy duyệt => Sửa: =
 1. Tìm hiểu lại ý nghĩa các anotation trong BE (tìm hiểu sự khác biệt giữa @controler và @restControsller 
 2. Tìm hiểu lại contructor trong java
 3. Tìm hiểu lại về OOP
+8. tìm hiểu vè kiểu dữ liệu nguyên thủy và kiểu dữ liệu còn lại (Interge và int)
 9. tìm hiểu vè thời gian chạy của các annotation
 10. tìm hiểu đối tượng OBjectmapper, Các cách convert Object thành json và ngược lại
 11. tìm hiểu cơ chế của transaction, vì sao có thể rollback khi 1 trong nhiều hoạt động tương tác vào db bị lỗi
 12. đối với 1 method private thì @transaction có tác dụng không
 13. tìm hiểu sự liên hệ giữa entity và @transaction
-14. tìm hiểu @transaction và @trasactionTemple 
-15. (tìm hiểu sự khác biệt giữa @controler và @restControsller 
-16. sửa các thoong báo http request chuẩn cho các phương thức
+14. tìm hiểu @transaction/Tự động Commit khi thành công và tự động Rollback nếu có lỗi. (ok)
+và @trasactionTemple/Tắt Dirty Checking, tiết kiệm RAM & CPU, tăng tốc độ truy vấn đáng kể.
+và @TransactionTemplate Cho phép chia nhỏ Transaction, bản ghi nào lỗi thì chỉ rollback bản ghi đó, không ảnh hưởng bản ghi khác. 
+15. (tìm hiểu sự khác biệt giữa @controler và @restControsller (ok)
+16. sửa các thông báo http request chuẩn cho các phương thức (ok)
 ============note review frontend==============
 1. giải thích các toán tử: ?? và ||;
 
@@ -29,12 +32,12 @@ const name = person.name ?? 'Nguyễn Tiến Đạt';
 4. inject(LanguageService); inject là gì? để làm gì
 
 
-5. làm phân trang his
+5. làm phân trang his 	(1)
 
 
 Note: Tập trung hiệu năng
 - chỉ cần danh sách ID để duyệt hủy hàng loạt
-- bổ sung cronjob để tự động đổi trạng thái hoạt động của tham số trong be và sql
+- bổ sung cronjob để tự động đổi trạng thái hoạt động của tham số trong be và sql (ok)
 
 
 Code a Trường: 

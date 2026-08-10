@@ -76,8 +76,9 @@ public class GroupCategoryController extends BaseController {
     @PostMapping
     public ResponseEntity<ApiResponse<GroupCategoryResponseDTO>> create(
             @Valid @RequestBody GroupCategoryDTO dto,
-            @RequestHeader(value = "X-Username", defaultValue = "SYSTEM") String username
+            @RequestHeader(value = "X-Username", required = false) String username
     ) {
+        validateUsername(username);
         GroupCategory created = service.create(dto, username);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(GroupCategoryResponseDTO.fromEntity(created), "Tạo mới tham số thành công"));
@@ -90,8 +91,9 @@ public class GroupCategoryController extends BaseController {
     public ResponseEntity<ApiResponse<GroupCategoryResponseDTO>> update(
             @PathVariable Long id,
             @Valid @RequestBody GroupCategoryDTO dto,
-            @RequestHeader(value = "X-Username", defaultValue = "SYSTEM") String username
+            @RequestHeader(value = "X-Username", required = false) String username
     ) {
+        validateUsername(username);
         GroupCategory updated = service.update(id, dto, username);
         return ok(GroupCategoryResponseDTO.fromEntity(updated), "Cập nhật tham số thành công");
     }
@@ -100,12 +102,13 @@ public class GroupCategoryController extends BaseController {
      * Xóa bằng JPA
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(
+    public ResponseEntity<Void> delete(
             @PathVariable Long id,
-            @RequestHeader(value = "X-Username", defaultValue = "SYSTEM") String username
+            @RequestHeader(value = "X-Username", required = false) String username
     ) {
+        validateUsername(username);
         service.delete(id, username);
-        return ok(null, "Xóa tham số thành công");
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -114,8 +117,9 @@ public class GroupCategoryController extends BaseController {
     @PostMapping("/{id}/send-approval")
     public ResponseEntity<ApiResponse<GroupCategoryResponseDTO>> sendApproval(
             @PathVariable Long id,
-            @RequestHeader(value = "X-Username", defaultValue = "SYSTEM") String username
+            @RequestHeader(value = "X-Username", required = false) String username
     ) {
+        validateUsername(username);
         GroupCategory updated = service.sendForApproval(id, username);
         return ok(GroupCategoryResponseDTO.fromEntity(updated), "Gửi duyệt tham số thành công");
     }
@@ -126,8 +130,9 @@ public class GroupCategoryController extends BaseController {
     @PostMapping("/{id}/cancel-approval")
     public ResponseEntity<ApiResponse<GroupCategoryResponseDTO>> cancelApproval(
             @PathVariable Long id,
-            @RequestHeader(value = "X-Username", defaultValue = "SYSTEM") String username
+            @RequestHeader(value = "X-Username", required = false) String username
     ) {
+        validateUsername(username);
         GroupCategory updated = service.cancelApproval(id, username);
         return ok(GroupCategoryResponseDTO.fromEntity(updated), "Hủy duyệt tham số thành công");
     }
@@ -158,8 +163,9 @@ public class GroupCategoryController extends BaseController {
     @PostMapping("/batch-approve")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> batchApprove(
             @RequestBody List<Long> ids,
-            @RequestHeader(value = "X-Username", defaultValue = "APPROVER") String username
+            @RequestHeader(value = "X-Username", required = false) String username
     ) {
+        validateUsername(username);
         List<Map<String, Object>> result = service.batchApprove(ids, username);
         return ok(result, "Phê duyệt hàng loạt thành công");
     }
@@ -171,9 +177,16 @@ public class GroupCategoryController extends BaseController {
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> batchReject(
             @RequestBody List<Long> ids,
             @RequestParam(required = false) String reason,
-            @RequestHeader(value = "X-Username", defaultValue = "APPROVER") String username
+            @RequestHeader(value = "X-Username", required = false) String username
     ) {
+        validateUsername(username);
         List<Map<String, Object>> result = service.batchReject(ids, reason, username);
         return ok(result, "Từ chối/Hủy duyệt hàng loạt thành công");
+    }
+
+    private void validateUsername(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new com.example.paymenthub.common.exception.UnauthorizedAccessException("Yêu cầu cần có Header X-Username!");
+        }
     }
 }
