@@ -89,16 +89,19 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
 }
+
 .category-search-row2 {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   margin-top: 1rem;
 }
+
 .search-actions-row2 {
   display: flex;
   gap: 0.75rem;
 }
+
 .search-btn-primary {
   background-color: #005953 !important;
   color: #ffffff !important;
@@ -110,26 +113,32 @@
   border-radius: 6px !important;
   padding: 0 1.25rem !important;
 }
+
 .search-btn-primary:hover {
   background-color: #004540 !important;
 }
+
 @media (max-width: 1200px) {
   .category-search-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
 @media (max-width: 768px) {
   .category-search-grid {
     grid-template-columns: 1fr;
   }
+
   .category-search-row2 {
     flex-direction: column;
     align-items: stretch;
     gap: 1rem;
   }
-  .category-search-row2 > div {
+
+  .category-search-row2>div {
     width: 100% !important;
   }
+
   .search-actions-row2 {
     justify-content: flex-end;
   }
@@ -187,7 +196,8 @@
 }
 
 .btn-primary.btn-teal {
-  background-color: var(--primary); /* #005953 */
+  background-color: var(--primary);
+  /* #005953 */
   color: #ffffff;
 }
 
@@ -343,9 +353,21 @@
 }
 
 /* Specific Columns */
-.col-checkbox { width: 40px; text-align: center; }
-.col-stt { width: 50px; text-align: center; }
-.col-actions { width: 180px; text-align: center; }
+.col-checkbox {
+  width: 40px;
+  text-align: center;
+}
+
+.col-stt {
+  width: 50px;
+  text-align: center;
+}
+
+.col-actions {
+  width: 180px;
+  text-align: center;
+}
+
 .col-desc {
   max-width: 180px;
   white-space: nowrap;
@@ -354,8 +376,14 @@
 }
 
 /* Helpers */
-.text-semibold { font-weight: 600; color: #0f172a; }
-.text-muted { color: #64748b; }
+.text-semibold {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.text-muted {
+  color: #64748b;
+}
 
 code {
   background: #f1f5f9;
@@ -403,6 +431,7 @@ code {
   border-color: #99f6e4;
   color: #0f766e;
 }
+
 .dot-badge.badge-new .dot {
   background-color: #0d9488;
 }
@@ -412,6 +441,7 @@ code {
   border-color: #fde68a;
   color: #b45309;
 }
+
 .dot-badge.badge-pending .dot {
   background-color: #d97706;
 }
@@ -421,6 +451,7 @@ code {
   border-color: #bbf7d0;
   color: #15803d;
 }
+
 .dot-badge.badge-approved .dot {
   background-color: #16a34a;
 }
@@ -430,6 +461,7 @@ code {
   border-color: #fecaca;
   color: #b91c1c;
 }
+
 .dot-badge.badge-rejected .dot {
   background-color: #dc2626;
 }
@@ -439,6 +471,7 @@ code {
   border-color: #cbd5e1;
   color: #475569;
 }
+
 .dot-badge.badge-canceled .dot {
   background-color: #64748b;
 }
@@ -448,6 +481,7 @@ code {
   border-color: #bbf7d0;
   color: #15803d;
 }
+
 .dot-badge.active .dot {
   background-color: #16a34a;
 }
@@ -457,6 +491,7 @@ code {
   border-color: #fecaca;
   color: #b91c1c;
 }
+
 .dot-badge.inactive .dot {
   background-color: #dc2626;
 }

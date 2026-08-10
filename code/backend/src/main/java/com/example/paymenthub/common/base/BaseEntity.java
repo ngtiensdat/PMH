@@ -13,10 +13,10 @@ import java.time.LocalDateTime;
 @Setter
 public abstract class BaseEntity {
 
-    @Column(name = "CREATED_BY", length = 50)
+    @Column(name = "CREATED_BY", length = 50, updatable = false)
     private String createdBy;
 
-    @Column(name = "CREATED_DATE")
+    @Column(name = "CREATED_DATE", updatable = false)
     private LocalDateTime createdDate;
 
     @Column(name = "UPDATED_BY", length = 50)

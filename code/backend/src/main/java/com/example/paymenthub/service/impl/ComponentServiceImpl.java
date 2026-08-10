@@ -12,6 +12,8 @@ import jakarta.persistence.ParameterMode;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.StoredProcedureQuery;
 import lombok.extern.slf4j.Slf4j;
+
+import org.apache.coyote.BadRequestException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -26,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -101,10 +104,23 @@ public class ComponentServiceImpl implements ComponentService {
     @Override
     @Transactional(readOnly = true)
     public List<ProcessingComponent> getActiveList(Integer status) {
+        List<ProcessingComponent> rawList;
         if (status != null) {
-            return repository.findAllByIsActiveAndStatusOrderByComponentNameAsc(1, status);
+            rawList = repository.findAllByIsActiveAndStatusOrderByComponentNameAsc(1, status);
+        } else {
+            rawList = repository.findAllByIsActiveOrderByComponentNameAsc(1);
         }
-        return repository.findAllByIsActiveOrderByComponentNameAsc(1);
+
+        LocalDateTime now = LocalDateTime.now();
+        List<ProcessingComponent> activeList = new ArrayList<>();
+        for (ProcessingComponent c : rawList) {
+            if (c.getEffectiveDate() != null && !c.getEffectiveDate().isAfter(now)) {
+                if (c.getEndEffectiveDate() == null || !c.getEndEffectiveDate().isBefore(now)) {
+                    activeList.add(c);
+                }
+            }
+        }
+        return activeList;
     }
 
     @Override
@@ -153,8 +169,8 @@ public class ComponentServiceImpl implements ComponentService {
 
         // 1. Kiểm tra trạng thái được phép sửa: Tạo mới (1), Từ chối (5), Hủy duyệt (7)
         if (entity.getStatus() != 1 && entity.getStatus() != 5 && entity.getStatus() != 7) {
-            throw new IllegalStateException("Không được phép chỉnh sửa cấu phần đang ở trạng thái: " 
-                + (entity.getStatus() == 3 ? "Chờ duyệt" : "Đã duyệt"));
+            throw new IllegalStateException("Không được phép chỉnh sửa cấu phần đang ở trạng thái: "
+                    + (entity.getStatus() == 3 ? "Chờ duyệt" : "Đã duyệt"));
         }
 
         ProcessingComponent saved;
@@ -163,7 +179,8 @@ public class ComponentServiceImpl implements ComponentService {
 
         if (entity.getIsDisplay() == 2) {
             try {
-                // Bản ghi đã từng được duyệt (isDisplay == 2): không sửa trực tiếp vào các cột, chỉ lưu vào NEW_DATA
+                // Bản ghi đã từng được duyệt (isDisplay == 2): không sửa trực tiếp vào các cột,
+                // chỉ lưu vào NEW_DATA
                 Map<String, Object> changes = new HashMap<>();
                 changes.put("componentName", dto.getComponentName());
                 changes.put("messageType", dto.getMessageType());
@@ -177,7 +194,8 @@ public class ComponentServiceImpl implements ComponentService {
 
                 entity.setNewData(objectMapper.writeValueAsString(changes));
                 entity.setUpdatedBy(username);
-                entity.setStatus(7); // Khi sửa một thay đổi của bản ghi đã duyệt, đặt trạng thái về Hủy duyệt (7) để Maker gửi duyệt lại
+                entity.setStatus(7); // Khi sửa một thay đổi của bản ghi đã duyệt, đặt trạng thái về Hủy duyệt (7) để
+                                     // Maker gửi duyệt lại
                 saved = repository.save(entity);
                 action = "Lưu sửa nháp (Hủy duyệt)";
                 statusAfter = 7;
@@ -218,7 +236,7 @@ public class ComponentServiceImpl implements ComponentService {
     @Override
     public void delete(String code, String username) {
         log.info("[Component] Deleting. code={}, user={}", code, username);
-        
+
         // Phân quyền: Chỉ Maker mới được phép xóa/hủy yêu cầu
         if (!"USER01".equalsIgnoreCase(username)) {
             throw new IllegalStateException("Chỉ Chuyên viên (Maker) mới có quyền thực hiện chức năng xóa/hủy!");
@@ -228,21 +246,24 @@ public class ComponentServiceImpl implements ComponentService {
 
         if (entity.getIsDisplay() == 2) {
             // Bản ghi đã được duyệt trước đó (isDisplay == 2):
-            // Nếu bản ghi đang có thay đổi chờ duyệt (status = 3) hoặc bị từ chối (status = 5):
-            // Hành động xóa sẽ đóng vai trò hủy bỏ yêu cầu chỉnh sửa này và khôi phục về bản duyệt cũ.
+            // Nếu bản ghi đang có thay đổi chờ duyệt (status = 3) hoặc bị từ chối (status =
+            // 5):
+            // Hành động xóa sẽ đóng vai trò hủy bỏ yêu cầu chỉnh sửa này và khôi phục về
+            // bản duyệt cũ.
             if (entity.getStatus() == 3 || entity.getStatus() == 5) {
                 String oldJson = toJson(snapshot(entity));
                 entity.setNewData(null);
                 entity.setStatus(4); // Khôi phục trạng thái đã phê duyệt
                 entity.setUpdatedBy(username);
                 ProcessingComponent saved = repository.save(entity);
-                
+
                 // Ghi audit log
                 auditLogService.log(
                         MODULE, code,
                         "Hủy yêu cầu sửa", username,
                         oldJson, toJson(snapshot(saved)),
-                        String.format("Hủy yêu cầu chỉnh sửa và khôi phục trạng thái đã duyệt cho cấu phần Code=%s", code),
+                        String.format("Hủy yêu cầu chỉnh sửa và khôi phục trạng thái đã duyệt cho cấu phần Code=%s",
+                                code),
                         3, 4);
                 return;
             }
@@ -267,11 +288,11 @@ public class ComponentServiceImpl implements ComponentService {
     public ProcessingComponent sendForApproval(String code, String username) {
         log.info("[Component] Sending for approval. code={}, user={}", code, username);
         ProcessingComponent entity = getByCode(code);
-        
+
         if (entity.getStatus() == 3) {
             throw new IllegalStateException("Bản ghi đã ở trạng thái Chờ duyệt!");
         }
-        
+
         int statusBefore = entity.getStatus();
 
         entity.setStatus(3);
@@ -292,7 +313,7 @@ public class ComponentServiceImpl implements ComponentService {
     @Override
     public ProcessingComponent cancelApproval(String code, String username) {
         log.info("[Component] Canceling approval. code={}, user={}", code, username);
-        
+
         // Phân quyền: Chỉ Maker mới được phép hủy duyệt
         if (!"USER01".equalsIgnoreCase(username)) {
             throw new IllegalStateException("Chỉ Chuyên viên (Maker) mới có quyền thực hiện chức năng hủy duyệt!");
@@ -300,7 +321,8 @@ public class ComponentServiceImpl implements ComponentService {
 
         ProcessingComponent entity = getByCode(code);
         if (entity.getStatus() != 4) {
-            throw new IllegalStateException("Chỉ được phép hủy duyệt bản ghi đang ở trạng thái đã phê duyệt (STATUS = 4)!");
+            throw new IllegalStateException(
+                    "Chỉ được phép hủy duyệt bản ghi đang ở trạng thái đã phê duyệt (STATUS = 4)!");
         }
 
         int statusBefore = entity.getStatus();
@@ -363,16 +385,20 @@ public class ComponentServiceImpl implements ComponentService {
         return results;
     }
 
-    private Map<String, Object> approveSingleComponent(String code, String approver, TransactionTemplate transactionTemplate) {
+    private Map<String, Object> approveSingleComponent(String code, String approver,
+            TransactionTemplate transactionTemplate) {
         Map<String, Object> res = new HashMap<>();
         res.put("code", code);
         try {
             transactionTemplate.executeWithoutResult(status -> {
                 ProcessingComponent entity = getByCode(code);
-                
-                // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
-                if (approver.equalsIgnoreCase(entity.getCreatedBy()) || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
-                    throw new IllegalStateException("Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
+
+                // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu
+                // cầu
+                if (approver.equalsIgnoreCase(entity.getCreatedBy())
+                        || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
+                    throw new IllegalStateException(
+                            "Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
                 }
 
                 int statusBefore = entity.getStatus();
@@ -462,16 +488,20 @@ public class ComponentServiceImpl implements ComponentService {
         return results;
     }
 
-    private Map<String, Object> rejectSingleComponent(String code, String reason, String approver, TransactionTemplate transactionTemplate) {
+    private Map<String, Object> rejectSingleComponent(String code, String reason, String approver,
+            TransactionTemplate transactionTemplate) {
         Map<String, Object> res = new HashMap<>();
         res.put("code", code);
         try {
             transactionTemplate.executeWithoutResult(status -> {
                 ProcessingComponent entity = getByCode(code);
-                
-                // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
-                if (approver.equalsIgnoreCase(entity.getCreatedBy()) || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
-                    throw new IllegalStateException("Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
+
+                // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu
+                // cầu
+                if (approver.equalsIgnoreCase(entity.getCreatedBy())
+                        || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
+                    throw new IllegalStateException(
+                            "Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
                 }
 
                 int statusBefore = entity.getStatus();

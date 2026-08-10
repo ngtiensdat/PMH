@@ -110,8 +110,11 @@ export class ComponentService {
     });
   }
 
-  getHistory(code: string): Observable<ApiResponse<AuditLogItem[]>> {
-    return this.http.get<ApiResponse<AuditLogItem[]>>(`${environment.apiBase}/api/audit-log/component/${code}`);
+  getHistory(code: string, page: number = 0, size: number = 5): Observable<ApiResponse<PageResponse<AuditLogItem>>> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('size', size.toString());
+    return this.http.get<ApiResponse<PageResponse<AuditLogItem>>>(`${environment.apiBase}/api/audit-log/component/${code}`, { params });
   }
 
   // Cache state for list pagination and filters

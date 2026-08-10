@@ -227,8 +227,7 @@
                     <div style="display: flex; gap: 0.35rem; justify-content: center;"
                       (click)="$event.stopPropagation()">
                       <!-- Slot 1: View (Always visible) -->
-                      <button (click)="onViewDetail(item)" class="action-btn view"
-                        [disabled]="isLoading()"
+                      <button (click)="onViewDetail(item)" class="action-btn view" [disabled]="isLoading()"
                         [title]="languageService.labels().common.viewDetail">
                         <tui-icon icon="@tui.eye" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
@@ -236,43 +235,36 @@
                       <!-- Slot 2: Edit or Cancel Approval (Maker only, occupying the same slot) -->
                       <button *ngIf="languageService.userCode() === 'USER01'"
                         (click)="item.status === 4 ? onCancelApproval(item.componentCode) : openEditDialog(item)"
-                        class="action-btn"
-                        [disabled]="isLoading()"
-                        [class.edit]="item.status !== 4"
+                        class="action-btn" [disabled]="isLoading()" [class.edit]="item.status !== 4"
                         [class.cancel-approve]="item.status === 4"
                         [class.invisible]="item.status !== 1 && item.status !== 5 && item.status !== 7 && item.status !== 4"
                         [title]="item.status === 4 ? 'Hủy duyệt' : languageService.labels().common.edit">
-                        <tui-icon [icon]="item.status === 4 ? '@tui.ban' : '@tui.pencil'" style="--tui-icon-size: 14px;"></tui-icon>
+                        <tui-icon [icon]="item.status === 4 ? '@tui.ban' : '@tui.pencil'"
+                          style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
 
                       <!-- Slot 3: Copy (Maker only) -->
                       <button *ngIf="languageService.userCode() === 'USER01'" (click)="openCopyDialog(item)"
-                        class="action-btn copy"
-                        [disabled]="isLoading()"
-                        [title]="languageService.labels().common.copy">
+                        class="action-btn copy" [disabled]="isLoading()" [title]="languageService.labels().common.copy">
                         <tui-icon icon="@tui.copy" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
 
                       <!-- Slot 4: History (Always visible) -->
                       <button (click)="openHistoryDialog(item)" class="action-btn history" title="Xem lịch sử thao tác"
-                        [disabled]="isLoading()"
-                        style="color: #64748b;">
+                        [disabled]="isLoading()" style="color: #64748b;">
                         <tui-icon icon="@tui.history" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
 
                       <!-- Slot 5: Delete (Maker only, occupies space when invisible) -->
-                      <button *ngIf="languageService.userCode() === 'USER01'"
-                        (click)="onDelete(item.componentCode)" class="action-btn delete"
-                        [disabled]="isLoading()"
-                        [title]="languageService.labels().common.delete"
-                        [class.invisible]="item.isDisplay !== 1">
+                      <button *ngIf="languageService.userCode() === 'USER01'" (click)="onDelete(item.componentCode)"
+                        class="action-btn delete" [disabled]="isLoading()"
+                        [title]="languageService.labels().common.delete" [class.invisible]="item.isDisplay !== 1">
                         <tui-icon icon="@tui.trash" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
 
                       <!-- Slot 6: Send Approval (Maker only, occupies space when invisible) -->
                       <button *ngIf="languageService.userCode() === 'USER01'"
-                        (click)="onSendApproval(item.componentCode)" class="action-btn approve"
-                        [disabled]="isLoading()"
+                        (click)="onSendApproval(item.componentCode)" class="action-btn approve" [disabled]="isLoading()"
                         [title]="languageService.labels().common.sendApproval"
                         [class.invisible]="item.status !== 1 && item.status !== 5 && item.status !== 7">
                         <tui-icon icon="@tui.send" style="--tui-icon-size: 14px;"></tui-icon>
@@ -394,7 +386,7 @@
     <div class="history-pagination"
       style="display: flex; justify-content: flex-end; align-items: center; margin-top: 1.25rem; border-top: 1px solid #f1f5f9; padding-top: 0.75rem;">
       <tui-pagination [length]="historyTotalPages()" [index]="historyPage()"
-        (indexChange)="historyPage.set($event)"></tui-pagination>
+        (indexChange)="onHistoryPageChange($event)"></tui-pagination>
     </div>
   </div>
 </ng-template>

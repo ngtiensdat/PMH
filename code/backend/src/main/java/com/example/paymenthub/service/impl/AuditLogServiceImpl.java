@@ -12,6 +12,9 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -93,10 +96,9 @@ public class AuditLogServiceImpl implements AuditLogService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AuditLogDTO> getHistory(String module, String recordId) {
+    public Page<AuditLogDTO> getHistory(String module, String recordId, Pageable pageable) {
         return repository
-                .findByModuleAndRecordIdOrderByActionDateDesc(module, recordId)
-                .stream()
+                .findByModuleAndRecordIdOrderByActionDateDesc(module, recordId, pageable)
                 .map(logEntry -> new AuditLogDTO(
                         logEntry.getId(),
                         logEntry.getModule(),
@@ -110,7 +112,6 @@ public class AuditLogServiceImpl implements AuditLogService {
                         logEntry.getStatusBefore(),
                         logEntry.getStatusAfter(),
                         logEntry.getIpAddress()
-                ))
-                .toList();
+                ));
     }
 }

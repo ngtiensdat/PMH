@@ -5,16 +5,17 @@ Tham số có 2 trạng thái: Trạng thái tham số => Phục vụ cho luồn
 RULE: Bản ghi ở trạng thái đã phê duyệt => Hủy duyệt => Sửa: => giá trị sửa không được thay thế trực tiếp => Mà chỉ lưu vào NEW_DATA;
 2. kiểm tra lại về luồng xử lý của các trạng thái tham số. 
 ==============note review be==================
-1. Tìm hiểu lại ý nghĩa các anotation trong BE
+1. Tìm hiểu lại ý nghĩa các anotation trong BE (tìm hiểu sự khác biệt giữa @controler và @restControsller 
 2. Tìm hiểu lại contructor trong java
 3. Tìm hiểu lại về OOP
-4. Câu hỏi: Vẽ mô hình đường đi của 1 request qua các package trong springboot thee layer (Vẽ cả luồng exception)
-5. Tìm hiểu về sự khác nhau giữa interface và abstract Class. 3 điểm
-6. Câu hỏi: Bản chất jpa là gì? nó làm gì để tương tác với DB? Các hàm save, delete,... bản chất nó làm gì?
-7. Câu hỏi: Các trạng thái của 1 entity bao gồm?
-8. Tìm hiểu về @Transaction
-
-
+9. tìm hiểu vè thời gian chạy của các annotation
+10. tìm hiểu đối tượng OBjectmapper, Các cách convert Object thành json và ngược lại
+11. tìm hiểu cơ chế của transaction, vì sao có thể rollback khi 1 trong nhiều hoạt động tương tác vào db bị lỗi
+12. đối với 1 method private thì @transaction có tác dụng không
+13. tìm hiểu sự liên hệ giữa entity và @transaction
+14. tìm hiểu @transaction và @trasactionTemple 
+15. (tìm hiểu sự khác biệt giữa @controler và @restControsller 
+16. sửa các thoong báo http request chuẩn cho các phương thức
 ============note review frontend==============
 1. giải thích các toán tử: ?? và ||;
 
@@ -28,8 +29,21 @@ const name = person.name ?? 'Nguyễn Tiến Đạt';
 4. inject(LanguageService); inject là gì? để làm gì
 
 
+5. làm phân trang his
 
 
+Note: Tập trung hiệu năng
+- chỉ cần danh sách ID để duyệt hủy hàng loạt
+- bổ sung cronjob để tự động đổi trạng thái hoạt động của tham số trong be và sql
+
+
+Code a Trường: 
+@Transactional
+    public void updateTestTransactionsl() {
+        ProcessingComponent comp = this.repository.findById(String.valueOf(304)).orElseThrow(
+                () -> new RuntimeException("Không tìm thấy"));
+        comp.setStatus(1);
+    } 
 
 
 

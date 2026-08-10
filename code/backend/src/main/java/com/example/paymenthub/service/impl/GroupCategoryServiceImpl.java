@@ -107,10 +107,11 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         log.info("[GroupCategory] Creating. user={}, paramType={}, paramValue={}", username, dto.getParamType(),
                 dto.getParamValue());
 
-        if (repository.existsByParamNameAndParamValueAndParamType(
-                dto.getParamName(), dto.getParamValue(), dto.getParamType())) {
+        if (repository.existsOverlapping(
+                dto.getParamName(), dto.getParamType(),
+                dto.getEffectiveDate(), dto.getEndEffectiveDate(), null)) {
             throw new IllegalStateException(
-                    "Đã tồn tại bản ghi với bộ 3: Tên thành phần, Giá trị thành phần và Nhóm này!");
+                    "Đã tồn tại cấu hình có cùng Tên và Nhóm bị chồng lấn thời gian hiệu lực!");
         }
 
         GroupCategory entity = GroupCategory.builder()
@@ -157,9 +158,11 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 + (entity.getStatus() == 3 ? "Chờ duyệt" : "Đã duyệt"));
         }
 
-        if (repository.existsByParamNameAndParamValueAndParamTypeAndIdNot(
-                dto.getParamName(), dto.getParamValue(), dto.getParamType(), id)) {
-            throw new IllegalStateException("Đã tồn tại bản ghi khác có cùng bộ 3: Tên, Giá trị và Nhóm!");
+        if (repository.existsOverlapping(
+                dto.getParamName(), dto.getParamType(),
+                dto.getEffectiveDate(), dto.getEndEffectiveDate(), id)) {
+            throw new IllegalStateException(
+                    "Đã tồn tại cấu hình khác có cùng Tên và Nhóm bị chồng lấn thời gian hiệu lực!");
         }
 
         GroupCategory saved;

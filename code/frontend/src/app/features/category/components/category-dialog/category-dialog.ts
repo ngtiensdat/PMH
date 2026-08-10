@@ -94,11 +94,7 @@ export class CategoryDialogComponent implements OnInit {
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.id = +idParam;
-      if (this.mode === 'copy' && this.category) {
-        this.populateForm();
-      } else {
-        this.loadCategoryData(this.id);
-      }
+      this.loadCategoryData(this.id);
     }
   }
 
@@ -170,6 +166,9 @@ export class CategoryDialogComponent implements OnInit {
     if (this.mode === 'edit') {
       this.dialogForm.get('paramType')?.disable();
       this.dialogForm.get('paramValue')?.disable();
+      if (this.category.isDisplay === 2) {
+        this.dialogForm.get('effectiveDate')?.disable();
+      }
     }
   }
 

@@ -8,25 +8,49 @@ Tài liệu này tổng hợp câu trả lời chi tiết và chuẩn kiến tr�
 
 Các Annotation (Chú thích) trong Spring Boot giúp cấu hình ứng dụng một cách khai báo (Declarative), giảm thiểu code cấu hình XML rườm rà.
 
-### A. Spring Core / Web Annotations
-*   **`@SpringBootApplication`**: Đặt ở lớp khởi chạy. Đây là sự kết hợp của 3 annotation:
-    *   `@SpringBootConfiguration`: Đánh dấu class cấu hình.
-    *   `@EnableAutoConfiguration`: Tự động cấu hình các thư viện trong classpath.
-    *   `@ComponentScan`: Tự động quét và đăng ký các Bean (Controller, Service, Component...) vào ApplicationContext.
-*   **`@RestController`**: Đánh dấu một Class là Controller xử lý các Request HTTP RESTful. Nó là sự kết hợp của:
-    *   `@Controller`: Đăng ký class làm Bean Controller.
-    *   `@ResponseBody`: Tự động chuyển đổi dữ liệu trả về của hàm (ví dụ: Object) thành định dạng JSON/XML để trả trực tiếp về Client.
-*   **`@Service`**: Đăng ký lớp chứa các logic xử lý nghiệp vụ (Business Logic).
-*   **`@Repository`**: Đăng ký lớp xử lý truy vấn dữ liệu (DAO). Annotation này còn hỗ trợ tự động bắt và dịch các lỗi Database (SQLException) thành các ngoại lệ runtime của Spring (`DataAccessException`).
-*   **`@Component`**: Đăng ký một lớp bất kỳ làm Spring Bean chung nếu nó không thuộc 3 tầng trên.
-*   **`@Autowired`**: Thực hiện cơ chế **Dependency Injection (DI)** để tự động tiêm đối tượng Bean tương ứng từ container vào nơi sử dụng (hiện nay Spring khuyên dùng Constructor Injection thay vì dùng `@Autowired` trực tiếp trên trường).
+### A. Spring Core & Web / Routing Annotations
+*   **`@SpringBootApplication`**: Đặt ở lớp khởi chạy chính. Tích hợp `@SpringBootConfiguration`, `@EnableAutoConfiguration` và `@ComponentScan` để tự động hóa cấu hình Spring.
+*   **`@RestController`**: Đánh dấu Controller xử lý REST API, tự động serialize kết quả trả về của hàm thành JSON/XML (tích hợp `@Controller` và `@ResponseBody`).
+*   **`@Service`**: Đăng ký lớp chứa logic xử lý nghiệp vụ (Business Logic).
+*   **`@Repository`**: Đăng ký lớp thao tác cơ sở dữ liệu (DAO), hỗ trợ dịch lỗi JDBC/SQL thành Exception runtime của Spring.
+*   **`@Component`**: Đăng ký lớp thông thường làm Spring Bean.
+*   **`@Autowired`**: Đánh dấu trường hoặc constructor để thực hiện Dependency Injection (DI) tự động tiêm Bean thích hợp.
+*   **`@RequestMapping("/đường_dẫn")`**: Khai báo tiền tố đường dẫn URL dùng chung cho toàn bộ các API trong Controller.
+*   **`@GetMapping` / `@PostMapping` / `@PutMapping` / `@DeleteMapping`**: Chỉ định HTTP Method cụ thể (GET, POST, PUT, DELETE) cho từng hàm xử lý endpoint trong Controller.
+*   **`@PathVariable`**: Liên kết (bind) tham số trên đường dẫn động URL (ví dụ: `/api/group-category/{id}`) vào biến của hàm Java.
+*   **`@RequestParam`**: Đọc các tham số truy vấn truyền trên URL dạng query string (ví dụ: `?paramName=MOMO`).
+*   **`@RequestBody`**: Đọc dữ liệu Payload JSON được gửi lên từ Client và chuyển đổi nó thành Object Java (DTO).
 
 ### B. JPA / Hibernate Annotations
-*   **`@Entity`**: Đánh dấu một Java Class tương ứng với một bảng dữ liệu dưới Database.
-*   **`@Table(name = "tên_bảng")`**: Chỉ định rõ tên bảng trong DB ánh xạ tới Entity này.
-*   **`@Id`**: Đánh dấu thuộc tính là Khóa chính (Primary Key).
-*   **`@GeneratedValue`**: Cấu hình chiến lược tự động sinh khóa chính (ví dụ: `GenerationType.IDENTITY` dùng Auto-Increment, hoặc `GenerationType.SEQUENCE` dùng Database Sequence).
-*   **`@Column`**: Định nghĩa chi tiết thuộc tính cột dưới DB (ví dụ: `name`, `nullable = false`, `unique = true`, `length = 255`).
+*   **`@Entity`**: Đánh dấu Java Class ánh xạ trực tiếp đến một Table trong Database.
+*   **`@Table(name = "tên_bảng")`**: Chỉ định rõ tên bảng Database ánh xạ tới Entity.
+*   **`@Id`**: Đánh dấu thuộc tính khóa chính (Primary Key).
+*   **`@GeneratedValue`**: Cấu hình cơ chế tự động tạo khóa chính (IDENTITY, SEQUENCE, TABLE, AUTO).
+*   **`@Column`**: Cấu hình chi tiết cho cột trong DB (như `name`, `nullable`, `length`, `updatable = false`).
+*   **`@Version`**: Kích hoạt cơ chế **Khóa lạc quan (Optimistic Locking)** để kiểm soát xung đột đồng thời khi có nhiều người cùng chỉnh sửa một bản ghi.
+*   **`@PrePersist` / `@PreUpdate`**: Đánh dấu các hàm trigger vòng đời của Entity trong JPA để tự động gán ngày tạo/ngày sửa trước khi bản ghi thực sự được ghi xuống DB.
+*   **`@MappedSuperclass`**: Đánh dấu lớp cha chứa các thuộc tính dùng chung cho nhiều Entity (như `createdDate`, `updatedDate` trong `BaseEntity`) để các entity con kế thừa lại mà không cần định nghĩa lại cột.
+*   **`@PersistenceContext`**: Tiêm (inject) đối tượng `EntityManager` của JPA để thực hiện các thao tác DB thủ công.
+*   **`@Transactional`**: Đánh dấu ranh giới giao dịch (Transaction Boundary), tự động Commit khi thành công và Rollback khi có lỗi Runtime.
+*   **`@Procedure`**: Khai báo gọi stored procedure trực tiếp từ Database Oracle trong lớp Repository.
+*   **`@Param`**: Liên kết tham số của hàm Java vào biến trong câu lệnh SQL hoặc Stored Procedure.
+*   **`@Query`**: Định nghĩa câu lệnh truy vấn custom bằng JPQL hoặc Native SQL ngay trên phương thức Repository.
+
+### C. Lombok Annotations (Auto-Code Generation)
+*   **`@Getter` / `@Setter`**: Tự động sinh mã nguồn cho các hàm Getter/Setter của tất cả các trường trong Class khi biên dịch.
+*   **`@NoArgsConstructor` / `@AllArgsConstructor`**: Tự động sinh hàm khởi tạo không tham số và hàm khởi tạo đầy đủ tham số.
+*   **`@Builder`**: Tạo ra mẫu thiết kế Builder Pattern giúp khởi tạo đối tượng nhanh, dễ đọc dưới dạng chuỗi nối tiếp (Fluent API).
+*   **`@Slf4j`**: Tự động khai báo đối tượng Logger `log` của SLF4J giúp ghi log hệ thống cực kỳ đơn giản.
+
+### D. Validation Annotations (Kiểm định Dữ liệu DTO)
+*   **`@Valid`**: Đặt trước `@RequestBody` trong Controller để kích hoạt cơ chế kiểm định dữ liệu (validation) tự động của Spring trước khi xử lý API.
+*   **`@NotNull`**: Chặn dữ liệu trống (`null`).
+*   **`@NotBlank`**: Chặn dữ liệu rỗng (không được phép để trống, null hoặc chỉ chứa khoảng trắng).
+*   **`@Size(min, max)`**: Giới hạn độ dài tối thiểu và tối đa của chuỗi ký tự hoặc kích thước của mảng.
+
+### E. Exception Handling Annotations (Xử lý Lỗi Toàn cục)
+*   **`@RestControllerAdvice`**: Đánh dấu class xử lý lỗi tập trung toàn cục (Global Exception Handler) cho toàn bộ RestControllers.
+*   **`@ExceptionHandler(TênLỗi.class)`**: Đánh dấu hàm bắt và xử lý một ngoại lệ (Exception) cụ thể khi nó bắn ra từ bất kỳ tầng nào của ứng dụng.
 
 ---
 

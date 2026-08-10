@@ -20,7 +20,8 @@ public class PaymentHubApplication {
         return args -> {
             try {
                 jdbcTemplate.execute("ALTER TABLE PMH_COMPONENTS DROP COLUMN ID");
-                System.out.println("====== DB FIX: Dropped redundant ID column from PMH_COMPONENTS successfully ======");
+                System.out
+                        .println("====== DB FIX: Dropped redundant ID column from PMH_COMPONENTS successfully ======");
             } catch (Exception e) {
                 System.out.println("====== DB FIX: ID column check: " + e.getMessage() + " ======");
             }

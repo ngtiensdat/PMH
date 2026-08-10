@@ -1,6 +1,8 @@
 package com.example.paymenthub.service;
 
 import com.example.paymenthub.dto.response.AuditLogDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -26,5 +28,5 @@ public interface AuditLogService {
     /**
      * Lấy lịch sử thao tác của một bản ghi.
      */
-    List<AuditLogDTO> getHistory(String module, String recordId);
+    Page<AuditLogDTO> getHistory(String module, String recordId, Pageable pageable);
 }

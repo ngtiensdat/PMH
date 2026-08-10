@@ -98,11 +98,7 @@ export class ComponentDialogComponent implements OnInit {
     const codeParam = this.route.snapshot.paramMap.get('code');
     if (codeParam) {
       this.code = codeParam;
-      if (this.mode === 'copy' && this.component) {
-        this.populateForm();
-      } else {
-        this.loadComponentData(this.code);
-      }
+      this.loadComponentData(this.code);
     }
   }
 
@@ -154,6 +150,9 @@ export class ComponentDialogComponent implements OnInit {
 
     if (this.mode === 'edit') {
       this.dialogForm.get('componentCode')?.disable();
+      if (this.component.isDisplay === 2) {
+        this.dialogForm.get('effectiveDate')?.disable();
+      }
     }
   }
 

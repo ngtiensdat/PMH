@@ -155,19 +155,19 @@ export class CategoryListComponent implements OnInit {
     this.isResizing = true;
     const startX = event.clientX;
     const startWidth = col.width;
-    
+
     const onMouseMove = (moveEvent: MouseEvent) => {
       const deltaX = moveEvent.clientX - startX;
       const minWidth = col.id === 'checkbox' ? 40 : 80;
       col.width = Math.max(minWidth, startWidth + deltaX);
     };
-    
+
     const onMouseUp = () => {
       this.isResizing = false;
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
     };
-    
+
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
   }
@@ -200,13 +200,13 @@ export class CategoryListComponent implements OnInit {
       this.dragOverColumnIndex = null;
       return;
     }
-    
+
     const draggedCol = this.columns[this.draggedColumnIndex];
     const updated = [...this.columns];
     updated.splice(this.draggedColumnIndex, 1);
     updated.splice(index, 0, draggedCol);
     this.columns = updated;
-    
+
     this.draggedColumnIndex = null;
     this.dragOverColumnIndex = null;
   }
@@ -253,7 +253,7 @@ export class CategoryListComponent implements OnInit {
         if (valA === valB) return 0;
 
         if (typeof valA === 'string' || typeof valB === 'string') {
-          return newDir === 'asc' 
+          return newDir === 'asc'
             ? String(valA).localeCompare(String(valB))
             : String(valB).localeCompare(String(valA));
         } else {
@@ -460,22 +460,14 @@ export class CategoryListComponent implements OnInit {
 
   // History Dialog state
   isHistoryOpen = false;
+  historyTargetId: number | null = null;
   historyData = signal<MappedHistoryItem[]>([]);
   historyTargetName = '';
   historyPage = signal<number>(0);
   readonly historyPageSize = 5;
+  historyTotalPages = signal<number>(1);
 
-  paginatedHistoryData = computed(() => {
-    const data = this.historyData();
-    const pageVal = this.historyPage();
-    const sizeVal = this.historyPageSize;
-    const startIndex = pageVal * sizeVal;
-    return data.slice(startIndex, startIndex + sizeVal);
-  });
-
-  historyTotalPages = computed(() => {
-    return Math.ceil(this.historyData().length / this.historyPageSize) || 1;
-  });
+  paginatedHistoryData = computed(() => this.historyData());
 
   onBatchApprove() {
     const ids = this.selectedIds();
@@ -526,16 +518,29 @@ export class CategoryListComponent implements OnInit {
   }
 
   openHistoryDialog(item: GroupCategoryResponse) {
+    this.historyTargetId = item.id;
     this.historyTargetName = item.paramName || item.paramValue;
-    this.categoryService.getHistory(item.id).subscribe({
+    this.historyPage.set(0);
+    this.loadHistoryData();
+  }
+
+  onHistoryPageChange(page: number) {
+    this.historyPage.set(page);
+    this.loadHistoryData();
+  }
+
+  loadHistoryData() {
+    if (this.historyTargetId === null) return;
+    this.categoryService.getHistory(this.historyTargetId, this.historyPage(), this.historyPageSize).subscribe({
       next: (res) => {
-        const mapped = (res.data || []).map((log: AuditLogItem) => {
+        const pageData = res.data;
+        const mapped = (pageData.content || []).map((log: AuditLogItem) => {
           const name = log.performedBy || 'SYSTEM';
           const avatar = name.substring(0, 2).toUpperCase();
-          
+
           const d = new Date(log.actionDate);
           const pad = (n: number) => n.toString().padStart(2, '0');
-          const dateStr = isNaN(d.getTime()) ? '-' : 
+          const dateStr = isNaN(d.getTime()) ? '-' :
             `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 
           return {
@@ -551,7 +556,10 @@ export class CategoryListComponent implements OnInit {
           };
         });
         this.historyData.set(mapped);
-        this.historyPage.set(0);
+        
+        const total = pageData.page?.totalPages ?? pageData.totalPages ?? 1;
+        this.historyTotalPages.set(total);
+        
         this.isHistoryOpen = true;
         this.cdr.detectChanges();
       },
@@ -628,10 +636,10 @@ export class CategoryListComponent implements OnInit {
           this.notificationService.warning('Không có dữ liệu để xuất!');
           return;
         }
-        
+
         let csvContent = 'data:text/csv;charset=utf-8,\uFEFF';
         csvContent += 'ID,Danh mục theo nhóm,Giá trị thành phần,Tên thành phần,Mô tả,Trạng thái duyệt,Hoạt động,Ngày hiệu lực\n';
-        
+
         data.forEach((row: GroupCategoryResponse) => {
           const statusLabel = row.status === 4 ? 'Đã duyệt' : 'Chưa duyệt';
           const activeLabel = row.isActive === 1 ? 'Hoạt động' : 'Không hoạt động';
@@ -654,7 +662,7 @@ export class CategoryListComponent implements OnInit {
 
   // Options getters
   get statusOptions() { return APPROVAL_STATUS_OPTIONS; }
-  get activeOptions()  { return IS_ACTIVE_OPTIONS; }
+  get activeOptions() { return IS_ACTIVE_OPTIONS; }
 
   // Toggle selection check
   toggleSelectAll(event: Event) {

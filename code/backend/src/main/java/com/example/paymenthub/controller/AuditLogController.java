@@ -8,6 +8,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 
 @RestController
@@ -22,8 +26,13 @@ public class AuditLogController extends BaseController {
      * GET /api/audit-log/group-category/{id}
      */
     @GetMapping("/group-category/{id}")
-    public ResponseEntity<ApiResponse<List<AuditLogDTO>>> getGroupCategoryHistory(@PathVariable Long id) {
-        List<AuditLogDTO> history = auditLogService.getHistory("GROUP_CATEGORY", String.valueOf(id));
+    public ResponseEntity<ApiResponse<Page<AuditLogDTO>>> getGroupCategoryHistory(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<AuditLogDTO> history = auditLogService.getHistory("GROUP_CATEGORY", String.valueOf(id), pageable);
         return ok(history, "Lấy lịch sử thao tác thành công");
     }
 
@@ -32,8 +41,13 @@ public class AuditLogController extends BaseController {
      * GET /api/audit-log/component/{code}
      */
     @GetMapping("/component/{code}")
-    public ResponseEntity<ApiResponse<List<AuditLogDTO>>> getComponentHistory(@PathVariable String code) {
-        List<AuditLogDTO> history = auditLogService.getHistory("COMPONENT", code);
+    public ResponseEntity<ApiResponse<Page<AuditLogDTO>>> getComponentHistory(
+            @PathVariable String code,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<AuditLogDTO> history = auditLogService.getHistory("COMPONENT", code, pageable);
         return ok(history, "Lấy lịch sử thao tác thành công");
     }
 }
