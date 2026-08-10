@@ -142,12 +142,14 @@ export class ComponentListComponent implements OnInit {
   draggedColumnIndex: number | null = null;
   dragOverColumnIndex: number | null = null;
   isResizing = false;
+  justResized = false;
 
   // Column resizing implementation (Ultra-smooth 60fps with requestAnimationFrame)
   onResizeStart(event: MouseEvent, col: any) {
     event.stopPropagation();
     event.preventDefault();
     this.isResizing = true;
+    this.justResized = true;
     const startX = event.clientX;
     const startWidth = col.width;
 
@@ -171,6 +173,9 @@ export class ComponentListComponent implements OnInit {
     const onMouseUp = () => {
       if (rafId) cancelAnimationFrame(rafId);
       this.isResizing = false;
+      setTimeout(() => {
+        this.justResized = false;
+      }, 150);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
       document.removeEventListener('mousemove', onMouseMove);
@@ -185,7 +190,7 @@ export class ComponentListComponent implements OnInit {
   // Column reordering implementation
   onDragStart(colId: string, event: DragEvent) {
     const index = this.columns.findIndex(c => c.id === colId);
-    if (this.isResizing || index === -1 || this.columns[index].isFixed) {
+    if (this.isResizing || this.justResized || index === -1 || this.columns[index].isFixed) {
       event.preventDefault();
       return;
     }
@@ -223,7 +228,7 @@ export class ComponentListComponent implements OnInit {
 
   // Column sorting implementation
   toggleSort(colId: string) {
-    if (this.isResizing || colId === 'checkbox' || colId === 'stt' || colId === 'actions') return;
+    if (this.isResizing || this.justResized || colId === 'checkbox' || colId === 'stt' || colId === 'actions') return;
 
     const currentField = this.sortField();
     const currentDir = this.sortDirection();

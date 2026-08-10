@@ -128,7 +128,7 @@
               </ng-container>
 
               <!-- Resize handle -->
-              <div class="resize-handle" (mousedown)="onResizeStart($event, col)"></div>
+              <div class="resize-handle" (mousedown)="onResizeStart($event, col)" (click)="$event.stopPropagation()"></div>
             </th>
           </tr>
         </thead>

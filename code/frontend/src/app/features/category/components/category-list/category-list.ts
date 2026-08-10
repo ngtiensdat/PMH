@@ -127,11 +127,11 @@ export class CategoryListComponent implements OnInit {
     { id: 'stt', label: 'STT', isFixed: true, width: 60 },
     { id: 'paramType', label: 'Danh mục theo nhóm', isFixed: true, width: 175 },
     { id: 'paramValue', label: 'Giá trị thành phần', isFixed: true, width: 155 },
-    { id: 'paramName', label: 'Tên thành phần', isFixed: true, width: 200 },
+    { id: 'paramName', label: 'Tên thành phần', isFixed: true, width: 170 },
     { id: 'description', label: 'Mô tả', isFixed: false, width: 150 },
     { id: 'componentCode', label: 'Cấu phần xử lý', isFixed: false, width: 150 },
-    { id: 'effectiveDate', label: 'Hiệu lực', isFixed: false, width: 120 },
-    { id: 'endEffectiveDate', label: 'Hết hiệu lực', isFixed: false, width: 120 },
+    { id: 'effectiveDate', label: 'Hiệu lực', isFixed: false, width: 125 },
+    { id: 'endEffectiveDate', label: 'Hết hiệu lực', isFixed: false, width: 125 },
     { id: 'status', label: 'Trạng thái tham số', isFixed: false, width: 180 },
     { id: 'isActive', label: 'Tình trạng hoạt động', isFixed: false, width: 180 },
     { id: 'actions', label: 'Thao tác', isFixed: false, width: 250 }
@@ -152,12 +152,14 @@ export class CategoryListComponent implements OnInit {
   draggedColumnIndex: number | null = null;
   dragOverColumnIndex: number | null = null;
   isResizing = false;
+  justResized = false;
 
   // Column resizing implementation (Ultra-smooth 60fps with requestAnimationFrame)
   onResizeStart(event: MouseEvent, col: any) {
     event.stopPropagation();
     event.preventDefault();
     this.isResizing = true;
+    this.justResized = true;
     const startX = event.clientX;
     const startWidth = col.width;
 
@@ -181,6 +183,9 @@ export class CategoryListComponent implements OnInit {
     const onMouseUp = () => {
       if (rafId) cancelAnimationFrame(rafId);
       this.isResizing = false;
+      setTimeout(() => {
+        this.justResized = false;
+      }, 150);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
       document.removeEventListener('mousemove', onMouseMove);
@@ -195,7 +200,7 @@ export class CategoryListComponent implements OnInit {
   // Column reordering implementation
   onDragStart(colId: string, event: DragEvent) {
     const index = this.columns.findIndex(c => c.id === colId);
-    if (this.isResizing || index === -1 || this.columns[index].isFixed) {
+    if (this.isResizing || this.justResized || index === -1 || this.columns[index].isFixed) {
       event.preventDefault();
       return;
     }
@@ -233,7 +238,7 @@ export class CategoryListComponent implements OnInit {
 
   // Column sorting implementation
   toggleSort(colId: string) {
-    if (this.isResizing || colId === 'checkbox' || colId === 'stt' || colId === 'actions') return;
+    if (this.isResizing || this.justResized || colId === 'checkbox' || colId === 'stt' || colId === 'actions') return;
 
     const currentField = this.sortField();
     const currentDir = this.sortDirection();
