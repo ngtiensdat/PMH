@@ -35,8 +35,8 @@ const name = person.name ?? 'Nguyễn Tiến Đạt';
 5. làm phân trang his 	(1)
 
 
-Note: Tập trung hiệu năng
-- chỉ cần danh sách ID để duyệt hủy hàng loạt
+Note: Tập trung hiệu năng (1)
+- chỉ cần danh sách ID để duyệt hủy hàng loạt (1)
 - bổ sung cronjob để tự động đổi trạng thái hoạt động của tham số trong be và sql (ok)
 
 

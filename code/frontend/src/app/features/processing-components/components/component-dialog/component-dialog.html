@@ -133,5 +133,19 @@
       <div *ngIf="mode === 'edit'"></div>
     </div>
 
+    <!-- Hàng 4: Mô tả chiếm trọn chiều rộng (Tùy chọn, không bắt buộc) -->
+    <div class="form-row-one">
+      <div class="input-container">
+        <tui-textfield>
+          <label tuiLabel>{{ languageService.labels().components.description }}</label>
+          <input tuiInput id="dlgDescription" formControlName="description"
+            [placeholder]="languageService.labels().common.enterContent" />
+        </tui-textfield>
+        <span *ngIf="getFieldError('description')" class="error-message">
+          {{ getFieldError('description') }}
+        </span>
+      </div>
+    </div>
+
   </div>
 </div>

@@ -123,15 +123,15 @@ export class CategoryListComponent implements OnInit {
 
   // Dynamic columns definition with generous default widths
   columns = [
-    { id: 'checkbox', label: '', isFixed: true, width: 40 },
+    { id: 'checkbox', label: '', isFixed: true, width: 45 },
     { id: 'stt', label: 'STT', isFixed: true, width: 60 },
-    { id: 'paramType', label: 'Danh mục theo nhóm', isFixed: true, width: 185 },
-    { id: 'paramValue', label: 'Giá trị thành phần', isFixed: true, width: 160 },
+    { id: 'paramType', label: 'Danh mục theo nhóm', isFixed: true, width: 175 },
+    { id: 'paramValue', label: 'Giá trị thành phần', isFixed: true, width: 155 },
     { id: 'paramName', label: 'Tên thành phần', isFixed: true, width: 200 },
-    { id: 'description', label: 'Mô tả', isFixed: false, width: 220 },
+    { id: 'description', label: 'Mô tả', isFixed: false, width: 150 },
     { id: 'componentCode', label: 'Cấu phần xử lý', isFixed: false, width: 150 },
-    { id: 'effectiveDate', label: 'Ngày hiệu lực', isFixed: false, width: 180 },
-    { id: 'endEffectiveDate', label: 'Ngày hết hiệu lực', isFixed: false, width: 180 },
+    { id: 'effectiveDate', label: 'Hiệu lực', isFixed: false, width: 120 },
+    { id: 'endEffectiveDate', label: 'Hết hiệu lực', isFixed: false, width: 120 },
     { id: 'status', label: 'Trạng thái tham số', isFixed: false, width: 180 },
     { id: 'isActive', label: 'Tình trạng hoạt động', isFixed: false, width: 180 },
     { id: 'actions', label: 'Thao tác', isFixed: false, width: 250 }
@@ -144,11 +144,16 @@ export class CategoryListComponent implements OnInit {
     return this.columns;
   }
 
+  isLastColumn(colId: string): boolean {
+    const cols = this.displayColumns;
+    return cols.length > 0 && cols[cols.length - 1].id === colId;
+  }
+
   draggedColumnIndex: number | null = null;
   dragOverColumnIndex: number | null = null;
   isResizing = false;
 
-  // Column resizing implementation
+  // Column resizing implementation (Ultra-smooth 60fps with requestAnimationFrame)
   onResizeStart(event: MouseEvent, col: any) {
     event.stopPropagation();
     event.preventDefault();
@@ -156,20 +161,35 @@ export class CategoryListComponent implements OnInit {
     const startX = event.clientX;
     const startWidth = col.width;
 
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    let rafId: number | null = null;
+
     const onMouseMove = (moveEvent: MouseEvent) => {
       const deltaX = moveEvent.clientX - startX;
       const minWidth = col.id === 'checkbox' ? 40 : 80;
-      col.width = Math.max(minWidth, startWidth + deltaX);
+      const newWidth = Math.max(minWidth, startWidth + deltaX);
+
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        col.width = newWidth;
+        this.cdr.markForCheck();
+      });
     };
 
     const onMouseUp = () => {
+      if (rafId) cancelAnimationFrame(rafId);
       this.isResizing = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
+      this.cdr.detectChanges();
     };
 
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('mousemove', onMouseMove, { passive: true });
+    document.addEventListener('mouseup', onMouseUp, { once: true });
   }
 
   // Column reordering implementation
@@ -213,7 +233,7 @@ export class CategoryListComponent implements OnInit {
 
   // Column sorting implementation
   toggleSort(colId: string) {
-    if (colId === 'checkbox' || colId === 'stt' || colId === 'actions') return;
+    if (this.isResizing || colId === 'checkbox' || colId === 'stt' || colId === 'actions') return;
 
     const currentField = this.sortField();
     const currentDir = this.sortDirection();
@@ -264,6 +284,19 @@ export class CategoryListComponent implements OnInit {
       });
       this.joinedCategories.set(list);
     }
+  }
+
+  // TrackBy functions to optimize Angular DOM rendering
+  trackById(index: number, item: GroupCategoryResponse): any {
+    return item.id;
+  }
+
+  trackByHistoryId(index: number, item: any): any {
+    return item.id;
+  }
+
+  trackByColId(index: number, col: any): any {
+    return col.id;
   }
 
   ngOnInit() {

@@ -114,12 +114,14 @@
               [attr.draggable]="!col.isFixed ? 'true' : null" (dragstart)="onDragStart(col.id, $event)"
               (dragover)="onDragOver($event, col.id)" (dragleave)="onDragLeave()" (drop)="onDrop(col.id)"
               [class.draggable-col]="!col.isFixed" [class.drag-over]="dragOverColumnIndex === colIdx"
-              style="padding: 0.75rem 1rem; position: relative; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              [class.col-sticky-actions]="col.id === 'actions' && isLastColumn(col.id)"
+              (click)="toggleSort(col.id)"
+              style="padding: 0.75rem 1rem; position: relative; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;">
               <!-- Cell content by column ID -->
               <ng-container [ngSwitch]="col.id">
                 <!-- Checkbox -->
                 <ng-container *ngSwitchCase="'checkbox'">
-                  <div style="text-align: center; display: flex; justify-content: center; align-items: center;">
+                  <div style="text-align: center; display: flex; justify-content: center; align-items: center;" (click)="$event.stopPropagation()">
                     <input tuiCheckbox type="checkbox" [ngModel]="isAllSelected()" (change)="toggleSelectAll($event)" />
                   </div>
                 </ng-container>
@@ -136,13 +138,13 @@
 
                 <!-- Sortable/Draggable Headers -->
                 <ng-container *ngSwitchDefault>
-                  <div class="sort-header" (click)="toggleSort(col.id)" [class.sort-active]="sortField() === col.id">
+                  <div class="sort-header" [class.sort-active]="sortField() === col.id">
                     <span>{{ getColumnLabel(col.id) }}</span>
-                    <span class="sort-icon" *ngIf="sortField() === col.id">
-                      {{ sortDirection() === 'asc' ? '▲' : '▼' }}
+                    <span class="sort-icon-wrapper" *ngIf="sortField() === col.id">
+                      <tui-icon [icon]="sortDirection() === 'asc' ? '@tui.chevron-up' : '@tui.chevron-down'" style="--tui-icon-size: 14px;"></tui-icon>
                     </span>
-                    <span class="sort-icon" *ngIf="sortField() !== col.id" style="opacity: 0.3;">
-                      ↕
+                    <span class="sort-icon-wrapper inactive" *ngIf="sortField() !== col.id">
+                      <tui-icon icon="@tui.chevrons-up-down" style="--tui-icon-size: 14px; opacity: 0.35;"></tui-icon>
                     </span>
                   </div>
                 </ng-container>
@@ -154,12 +156,13 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let item of (viewMode() === 'jpa' ? categories() : joinedCategories()); let i = index"
+          <tr *ngFor="let item of (viewMode() === 'jpa' ? categories() : joinedCategories()); let i = index; trackBy: trackById"
             (dblclick)="onViewDetail(item)"
             style="border-bottom: 1px solid #f1f5f9; transition: background-color 0.15s; cursor: pointer;">
 
-            <ng-container *ngFor="let col of displayColumns">
+            <ng-container *ngFor="let col of displayColumns; trackBy: trackByColId">
               <td [style.width.px]="col.width" [style.min-width.px]="col.width" [style.max-width.px]="col.width"
+                [class.col-sticky-actions]="col.id === 'actions' && isLastColumn(col.id)"
                 style="padding: 0.75rem 1rem; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                 <ng-container [ngSwitch]="col.id">
 
@@ -384,7 +387,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let h of paginatedHistoryData()"
+          <tr *ngFor="let h of paginatedHistoryData(); trackBy: trackByHistoryId"
             style="border-bottom: 1px solid #f1f5f9; transition: background-color 0.15s;" class="history-row-item">
             <td style="padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.75rem;">
               <div class="history-avatar"

@@ -579,3 +579,28 @@ code {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* Sticky Actions Column on the Right */
+.col-sticky-actions {
+  position: sticky !important;
+  right: 0 !important;
+  z-index: 10;
+  box-shadow: -4px 0 8px rgba(0, 0, 0, 0.05);
+}
+
+th.col-sticky-actions {
+  background-color: #f8fafc !important;
+  z-index: 11;
+}
+
+td.col-sticky-actions {
+  background-color: #ffffff;
+}
+
+tr:hover td.col-sticky-actions {
+  background-color: #f8fafc !important;
+}
+
+tr.row-selected td.col-sticky-actions {
+  background-color: #f0fdfa !important;
+}

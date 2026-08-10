@@ -321,11 +321,20 @@ public class ComponentServiceImpl implements ComponentService {
         return saved;
     }
 
+    /**
+     * Hủy duyệt bản ghi (Chuyển từ Status 4 sang Status 7).
+     * 
+     * Ghi chú về tham số 'username':
+     * 1. Phân quyền (RBAC): Kiểm tra xem người gọi có phải là Maker (Chuyên viên) hay không.
+     * 2. Định danh trách nhiệm (Non-Repudiation): Bắt buộc phải ghi đích danh cá nhân (username) 
+     *    vào cột UPDATED_BY và bảng PMH_AUDIT_LOG để phục vụ thanh tra, kiểm toán.
+     * 3. Chống tự duyệt (Segregation of Duties): Lưu lại ai là người thực hiện để ngăn tự duyệt.
+     */
     @Override
     public ProcessingComponent cancelApproval(String code, String username) {
         log.info("[Component] Canceling approval. code={}, user={}", code, username);
 
-        // Phân quyền: Chỉ Maker mới được phép hủy duyệt
+        // 1. Phân quyền: Chỉ Maker mới được phép hủy duyệt
         if (!"USER01".equalsIgnoreCase(username)) {
             throw new ForbiddenAccessException("Chỉ Chuyên viên (Maker) mới có quyền thực hiện chức năng hủy duyệt!");
         }
@@ -339,15 +348,15 @@ public class ComponentServiceImpl implements ComponentService {
         int statusBefore = entity.getStatus();
 
         entity.setStatus(7); // Hủy duyệt
-        entity.setUpdatedBy(username);
+        entity.setUpdatedBy(username); // Lưu định danh người sửa vào DB
         ProcessingComponent saved = repository.save(entity);
 
-        // Ghi audit log
+        // Ghi audit log kiểm toán với đích danh cá nhân (username) thực hiện
         auditLogService.log(
                 MODULE, code,
                 "Hủy duyệt", username,
                 null, null,
-                String.format("Hủy duyệt cấu phần Code=%s - %s", code, entity.getComponentName()),
+                String.format("Hủy duyệt cấu phần Code=%s - %s bởi %s", code, entity.getComponentName(), username),
                 statusBefore, 7);
 
         return saved;

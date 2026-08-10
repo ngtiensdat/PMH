@@ -222,23 +222,36 @@ body {
 .resize-handle {
   position: absolute;
   top: 0;
-  right: 0;
+  right: -5px;
   bottom: 0;
-  width: 6px;
+  width: 10px;
   cursor: col-resize;
   z-index: 100;
   background: transparent;
-  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.resize-handle:hover,
-.premium-table th:hover .resize-handle {
-  background-color: rgba(0, 89, 83, 0.25);
+.resize-handle::after {
+  content: '';
+  width: 2px;
+  height: 50%;
+  background-color: transparent;
+  border-radius: 1px;
+  transition: all 0.2s ease;
 }
 
-.resize-handle:active {
+.resize-handle:hover::after,
+th:hover .resize-handle::after {
   background-color: var(--primary);
-  width: 6px;
+  height: 80%;
+  box-shadow: 0 0 4px rgba(0, 89, 83, 0.4);
+}
+
+.resize-handle:active::after {
+  background-color: var(--primary);
+  height: 100%;
 }
 
 /* Operation History Styles (Lịch sử thao tác) */
@@ -388,18 +401,25 @@ th.drag-over {
   height: 100%;
 }
 
-.sort-icon {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  transition: transform 0.2s ease, color 0.2s ease;
+.sort-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  transition: all 0.2s ease;
 }
 
-.sort-header:hover .sort-icon {
+.sort-icon-wrapper.inactive {
+  color: var(--text-muted);
+}
+
+.sort-header:hover .sort-icon-wrapper.inactive {
   color: var(--primary);
+  opacity: 0.9 !important;
 }
 
 .sort-active {
   color: var(--primary) !important;
-  font-weight: bold;
+  font-weight: 700;
 }
 

@@ -30,9 +30,12 @@
 </aside>
 
 <!-- 2. SIDEBAR PHỤ (SUB-MENU) màu trắng -->
-<aside class="sidebar-sub" *ngIf="activeMenu() === 'params'">
+<aside class="sidebar-sub" *ngIf="activeMenu() === 'params' && isSubMenuOpen()">
   <div class="sub-menu-header">
     <h3>{{ languageService.labels().navigation.systemParams }}</h3>
+    <button class="close-sub-btn" (click)="closeSubMenu()" title="Thu gọn thanh bên (Tăng diện tích bảng)">
+      <tui-icon icon="@tui.chevron-left"></tui-icon>
+    </button>
   </div>
   <ul class="sub-menu-list">
     <li routerLink="/components" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">

@@ -134,11 +134,16 @@ export class ComponentListComponent implements OnInit {
     return this.columns;
   }
 
+  isLastColumn(colId: string): boolean {
+    const cols = this.displayColumns;
+    return cols.length > 0 && cols[cols.length - 1].id === colId;
+  }
+
   draggedColumnIndex: number | null = null;
   dragOverColumnIndex: number | null = null;
   isResizing = false;
 
-  // Column resizing implementation
+  // Column resizing implementation (Ultra-smooth 60fps with requestAnimationFrame)
   onResizeStart(event: MouseEvent, col: any) {
     event.stopPropagation();
     event.preventDefault();
@@ -146,20 +151,35 @@ export class ComponentListComponent implements OnInit {
     const startX = event.clientX;
     const startWidth = col.width;
 
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    let rafId: number | null = null;
+
     const onMouseMove = (moveEvent: MouseEvent) => {
       const deltaX = moveEvent.clientX - startX;
       const minWidth = col.id === 'checkbox' ? 40 : 80;
-      col.width = Math.max(minWidth, startWidth + deltaX);
+      const newWidth = Math.max(minWidth, startWidth + deltaX);
+
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        col.width = newWidth;
+        this.cdr.markForCheck();
+      });
     };
 
     const onMouseUp = () => {
+      if (rafId) cancelAnimationFrame(rafId);
       this.isResizing = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
+      this.cdr.detectChanges();
     };
 
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('mousemove', onMouseMove, { passive: true });
+    document.addEventListener('mouseup', onMouseUp, { once: true });
   }
 
   // Column reordering implementation
@@ -203,7 +223,7 @@ export class ComponentListComponent implements OnInit {
 
   // Column sorting implementation
   toggleSort(colId: string) {
-    if (colId === 'checkbox' || colId === 'stt' || colId === 'actions') return;
+    if (this.isResizing || colId === 'checkbox' || colId === 'stt' || colId === 'actions') return;
 
     const currentField = this.sortField();
     const currentDir = this.sortDirection();
@@ -231,6 +251,19 @@ export class ComponentListComponent implements OnInit {
 
     this.page.set(0);
     this.loadData();
+  }
+
+  // TrackBy functions to optimize Angular DOM rendering
+  trackByCode(index: number, item: ProcessingComponentResponse): any {
+    return item.componentCode;
+  }
+
+  trackByHistoryId(index: number, item: any): any {
+    return item.id;
+  }
+
+  trackByColId(index: number, col: any): any {
+    return col.id;
   }
 
   ngOnInit() {
