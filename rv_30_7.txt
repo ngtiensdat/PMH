@@ -8,7 +8,7 @@ RULE: Bản ghi ở trạng thái đã phê duyệt => Hủy duyệt => Sửa: =
 1. Tìm hiểu lại ý nghĩa các anotation trong BE (tìm hiểu sự khác biệt giữa @controler và @restControsller 
 2. Tìm hiểu lại contructor trong java
 3. Tìm hiểu lại về OOP
-8. tìm hiểu vè kiểu dữ liệu nguyên thủy và kiểu dữ liệu còn lại (Interge và int)
+8. tìm hiểu vè kiểu dữ liệu nguyên thủy và kiểu dữ liệu còn lại (Interge và int) (1)
 9. tìm hiểu vè thời gian chạy của các annotation
 10. tìm hiểu đối tượng OBjectmapper, Các cách convert Object thành json và ngược lại
 11. tìm hiểu cơ chế của transaction, vì sao có thể rollback khi 1 trong nhiều hoạt động tương tác vào db bị lỗi
@@ -38,7 +38,7 @@ const name = person.name ?? 'Nguyễn Tiến Đạt';
 Note: Tập trung hiệu năng (1)
 - chỉ cần danh sách ID để duyệt hủy hàng loạt (1)
 - bổ sung cronjob để tự động đổi trạng thái hoạt động của tham số trong be và sql (ok)
-
+- làm enum
 
 Code a Trường: 
 @Transactional
