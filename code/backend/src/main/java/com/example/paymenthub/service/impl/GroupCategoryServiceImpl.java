@@ -1,5 +1,10 @@
 package com.example.paymenthub.service.impl;
 
+import com.example.paymenthub.common.enums.ActiveStatus;
+import com.example.paymenthub.common.enums.AuditAction;
+import com.example.paymenthub.common.enums.DisplayStatus;
+import com.example.paymenthub.common.enums.ModuleType;
+import com.example.paymenthub.common.enums.ParamStatus;
 import com.example.paymenthub.dto.request.GroupCategoryDTO;
 import com.example.paymenthub.entity.GroupCategory;
 import com.example.paymenthub.repository.GroupCategoryRepository;
@@ -34,7 +39,7 @@ import java.util.Map;
 @Slf4j
 public class GroupCategoryServiceImpl implements GroupCategoryService {
 
-    private static final String MODULE = "GROUP_CATEGORY";
+    private static final String MODULE = ModuleType.GROUP_CATEGORY.getCode();
 
     private final GroupCategoryRepository repository;
     private final ObjectMapper objectMapper;
@@ -56,11 +61,11 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
 
     // ─── Helper: compute active status from effective dates ─────────────────
     public static int computeActiveStatus(LocalDateTime effectiveDate, LocalDateTime endEffectiveDate) {
-        if (effectiveDate == null) return 0;
+        if (effectiveDate == null) return ActiveStatus.INACTIVE.getCode();
         LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(effectiveDate)) return 0; // Chưa đến ngày hiệu lực
-        if (endEffectiveDate != null && now.isAfter(endEffectiveDate)) return 0; // Đã quá ngày hết hiệu lực
-        return 1; // Đang trong khoảng hiệu lực
+        if (now.isBefore(effectiveDate)) return ActiveStatus.INACTIVE.getCode(); // Chưa đến ngày hiệu lực
+        if (endEffectiveDate != null && now.isAfter(endEffectiveDate)) return ActiveStatus.INACTIVE.getCode(); // Đã quá ngày hết hiệu lực
+        return ActiveStatus.ACTIVE.getCode(); // Đang trong khoảng hiệu lực
     }
 
     // ─── Helper: serialize entity sang JSON ─────────────────────────────────
@@ -131,9 +136,9 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 .paramType(dto.getParamType())
                 .description(dto.getDescription())
                 .componentCode(dto.getComponentCode())
-                .status(1)
+                .status(ParamStatus.NEW.getCode())
                 .isActive(computeActiveStatus(dto.getEffectiveDate(), dto.getEndEffectiveDate()))
-                .isDisplay(1)
+                .isDisplay(DisplayStatus.INITIAL.getCode())
                 .effectiveDate(dto.getEffectiveDate())
                 .endEffectiveDate(dto.getEndEffectiveDate())
                 .build();
@@ -146,11 +151,11 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         // Ghi audit log
         auditLogService.log(
                 MODULE, String.valueOf(saved.getId()),
-                "Tạo mới", username,
+                AuditAction.CREATE.getActionName(), username,
                 null, toJson(snapshot(saved)),
                 String.format("Tạo mới tham số: %s / %s / %s", saved.getParamName(), saved.getParamValue(),
                         saved.getParamType()),
-                null, 1);
+                null, ParamStatus.NEW.getCode());
 
         return saved;
     }
@@ -164,9 +169,11 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         int statusBefore = entity.getStatus();
 
         // 1. Kiểm tra trạng thái được phép sửa: Tạo mới (1), Từ chối (5), Hủy duyệt (7)
-        if (entity.getStatus() != 1 && entity.getStatus() != 5 && entity.getStatus() != 7) {
+        if (entity.getStatus() != ParamStatus.NEW.getCode() 
+                && entity.getStatus() != ParamStatus.REJECTED.getCode() 
+                && entity.getStatus() != ParamStatus.CANCELED.getCode()) {
             throw new IllegalStateException("Không được phép chỉnh sửa bản ghi đang ở trạng thái: " 
-                + (entity.getStatus() == 3 ? "Chờ duyệt" : "Đã duyệt"));
+                + (entity.getStatus() == ParamStatus.PENDING.getCode() ? "Chờ duyệt" : "Đã duyệt"));
         }
 
         if (repository.existsOverlapping(
@@ -180,21 +187,21 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         String action;
         int statusAfter;
 
-        if (entity.getIsDisplay() == 2) {
+        if (entity.getIsDisplay() == DisplayStatus.ONCE_APPROVED.getCode()) {
             // Bản ghi đã từng được duyệt (isDisplay == 2): không sửa trực tiếp vào các cột, chỉ lưu vào NEW_DATA
             entity.setNewData(buildNewDataJson(dto));
             entity.setUpdatedBy(username);
-            entity.setStatus(7); // Khi sửa một thay đổi của bản ghi đã duyệt, đặt trạng thái về Hủy duyệt (7) để Maker gửi duyệt lại
+            entity.setStatus(ParamStatus.CANCELED.getCode()); // Khi sửa một thay đổi của bản ghi đã duyệt, đặt trạng thái về Hủy duyệt (7) để Maker gửi duyệt lại
             saved = repository.save(entity);
             action = "Lưu sửa nháp (Hủy duyệt)";
-            statusAfter = 7;
+            statusAfter = ParamStatus.CANCELED.getCode();
         } else {
             // Bản ghi chưa từng được duyệt (isDisplay == 1): cập nhật trực tiếp vào các cột
             updateEntityFields(entity, dto, username);
             entity.setNewData(null); // Xóa các thay đổi nháp cũ nếu có
             saved = repository.save(entity);
-            action = "Cập nhật";
-            statusAfter = 1;
+            action = AuditAction.UPDATE.getActionName();
+            statusAfter = ParamStatus.NEW.getCode();
         }
 
         String newJson = toJson(snapshot(saved));
@@ -238,7 +245,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         entity.setEndEffectiveDate(dto.getEndEffectiveDate());
         entity.setIsActive(computeActiveStatus(dto.getEffectiveDate(), dto.getEndEffectiveDate()));
         entity.setUpdatedBy(username);
-        entity.setStatus(1);
+        entity.setStatus(ParamStatus.NEW.getCode());
     }
 
     // ─── Delete ──────────────────────────────────────────────────────────────
@@ -254,14 +261,14 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
 
         GroupCategory entity = getById(id);
 
-        if (entity.getIsDisplay() == 2) {
+        if (entity.getIsDisplay() == DisplayStatus.ONCE_APPROVED.getCode()) {
             // Bản ghi đã được duyệt trước đó (isDisplay == 2):
             // Nếu bản ghi đang có thay đổi chờ duyệt (status = 3) hoặc bị từ chối (status = 5):
             // Hành động xóa sẽ đóng vai trò hủy bỏ yêu cầu chỉnh sửa này và khôi phục về bản duyệt cũ.
-            if (entity.getStatus() == 3 || entity.getStatus() == 5) {
+            if (entity.getStatus() == ParamStatus.PENDING.getCode() || entity.getStatus() == ParamStatus.REJECTED.getCode()) {
                 String oldJson = toJson(snapshot(entity));
                 entity.setNewData(null);
-                entity.setStatus(4); // Khôi phục trạng thái đã phê duyệt
+                entity.setStatus(ParamStatus.APPROVED.getCode()); // Khôi phục trạng thái đã phê duyệt
                 entity.setUpdatedBy(username);
                 GroupCategory saved = repository.save(entity);
                 
@@ -271,7 +278,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                         "Hủy yêu cầu sửa", username,
                         oldJson, toJson(snapshot(saved)),
                         String.format("Hủy yêu cầu chỉnh sửa và khôi phục trạng thái đã duyệt cho ID=%d", id),
-                        3, 4);
+                        ParamStatus.PENDING.getCode(), ParamStatus.APPROVED.getCode());
                 return;
             }
             throw new IllegalStateException("Bản ghi đã phê duyệt và đang vận hành (STATUS = 4), không được phép xóa!");
@@ -285,7 +292,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         // Ghi audit log (sau khi delete để lưu oldData đầy đủ)
         auditLogService.log(
                 MODULE, String.valueOf(id),
-                "Xóa", username,
+                AuditAction.DELETE.getActionName(), username,
                 oldJson, null,
                 String.format("Xóa tham số chưa duyệt: %s / %s / %s", entity.getParamName(), entity.getParamValue(),
                         entity.getParamType()),
@@ -299,40 +306,29 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         log.info("[GroupCategory] Sending for approval. id={}, user={}", id, username);
         GroupCategory entity = getById(id);
         
-        if (entity.getStatus() == 3) {
+        if (entity.getStatus() == ParamStatus.PENDING.getCode()) {
             throw new IllegalStateException("Bản ghi đã ở trạng thái Chờ duyệt!");
         }
         
         int statusBefore = entity.getStatus();
 
-        entity.setStatus(3);
+        entity.setStatus(ParamStatus.PENDING.getCode());
         entity.setUpdatedBy(username);
         GroupCategory saved = repository.save(entity);
 
         // Ghi audit log
         auditLogService.log(
                 MODULE, String.valueOf(id),
-                "Gửi duyệt", username,
+                AuditAction.SEND_APPROVAL.getActionName(), username,
                 null, null,
                 String.format("Gửi duyệt tham số ID=%d: %s / %s", id, entity.getParamName(), entity.getParamValue()),
-                statusBefore, 3);
+                statusBefore, ParamStatus.PENDING.getCode());
 
         return saved;
     }
 
     // ─── Cancel Approval ─────────────────────────────────────────────────────
 
-    /**
-     * Hủy duyệt bản ghi (Chuyển từ Status 4 sang Status 7).
-     * 
-     * Ghi chú về tham số 'username':
-     * 1. Phân quyền (RBAC): Kiểm tra xem người gọi có phải là Maker (Chuyên viên) hay không.
-     * 2. Định danh trách nhiệm (Non-Repudiation): Trong ngân hàng có nhiều Maker/Checker, 
-     *    bắt buộc phải ghi đích danh cá nhân (username) vào cột UPDATED_BY và bảng PMH_AUDIT_LOG
-     *    để phục vụ thanh tra, kiểm toán, không thể chỉ dùng Role chung chung.
-     * 3. Chống tự duyệt (Segregation of Duties): Lưu lại ai là người thực hiện để sau này
-     *    ngăn người đó tự phê duyệt yêu cầu của chính mình.
-     */
     @Override
     public GroupCategory cancelApproval(Long id, String username) {
         log.info("[GroupCategory] Canceling approval. id={}, user={}", id, username);
@@ -343,23 +339,23 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         }
 
         GroupCategory entity = getById(id);
-        if (entity.getStatus() != 4) {
+        if (entity.getStatus() != ParamStatus.APPROVED.getCode()) {
             throw new IllegalStateException("Chỉ được phép hủy duyệt bản ghi đang ở trạng thái đã phê duyệt (STATUS = 4)!");
         }
 
         int statusBefore = entity.getStatus();
 
-        entity.setStatus(7); // Hủy duyệt
+        entity.setStatus(ParamStatus.CANCELED.getCode()); // Hủy duyệt
         entity.setUpdatedBy(username); // Lưu định danh người sửa vào DB
         GroupCategory saved = repository.save(entity);
 
         // Ghi audit log kiểm toán với đích danh cá nhân (username) thực hiện
         auditLogService.log(
                 MODULE, String.valueOf(id),
-                "Hủy duyệt", username,
+                AuditAction.CANCEL_APPROVAL.getActionName(), username,
                 null, null,
                 String.format("Hủy duyệt tham số ID=%d: %s / %s bởi %s", id, entity.getParamName(), entity.getParamValue(), username),
-                statusBefore, 7);
+                statusBefore, ParamStatus.CANCELED.getCode());
 
         return saved;
     }
@@ -509,10 +505,10 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                     // Ghi audit log phê duyệt
                     auditLogService.log(
                             MODULE, String.valueOf(id),
-                            "Phê duyệt", approver,
+                            AuditAction.APPROVE.getActionName(), approver,
                             null, null,
                             String.format("Phê duyệt tham số ID=%d. SP: %s", id, spMessage),
-                            statusBefore, 4);
+                            statusBefore, ParamStatus.APPROVED.getCode());
                 } else {
                     throw new RuntimeException(spMessage);
                 }
@@ -579,13 +575,13 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 if (success) {
                     auditLogService.log(
                             MODULE, String.valueOf(id),
-                            "Từ chối", approver,
+                            AuditAction.REJECT.getActionName(), approver,
                             null, null,
                             reason != null && !reason.trim().isEmpty()
-                                    ? String.format("Từ chối duyệt tham số ID=%d. Lý do: %s. SP: %s", id, reason,
+                                     ? String.format("Từ chối duyệt tham số ID=%d. Lý do: %s. SP: %s", id, reason,
                                             spMessage)
                                     : String.format("Từ chối duyệt tham số ID=%d. SP: %s", id, spMessage),
-                            statusBefore, 5);
+                            statusBefore, ParamStatus.REJECTED.getCode());
                 } else {
                     throw new RuntimeException(spMessage);
                 }

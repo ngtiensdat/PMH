@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CategoryService } from '../../services/category.service';
 import { NotificationService } from '../../../../shared/components/notification/notification.service';
+import { ParamStatus, ActiveStatus, DisplayStatus } from '../../../../shared/enums/status.enum';
 import { GroupCategoryResponse } from '../../../../shared/models/group-category.model';
 import { LanguageService } from '../../../../core/services/language.service';
 import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
@@ -17,6 +18,10 @@ import { ComparisonCardComponent } from '../../../../shared/components/compariso
   styleUrl: './category-detail.css'
 })
 export class CategoryDetailComponent implements OnInit {
+  readonly ParamStatus = ParamStatus;
+  readonly ActiveStatus = ActiveStatus;
+  readonly DisplayStatus = DisplayStatus;
+
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private categoryService = inject(CategoryService);
@@ -45,11 +50,11 @@ export class CategoryDetailComponent implements OnInit {
   ];
 
   statusMap: { [key: number]: { label: string, css: string } } = {
-    1: { label: 'Tạo mới', css: 'badge-new' },
-    3: { label: 'Chờ duyệt', css: 'badge-pending' },
-    4: { label: 'Đã duyệt', css: 'badge-approved' },
-    5: { label: 'Từ chối', css: 'badge-rejected' },
-    7: { label: 'Hủy duyệt', css: 'badge-canceled' }
+    [ParamStatus.NEW]: { label: 'Tạo mới', css: 'badge-new' },
+    [ParamStatus.PENDING]: { label: 'Chờ duyệt', css: 'badge-pending' },
+    [ParamStatus.APPROVED]: { label: 'Đã duyệt', css: 'badge-approved' },
+    [ParamStatus.REJECTED]: { label: 'Từ chối', css: 'badge-rejected' },
+    [ParamStatus.CANCELED]: { label: 'Hủy duyệt', css: 'badge-canceled' }
   };
 
   ngOnInit() {
@@ -85,7 +90,7 @@ export class CategoryDetailComponent implements OnInit {
   get oldData(): Record<string, unknown> {
     if (!this.category) return {};
 
-    if (this.category.status === 1 || this.category.isDisplay === 1) {
+    if (this.category.status === ParamStatus.NEW || this.category.isDisplay === DisplayStatus.INITIAL) {
       return {};
     }
     return this.category as unknown as Record<string, unknown>;

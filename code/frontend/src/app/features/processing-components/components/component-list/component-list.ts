@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { ComponentService } from '../../services/component.service';
 import { LanguageService } from '../../../../core/services/language.service';
 import { STATUS_MAP, APPROVAL_STATUS_OPTIONS, IS_ACTIVE_OPTIONS, ACTION_PILL_MAP } from '../../../../shared/constants/status.constants';
+import { ParamStatus, ActiveStatus, DisplayStatus } from '../../../../shared/enums/status.enum';
 import { parseDateString } from '../../../../shared/utils/date.utils';
 import { NotificationService } from '../../../../shared/components/notification/notification.service';
 import { ProcessingComponentResponse } from '../../../../shared/models/component.model';
@@ -12,6 +13,18 @@ import { AuditLogItem } from '../../../../shared/models/audit-log.model';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
+
+interface MappedHistoryItem {
+  user: {
+    name: string;
+    code: string;
+    avatar: string;
+  };
+  date: string;
+  action: string;
+  ip: string;
+  content: string;
+}
 
 @Component({
   selector: 'app-component-list',
@@ -26,6 +39,10 @@ import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
   styleUrl: './component-list.css'
 })
 export class ComponentListComponent implements OnInit {
+  readonly ParamStatus = ParamStatus;
+  readonly ActiveStatus = ActiveStatus;
+  readonly DisplayStatus = DisplayStatus;
+
   private fb = inject(FormBuilder);
   private componentService = inject(ComponentService);
   public languageService = inject(LanguageService);
@@ -608,8 +625,8 @@ export class ComponentListComponent implements OnInit {
         csvContent += 'Mã cấu phần,Tên cấu phần,Chuẩn tin điện,Phương thức kết nối,Kiểm tra Token,Trạng thái duyệt,Hoạt động,Ngày hiệu lực\n';
 
         data.forEach((row: ProcessingComponentResponse) => {
-          const statusLabel = row.status === 4 ? 'Đã duyệt' : 'Chưa duyệt';
-          const activeLabel = row.isActive === 1 ? 'Hoạt động' : 'Không hoạt động';
+          const statusLabel = row.status === ParamStatus.APPROVED ? 'Đã duyệt' : 'Chưa duyệt';
+          const activeLabel = row.isActive === ActiveStatus.ACTIVE ? 'Hoạt động' : 'Không hoạt động';
           csvContent += `"${row.componentCode}","${row.componentName}","${row.messageType || ''}","${row.connectionMethod || ''}","${row.checkToken}","${statusLabel}","${activeLabel}","${row.effectiveDate}"\n`;
         });
 

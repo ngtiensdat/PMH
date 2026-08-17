@@ -7,6 +7,7 @@ import { CategoryService } from '../../services/category.service';
 import { ComponentService } from '../../../processing-components/services/component.service';
 import { NotificationService } from '../../../../shared/components/notification/notification.service';
 import { CategorySchema, zodFormValidator, zodFieldValidator } from '../../../../shared/validators/category.schema';
+import { ParamStatus, ActiveStatus, DisplayStatus, FormMode } from '../../../../shared/enums/status.enum';
 import { GroupCategoryResponse, GroupCategoryRequest } from '../../../../shared/models/group-category.model';
 import { LanguageService } from '../../../../core/services/language.service';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -32,6 +33,11 @@ import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
   styleUrl: './category-dialog.css'
 })
 export class CategoryDialogComponent implements OnInit {
+  readonly ParamStatus = ParamStatus;
+  readonly ActiveStatus = ActiveStatus;
+  readonly DisplayStatus = DisplayStatus;
+  readonly FormMode = FormMode;
+
   private fb = inject(FormBuilder);
   private categoryService = inject(CategoryService);
   private componentService = inject(ComponentService);
@@ -41,7 +47,7 @@ export class CategoryDialogComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
   public languageService = inject(LanguageService);
 
-  mode: 'add' | 'edit' | 'copy' = 'add';
+  mode: FormMode | 'add' | 'edit' | 'copy' = FormMode.ADD;
   category: GroupCategoryResponse | null = null;
   id: number | null = null;
 
@@ -166,7 +172,7 @@ export class CategoryDialogComponent implements OnInit {
     if (this.mode === 'edit') {
       this.dialogForm.get('paramType')?.disable();
       this.dialogForm.get('paramValue')?.disable();
-      if (this.category.isDisplay === 2) {
+      if (this.category.isDisplay === DisplayStatus.ONCE_APPROVED) {
         this.dialogForm.get('effectiveDate')?.disable();
       }
     }
@@ -315,17 +321,30 @@ export class CategoryDialogComponent implements OnInit {
 
   get dialogTitle(): string {
     switch (this.mode) {
-      case 'add': return 'Thêm mới tham số danh mục theo nhóm';
-      case 'copy': return 'Thêm mới tham số danh mục theo nhóm';
-      case 'edit': return 'Sửa tham số danh mục theo nhóm';
+      case FormMode.ADD:
+      case 'add':
+        return 'Thêm mới tham số cấu phần xử lý';
+      case FormMode.COPY:
+      case 'copy':
+        return 'Thêm mới tham số cấu phần xử lý';
+      case FormMode.EDIT:
+      case 'edit':
+        return 'Sửa tham số cấu phần xử lý';
+      default:
+        return 'Thêm mới tham số cấu phần xử lý';
     }
   }
 
   getBreadcrumbText(): string {
     switch (this.mode) {
-      case 'add': return 'Thêm mới';
-      case 'copy': return 'Thêm mới';
-      case 'edit': return 'Sửa';
+      case FormMode.ADD:
+        return 'Thêm mới';
+      case FormMode.COPY:
+        return 'Thêm mới';
+      case FormMode.EDIT:
+        return 'Sửa';
+      default:
+        return 'Chi tiết';
     }
   }
 

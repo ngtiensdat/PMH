@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { CategoryService } from '../../services/category.service';
 import { LanguageService } from '../../../../core/services/language.service';
 import { STATUS_MAP, APPROVAL_STATUS_OPTIONS, IS_ACTIVE_OPTIONS, ACTION_PILL_MAP } from '../../../../shared/constants/status.constants';
+import { ParamStatus, ActiveStatus, DisplayStatus } from '../../../../shared/enums/status.enum';
 import { parseDateString } from '../../../../shared/utils/date.utils';
 import { NotificationService } from '../../../../shared/components/notification/notification.service';
 import { GroupCategoryResponse } from '../../../../shared/models/group-category.model';
@@ -38,6 +39,10 @@ interface MappedHistoryItem {
   styleUrl: './category-list.css'
 })
 export class CategoryListComponent implements OnInit {
+  readonly ParamStatus = ParamStatus;
+  readonly ActiveStatus = ActiveStatus;
+  readonly DisplayStatus = DisplayStatus;
+
   private fb = inject(FormBuilder);
   private categoryService = inject(CategoryService);
   public languageService = inject(LanguageService);
@@ -679,8 +684,8 @@ export class CategoryListComponent implements OnInit {
         csvContent += 'ID,Danh mục theo nhóm,Giá trị thành phần,Tên thành phần,Mô tả,Trạng thái duyệt,Hoạt động,Ngày hiệu lực\n';
 
         data.forEach((row: GroupCategoryResponse) => {
-          const statusLabel = row.status === 4 ? 'Đã duyệt' : 'Chưa duyệt';
-          const activeLabel = row.isActive === 1 ? 'Hoạt động' : 'Không hoạt động';
+          const statusLabel = row.status === ParamStatus.APPROVED ? 'Đã duyệt' : 'Chưa duyệt';
+          const activeLabel = row.isActive === ActiveStatus.ACTIVE ? 'Hoạt động' : 'Không hoạt động';
           csvContent += `"${row.id}","${row.paramType}","${row.paramValue}","${row.paramName}","${row.description || ''}","${statusLabel}","${activeLabel}","${row.effectiveDate}"\n`;
         });
 

@@ -16,8 +16,8 @@
       </span>
       <h1 class="form-page-title" style="display: flex; align-items: center; gap: 0.75rem;">
         {{ languageService.labels().common.viewDetail }}
-        <span *ngIf="component" class="status-pill" [ngClass]="component.status === 5 && component.isDisplay === 2 ? 'badge-canceled' : statusMap[component.status]?.css">
-          ● {{ component.status }} - {{ component.status === 5 && component.isDisplay === 2 ? (languageService.labels().common.status.canceled || 'Hủy duyệt') : statusMap[component.status]?.label }}
+        <span *ngIf="component" class="status-pill" [ngClass]="component.status === ParamStatus.REJECTED && component.isDisplay === DisplayStatus.ONCE_APPROVED ? 'badge-canceled' : statusMap[component.status]?.css">
+          ● {{ component.status }} - {{ component.status === ParamStatus.REJECTED && component.isDisplay === DisplayStatus.ONCE_APPROVED ? (languageService.labels().common.status.canceled || 'Hủy duyệt') : statusMap[component.status]?.label }}
         </span>
       </h1>
     </div>
@@ -58,7 +58,7 @@
     <!-- Nút hành động ở dưới cùng bên phải -->
     <div class="form-footer-actions">
       <!-- Maker actions: Mới (1), Từ chối (5), Hủy duyệt (7) -->
-      <ng-container *ngIf="(component.status === 1 || component.status === 5 || component.status === 7) && languageService.userCode() === 'USER01'">
+      <ng-container *ngIf="(component.status === ParamStatus.NEW || component.status === ParamStatus.REJECTED || component.status === ParamStatus.CANCELED) && languageService.userCode() === 'USER01'">
         <button tuiButton appearance="secondary" type="button" (click)="onDeleteRecord()" style="margin-right: 0.75rem; --tui-primary: #ef4444; --tui-primary-hover: #dc2626;">
           {{ languageService.labels().common.delete }}
         </button>
@@ -68,7 +68,7 @@
       </ng-container>
 
       <!-- Checker actions: Chờ duyệt (3) -->
-      <ng-container *ngIf="component.status === 3 && languageService.userCode() === 'APPROVER'">
+      <ng-container *ngIf="component.status === ParamStatus.PENDING && languageService.userCode() === 'APPROVER'">
         <button tuiButton appearance="secondary" type="button" (click)="onRejectRecord()" style="margin-right: 0.75rem; --tui-primary: #ef4444; --tui-primary-hover: #dc2626;">
           {{ languageService.labels().common.reject }}
         </button>

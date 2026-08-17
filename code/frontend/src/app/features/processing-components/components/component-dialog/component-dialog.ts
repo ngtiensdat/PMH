@@ -6,6 +6,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ComponentService } from '../../services/component.service';
 import { NotificationService } from '../../../../shared/components/notification/notification.service';
 import { ComponentSchema, zodFormValidator, zodFieldValidator } from '../../../../shared/validators/component.schema';
+import { ParamStatus, ActiveStatus, DisplayStatus, FormMode } from '../../../../shared/enums/status.enum';
 import { ProcessingComponentResponse, ProcessingComponentRequest } from '../../../../shared/models/component.model';
 import { LanguageService } from '../../../../core/services/language.service';
 import { TUI_INPUT_DATE_TIME_OPTIONS, tuiInputDateTimeOptionsProvider } from '@taiga-ui/kit';
@@ -30,6 +31,11 @@ import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
   styleUrl: './component-dialog.css'
 })
 export class ComponentDialogComponent implements OnInit {
+  readonly ParamStatus = ParamStatus;
+  readonly ActiveStatus = ActiveStatus;
+  readonly DisplayStatus = DisplayStatus;
+  readonly FormMode = FormMode;
+
   private fb = inject(FormBuilder);
   private componentService = inject(ComponentService);
   private notificationService = inject(NotificationService);
@@ -38,7 +44,7 @@ export class ComponentDialogComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
   public languageService = inject(LanguageService);
 
-  mode: 'add' | 'edit' | 'copy' = 'add';
+  mode: FormMode | 'add' | 'edit' | 'copy' = FormMode.ADD;
   component: ProcessingComponentResponse | null = null;
   code: string | null = null;
 
@@ -150,7 +156,7 @@ export class ComponentDialogComponent implements OnInit {
 
     if (this.mode === 'edit') {
       this.dialogForm.get('componentCode')?.disable();
-      if (this.component.isDisplay === 2) {
+      if (this.component.isDisplay === DisplayStatus.ONCE_APPROVED) {
         this.dialogForm.get('effectiveDate')?.disable();
       }
     }
@@ -299,17 +305,19 @@ export class ComponentDialogComponent implements OnInit {
 
   get dialogTitle(): string {
     switch (this.mode) {
-      case 'add': return 'Thêm mới tham số cấu phần xử lý';
-      case 'copy': return 'Thêm mới tham số cấu phần xử lý';
-      case 'edit': return 'Sửa tham số cấu phần xử lý';
+      case FormMode.ADD:
+      case FormMode.COPY: return 'Thêm mới tham số cấu phần xử lý';
+      case FormMode.EDIT: return 'Sửa tham số cấu phần xử lý';
+      default: return 'Chi tiết tham số cấu phần xử lý';
     }
   }
 
   getBreadcrumbText(): string {
     switch (this.mode) {
-      case 'add': return 'Thêm mới';
-      case 'copy': return 'Thêm mới';
-      case 'edit': return 'Sửa';
+      case FormMode.ADD:
+      case FormMode.COPY: return 'Thêm mới';
+      case FormMode.EDIT: return 'Sửa';
+      default: return 'Chi tiết';
     }
   }
 

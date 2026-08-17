@@ -4,6 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ComponentService } from '../../services/component.service';
 import { NotificationService } from '../../../../shared/components/notification/notification.service';
+import { ParamStatus, ActiveStatus, DisplayStatus } from '../../../../shared/enums/status.enum';
 import { ProcessingComponentResponse } from '../../../../shared/models/component.model';
 import { LanguageService } from '../../../../core/services/language.service';
 import { ComparisonCardComponent } from '../../../../shared/components/comparison-card/comparison-card';
@@ -18,6 +19,10 @@ import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
   styleUrl: './component-detail.css'
 })
 export class ComponentDetailComponent implements OnInit {
+  readonly ParamStatus = ParamStatus;
+  readonly ActiveStatus = ActiveStatus;
+  readonly DisplayStatus = DisplayStatus;
+
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private componentService = inject(ComponentService);
@@ -48,11 +53,11 @@ export class ComponentDetailComponent implements OnInit {
   ];
 
   statusMap: { [key: number]: { label: string, css: string } } = {
-    1: { label: 'Tạo mới', css: 'badge-new' },
-    3: { label: 'Chờ duyệt', css: 'badge-pending' },
-    4: { label: 'Đã duyệt', css: 'badge-approved' },
-    5: { label: 'Từ chối', css: 'badge-rejected' },
-    7: { label: 'Hủy duyệt', css: 'badge-canceled' }
+    [ParamStatus.NEW]: { label: 'Tạo mới', css: 'badge-new' },
+    [ParamStatus.PENDING]: { label: 'Chờ duyệt', css: 'badge-pending' },
+    [ParamStatus.APPROVED]: { label: 'Đã duyệt', css: 'badge-approved' },
+    [ParamStatus.REJECTED]: { label: 'Từ chối', css: 'badge-rejected' },
+    [ParamStatus.CANCELED]: { label: 'Hủy duyệt', css: 'badge-canceled' }
   };
 
   ngOnInit() {
@@ -88,7 +93,7 @@ export class ComponentDetailComponent implements OnInit {
   get oldData(): Record<string, unknown> {
     if (!this.component) return {};
     
-    if (this.component.status === 1 || this.component.isDisplay === 1) {
+    if (this.component.status === ParamStatus.NEW || this.component.isDisplay === DisplayStatus.INITIAL) {
       return {};
     }
     return this.component as unknown as Record<string, unknown>;

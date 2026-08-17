@@ -200,15 +200,15 @@
                   <!-- Status -->
                   <ng-container *ngSwitchCase="'status'">
                     <span class="dot-badge"
-                      [ngClass]="item.status === 5 && item.isDisplay === 2 ? 'badge-canceled' : statusMap[item.status]?.css">
-                      <span class="dot" *ngIf="item.status !== 4"></span>
-                      <span class="check-icon" *ngIf="item.status === 4">
+                      [ngClass]="item.status === ParamStatus.REJECTED && item.isDisplay === DisplayStatus.ONCE_APPROVED ? 'badge-canceled' : statusMap[item.status]?.css">
+                      <span class="dot" *ngIf="item.status !== ParamStatus.APPROVED"></span>
+                      <span class="check-icon" *ngIf="item.status === ParamStatus.APPROVED">
                         <tui-icon icon="@tui.check"
                           style="--tui-icon-size: 12px; display: inline-block; vertical-align: middle;"></tui-icon>
                       </span>
                       <span class="label">
                         {{
-                        item.status === 5 && item.isDisplay === 2
+                        item.status === ParamStatus.REJECTED && item.isDisplay === DisplayStatus.ONCE_APPROVED
                         ? '7 - Hủy duyệt'
                         : (languageService.labels().common.status[statusMap[item.status]?.labelKey || 'new'])
                         }}
@@ -218,9 +218,9 @@
 
                   <!-- Active Status -->
                   <ng-container *ngSwitchCase="'isActive'">
-                    <span class="dot-badge" [class.active]="item.isActive === 1" [class.inactive]="item.isActive !== 1">
+                    <span class="dot-badge" [class.active]="item.isActive === ActiveStatus.ACTIVE" [class.inactive]="item.isActive !== ActiveStatus.ACTIVE">
                       <span class="dot"></span>
-                      <span class="label">{{ item.isActive === 1 ? languageService.labels().common.active :
+                      <span class="label">{{ item.isActive === ActiveStatus.ACTIVE ? languageService.labels().common.active :
                         languageService.labels().common.inactive }}</span>
                     </span>
                   </ng-container>
@@ -237,12 +237,12 @@
 
                       <!-- Slot 2: Edit or Cancel Approval (Maker only, occupying the same slot) -->
                       <button *ngIf="languageService.userCode() === 'USER01'"
-                        (click)="item.status === 4 ? onCancelApproval(item.componentCode) : openEditDialog(item)"
-                        class="action-btn" [disabled]="isLoading()" [class.edit]="item.status !== 4"
-                        [class.cancel-approve]="item.status === 4"
-                        [class.invisible]="item.status !== 1 && item.status !== 5 && item.status !== 7 && item.status !== 4"
-                        [title]="item.status === 4 ? 'Hủy duyệt' : languageService.labels().common.edit">
-                        <tui-icon [icon]="item.status === 4 ? '@tui.ban' : '@tui.pencil'"
+                        (click)="item.status === ParamStatus.APPROVED ? onCancelApproval(item.componentCode) : openEditDialog(item)"
+                        class="action-btn" [disabled]="isLoading()" [class.edit]="item.status !== ParamStatus.APPROVED"
+                        [class.cancel-approve]="item.status === ParamStatus.APPROVED"
+                        [class.invisible]="item.status !== ParamStatus.NEW && item.status !== ParamStatus.REJECTED && item.status !== ParamStatus.CANCELED && item.status !== ParamStatus.APPROVED"
+                        [title]="item.status === ParamStatus.APPROVED ? 'Hủy duyệt' : languageService.labels().common.edit">
+                        <tui-icon [icon]="item.status === ParamStatus.APPROVED ? '@tui.ban' : '@tui.pencil'"
                           style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
 
