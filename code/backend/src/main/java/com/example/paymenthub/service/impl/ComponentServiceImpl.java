@@ -6,6 +6,7 @@ import com.example.paymenthub.common.enums.DisplayStatus;
 import com.example.paymenthub.common.enums.ModuleType;
 import com.example.paymenthub.common.enums.ParamStatus;
 import com.example.paymenthub.dto.request.ComponentDTO;
+import com.example.paymenthub.dto.request.ComponentSearchCriteria;
 import com.example.paymenthub.entity.ProcessingComponent;
 import com.example.paymenthub.repository.ComponentRepository;
 import com.example.paymenthub.service.ComponentService;
@@ -100,11 +101,10 @@ public class ComponentServiceImpl implements ComponentService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ProcessingComponent> search(
-            String componentCode, String componentName, String messageType,
-            String connectionMethod, List<Integer> statuses, List<Integer> isActives, Pageable pageable) {
+    public Page<ProcessingComponent> search(ComponentSearchCriteria criteria, Pageable pageable) {
         Specification<ProcessingComponent> spec = ComponentSpecification.filter(
-                componentCode, componentName, messageType, connectionMethod, statuses, isActives);
+                criteria.getComponentCode(), criteria.getComponentName(), criteria.getMessageType(),
+                criteria.getConnectionMethod(), criteria.getStatus(), criteria.getIsActive());
         return repository.findAll(spec, pageable);
     }
 
@@ -141,8 +141,8 @@ public class ComponentServiceImpl implements ComponentService {
     public ProcessingComponent create(ComponentDTO dto, String username) {
         log.info("[Component] Creating. user={}, componentCode={}", username, dto.getComponentCode());
 
-        if (repository.existsByComponentCode(dto.getComponentCode())) {
-            throw new IllegalStateException("Mã cấu phần '" + dto.getComponentCode() + "' đã tồn tại!");
+        if (dto.getComponentCode() != null && repository.existsByComponentCode(dto.getComponentCode().toUpperCase())) {
+            throw new IllegalStateException("Mã cấu phần '" + dto.getComponentCode().toUpperCase() + "' đã tồn tại!");
         }
 
         ProcessingComponent entity = ProcessingComponent.builder()
@@ -253,9 +253,9 @@ public class ComponentServiceImpl implements ComponentService {
     public void delete(String code, String username) {
         log.info("[Component] Deleting. code={}, user={}", code, username);
 
-        // Phân quyền: Chỉ Maker mới được phép xóa/hủy yêu cầu
-        if (!"USER01".equalsIgnoreCase(username)) {
-            throw new ForbiddenAccessException("Chỉ Chuyên viên (Maker) mới có quyền thực hiện chức năng xóa/hủy!");
+        // Phân quyền: Yêu cầu phải có định danh người dùng (username)
+        if (username == null || username.trim().isEmpty()) {
+            throw new ForbiddenAccessException("Yêu cầu cần có định danh người dùng (username)!");
         }
 
         ProcessingComponent entity = getByCode(code);
@@ -328,9 +328,9 @@ public class ComponentServiceImpl implements ComponentService {
     public ProcessingComponent cancelApproval(String code, String username) {
         log.info("[Component] Canceling approval. code={}, user={}", code, username);
 
-        // 1. Phân quyền: Chỉ Maker mới được phép hủy duyệt
-        if (!"USER01".equalsIgnoreCase(username)) {
-            throw new ForbiddenAccessException("Chỉ Chuyên viên (Maker) mới có quyền thực hiện chức năng hủy duyệt!");
+        // 1. Phân quyền: Yêu cầu phải có định danh người dùng (username)
+        if (username == null || username.trim().isEmpty()) {
+            throw new ForbiddenAccessException("Yêu cầu cần có định danh người dùng (username)!");
         }
 
         ProcessingComponent entity = getByCode(code);
@@ -432,9 +432,11 @@ public class ComponentServiceImpl implements ComponentService {
                             entity.setCheckToken((String) changes.get("checkToken"));
                         if (changes.containsKey("description"))
                             entity.setDescription((String) changes.get("description"));
-                        if (changes.containsKey("effectiveDate") && changes.get("effectiveDate") != null)
+                        if (changes.containsKey("effectiveDate") && changes.get("effectiveDate") != null
+                                && !((String) changes.get("effectiveDate")).trim().isEmpty())
                             entity.setEffectiveDate(LocalDateTime.parse((String) changes.get("effectiveDate")));
-                        if (changes.containsKey("endEffectiveDate") && changes.get("endEffectiveDate") != null)
+                        if (changes.containsKey("endEffectiveDate") && changes.get("endEffectiveDate") != null
+                                && !((String) changes.get("endEffectiveDate")).trim().isEmpty())
                             entity.setEndEffectiveDate(
                                     LocalDateTime.parse((String) changes.get("endEffectiveDate")));
                         entity.setIsActive(computeActiveStatus(entity.getEffectiveDate(), entity.getEndEffectiveDate()));

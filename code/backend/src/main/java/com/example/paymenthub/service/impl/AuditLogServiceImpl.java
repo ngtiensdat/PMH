@@ -1,5 +1,6 @@
 package com.example.paymenthub.service.impl;
 
+import com.example.paymenthub.dto.request.AuditLogRequest;
 import com.example.paymenthub.dto.response.AuditLogDTO;
 import com.example.paymenthub.entity.AuditLog;
 import com.example.paymenthub.repository.AuditLogRepository;
@@ -60,21 +61,19 @@ public class AuditLogServiceImpl implements AuditLogService {
      * gây lỗi UnexpectedRollbackException cho nghiệp vụ chính khi ghi log thất bại.
      */
     @Override
-    public void log(String module, String recordId, String action, String performedBy,
-                    String oldData, String newData, String description,
-                    Integer statusBefore, Integer statusAfter) {
+    public void log(AuditLogRequest req) {
         try {
             AuditLog entry = AuditLog.builder()
-                    .module(module)
-                    .recordId(recordId)
-                    .action(action)
-                    .performedBy(performedBy)
+                    .module(req.getModule())
+                    .recordId(req.getRecordId())
+                    .action(req.getAction())
+                    .performedBy(req.getPerformedBy())
                     .actionDate(LocalDateTime.now())
-                    .oldData(oldData)
-                    .newDataLog(newData)
-                    .description(description)
-                    .statusBefore(statusBefore)
-                    .statusAfter(statusAfter)
+                    .oldData(req.getOldData())
+                    .newDataLog(req.getNewData())
+                    .description(req.getDescription())
+                    .statusBefore(req.getStatusBefore())
+                    .statusAfter(req.getStatusAfter())
                     .ipAddress(getClientIp())
                     .build();
 
@@ -85,11 +84,12 @@ public class AuditLogServiceImpl implements AuditLogService {
                 repository.save(entry);
             });
 
-            log.debug("[AuditLog] Saved. module={}, recordId={}, action={}, user={}, ip={}", module, recordId, action, performedBy, entry.getIpAddress());
+            log.debug("[AuditLog] Saved. module={}, recordId={}, action={}, user={}, ip={}",
+                    req.getModule(), req.getRecordId(), req.getAction(), req.getPerformedBy(), entry.getIpAddress());
         } catch (Exception e) {
             // Không để lỗi audit ảnh hưởng đến nghiệp vụ chính
             log.error("[AuditLog] Failed to save audit log. module={}, recordId={}, action={}. Error: {}",
-                    module, recordId, action, e.getMessage(), e);
+                    req.getModule(), req.getRecordId(), req.getAction(), e.getMessage(), e);
         }
     }
 

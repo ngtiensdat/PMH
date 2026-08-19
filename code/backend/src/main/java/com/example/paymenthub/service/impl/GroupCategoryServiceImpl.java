@@ -6,6 +6,7 @@ import com.example.paymenthub.common.enums.DisplayStatus;
 import com.example.paymenthub.common.enums.ModuleType;
 import com.example.paymenthub.common.enums.ParamStatus;
 import com.example.paymenthub.dto.request.GroupCategoryDTO;
+import com.example.paymenthub.dto.request.GroupCategorySearchCriteria;
 import com.example.paymenthub.entity.GroupCategory;
 import com.example.paymenthub.repository.GroupCategoryRepository;
 import com.example.paymenthub.service.GroupCategoryService;
@@ -101,11 +102,10 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<GroupCategory> search(
-            String paramType, String paramValue, String paramName,
-            List<Integer> statuses, List<Integer> isActives, Pageable pageable) {
+    public Page<GroupCategory> search(GroupCategorySearchCriteria criteria, Pageable pageable) {
         Specification<GroupCategory> spec = GroupCategorySpecification.filter(
-                paramType, paramValue, paramName, statuses, isActives);
+                criteria.getParamType(), criteria.getParamValue(), criteria.getParamName(),
+                criteria.getStatus(), criteria.getIsActive());
         return repository.findAll(spec, pageable);
     }
 
@@ -225,7 +225,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
             changes.put("paramType", dto.getParamType());
             changes.put("description", dto.getDescription());
             changes.put("componentCode", dto.getComponentCode());
-            changes.put("effectiveDate", dto.getEffectiveDate().toString());
+            changes.put("effectiveDate", dto.getEffectiveDate() != null ? dto.getEffectiveDate().toString() : null);
             changes.put("endEffectiveDate",
                     dto.getEndEffectiveDate() != null ? dto.getEndEffectiveDate().toString() : null);
             changes.put("isActive", computeActiveStatus(dto.getEffectiveDate(), dto.getEndEffectiveDate()));
@@ -254,9 +254,9 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
     public void delete(Long id, String username) {
         log.info("[GroupCategory] Deleting. id={}, user={}", id, username);
         
-        // Phân quyền: Chỉ Maker mới được phép xóa/hủy yêu cầu
-        if (!"USER01".equalsIgnoreCase(username)) {
-            throw new ForbiddenAccessException("Chỉ Chuyên viên (Maker) mới có quyền thực hiện chức năng xóa/hủy!");
+        // Phân quyền: Yêu cầu phải có định danh người dùng (username)
+        if (username == null || username.trim().isEmpty()) {
+            throw new ForbiddenAccessException("Yêu cầu cần có định danh người dùng (username)!");
         }
 
         GroupCategory entity = getById(id);
@@ -333,9 +333,9 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
     public GroupCategory cancelApproval(Long id, String username) {
         log.info("[GroupCategory] Canceling approval. id={}, user={}", id, username);
         
-        // 1. Phân quyền: Chỉ Maker mới được phép hủy duyệt
-        if (!"USER01".equalsIgnoreCase(username)) {
-            throw new ForbiddenAccessException("Chỉ Chuyên viên (Maker) mới có quyền thực hiện chức năng hủy duyệt!");
+        // 1. Phân quyền: Yêu cầu phải có định danh người dùng (username)
+        if (username == null || username.trim().isEmpty()) {
+            throw new ForbiddenAccessException("Yêu cầu cần có định danh người dùng (username)!");
         }
 
         GroupCategory entity = getById(id);
@@ -468,9 +468,11 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                             entity.setDescription((String) changes.get("description"));
                         if (changes.containsKey("componentCode"))
                             entity.setComponentCode((String) changes.get("componentCode"));
-                        if (changes.containsKey("effectiveDate"))
+                        if (changes.containsKey("effectiveDate") && changes.get("effectiveDate") != null
+                                && !((String) changes.get("effectiveDate")).trim().isEmpty())
                             entity.setEffectiveDate(LocalDateTime.parse((String) changes.get("effectiveDate")));
-                        if (changes.containsKey("endEffectiveDate") && changes.get("endEffectiveDate") != null)
+                        if (changes.containsKey("endEffectiveDate") && changes.get("endEffectiveDate") != null
+                                && !((String) changes.get("endEffectiveDate")).trim().isEmpty())
                             entity.setEndEffectiveDate(
                                     LocalDateTime.parse((String) changes.get("endEffectiveDate")));
                         entity.setIsActive(computeActiveStatus(entity.getEffectiveDate(), entity.getEndEffectiveDate()));

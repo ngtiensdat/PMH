@@ -1,6 +1,7 @@
 package com.example.paymenthub.service;
 
 import com.example.paymenthub.dto.request.GroupCategoryDTO;
+import com.example.paymenthub.dto.request.GroupCategorySearchCriteria;
 import com.example.paymenthub.entity.GroupCategory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,14 +11,7 @@ import java.util.Map;
 
 public interface GroupCategoryService {
 
-    Page<GroupCategory> search(
-            String paramType,
-            String paramValue,
-            String paramName,
-            List<Integer> statuses,
-            List<Integer> isActives,
-            Pageable pageable
-    );
+    Page<GroupCategory> search(GroupCategorySearchCriteria criteria, Pageable pageable);
 
     GroupCategory getById(Long id);
 

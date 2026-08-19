@@ -1,6 +1,7 @@
 package com.example.paymenthub.service;
 
 import com.example.paymenthub.dto.request.ComponentDTO;
+import com.example.paymenthub.dto.request.ComponentSearchCriteria;
 import com.example.paymenthub.entity.ProcessingComponent;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,15 +11,7 @@ import java.util.Map;
 
 public interface ComponentService {
 
-    Page<ProcessingComponent> search(
-            String componentCode,
-            String componentName,
-            String messageType,
-            String connectionMethod,
-            List<Integer> statuses,
-            List<Integer> isActives,
-            Pageable pageable
-    );
+    Page<ProcessingComponent> search(ComponentSearchCriteria criteria, Pageable pageable);
 
     ProcessingComponent getByCode(String code);
 

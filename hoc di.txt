@@ -1,0 +1,87 @@
+================================================================================
+           LỘ TRÌNH VÀ CHECKLIST HỌC CODE THỰC CHIẾN (PAYMENT HUB)
+================================================================================
+
+--------------------------------------------------------------------------------
+MỤC I. QUY TẮC NGHIỆP VỤ & LUỒNG TRẠNG THÁI HỆ THỐNG
+--------------------------------------------------------------------------------
+[x] 1. Hai hệ thống trạng thái độc lập trong Payment Hub:
+    - Trạng thái tham số (STATUS): 1-Tạo mới, 3-Chờ duyệt, 4-Đã duyệt, 5-Từ chối, 7-Hủy duyệt (Phục vụ luồng phê duyệt Maker - Checker).
+    - Tình trạng hoạt động (IS_ACTIVE): 1-Đang hoạt động, 0-Không hoạt động (Tính tự động theo ngày hiệu lực).
+[x] 2. Ma trận các trạng thái được phép sửa:
+    - Được phép sửa: 1 (Tạo mới), 5 (Từ chối), 7 (Hủy duyệt).
+    - Cấm sửa trực tiếp: 3 (Chờ duyệt), 4 (Đã duyệt).
+[x] 3. Quy tắc cốt lõi: Bản ghi Đã duyệt (4) -> Hủy duyệt (7) -> Sửa:
+    - Giá trị sửa KHÔNG được thay thế trực tiếp vào các cột chính trong DB.
+    - Lưu tạm vào cột NEW_DATA dạng JSON, gán IS_DISPLAY = 2.
+    - Hiển thị Form đối chiếu song song 2 cột (Cũ vs Mới) cho Checker duyệt. Khi duyệt mới bung JSON ghi đè vào DB.
+
+--------------------------------------------------------------------------------
+MỤC II. TỔNG HỢP CHECKLIST KIẾN THỨC JAVA BACKEND (SPRING BOOT & JPA)
+--------------------------------------------------------------------------------
+[x] 1. Phân biệt @Controller và @RestController & Chuẩn hóa HTTP Status Code (200, 201, 400, 403, 404, 500).
+[X] 2. Dependency Injection & Constructor Injection:
+    - Tại sao Constructor Injection + từ khóa 'final' là Best Practice (Thread-safe, Immutability, dễ Unit Test).
+    - Phân biệt tự gọi 'new' (cách truyền thống) vs Spring IoC Container tiêm ngầm.
+    - Spring Bean Scope mặc định: Singleton (Duy nhất 1 instance trên RAM).
+    - Lịch sử và cách dùng @Autowired hiện đại.
+[1] 3. Lập trình hàm Java 8 Stream API & Lambda Expressions:
+    - Tư duy băng chuyền xử lý dữ liệu với .filter(), .map(), .toList(), .findFirst().
+[] 4. Optional<T> & Kỹ thuật diệt lỗi NullPointerException:
+    - .orElse(), .orElseThrow(), .map(), .ifPresent().
+[x] 5. JPA Entity Lifecycle Callbacks & BaseEntity:
+    - @MappedSuperclass, @PrePersist (trước INSERT), @PreUpdate (trước UPDATE).
+[] 6. Tối ưu hóa API & Phân trang chuẩn:
+    - Gom nhóm @RequestParam lẻ tẻ thành DTO (ComponentSearchCriteria, GroupCategorySearchCriteria).
+    - Phân trang chuẩn với Pageable & @PageableDefault.
+
+--- CÁC CHỦ ĐỀ CẦN TIẾP TỤC ÔN TẬP TIẾP THEO ---
+[ ] 7. Kiểu dữ liệu Nguyên thủy (int) vs Kiểu Wrapper (Integer):
+    - Khác biệt Stack vs Heap, giá trị null, Autoboxing/Unboxing.
+    - Tại sao DB Entity & DTO bắt buộc dùng kiểu Integer?
+[ ] 8. Đối tượng ObjectMapper (Jackson):
+    - Serialization (Object -> JSON writeValueAsString) và Deserialization (JSON -> Object readValue).
+[ ] 9. Cơ chế Transaction & Tính chất ACID:
+    - Cơ chế Rollback, Undo Log / WAL trong Database.
+[ ] 10. Spring AOP Proxy & @Transactional:
+    - Tại sao @Transactional trên phương thức private KHÔNG CÓ TÁC DỤNG?
+    - Hiện tượng Self-invocation (tự gọi hàm nội bộ qua con trỏ 'this').
+[ ] 11. JPA Entity Lifecycle States & Dirty Checking:
+    - 4 trạng thái: Transient, Managed, Detached, Removed.
+    - Giải mã cơ chế Dirty Checking (tự động UPDATE khi commit mà không cần repository.save()).
+[ ] 12. So sánh các cách Quản lý Transaction:
+    - @Transactional (Declarative).
+    - @Transactional(readOnly = true) (Tắt Dirty Checking, tiết kiệm RAM/CPU).
+    - TransactionTemplate (Programmatic - PROPAGATION_REQUIRES_NEW cho Batch Processing độc lập).
+[ ] 13. Stored Procedure & Oracle Integration:
+    - ParameterMode.IN, ParameterMode.OUT, đọc kết quả từ StoredProcedureQuery.
+[ ] 14. 4 Tính chất Lập trình Hướng đối tượng (OOP):
+    - Đóng gói (Encapsulation), Kế thừa (Inheritance), Đa hình (Polymorphism), Trừu tượng (Abstraction).
+
+--------------------------------------------------------------------------------
+MỤC III. TỔNG HỢP CHECKLIST KIẾN THỨC ANGULAR FRONTEND
+--------------------------------------------------------------------------------
+[] 1. Phân biệt Toán tử Logical OR (||) và Nullish Coalescing (??):
+    - Falsy (false, 0, "", null, undefined) vs Nullish (null, undefined).
+[] 2. Truyền dữ liệu giữa các Component:
+    - @Input() (Cha -> Con) và @Output() (Con -> Cha qua EventEmitter).
+[] 3. Vòng đời Angular Component & ngOnInit():
+    - Thứ tự: constructor -> ngOnChanges -> ngOnInit -> ngAfterViewInit -> ngOnDestroy.
+    - Tại sao gọi API trong ngOnInit() thay vì constructor()?
+
+--- CÁC CHỦ ĐỀ CẦN TIẾP TỤC ÔN TẬP TIẾP THEO ---
+[ ] 4. Hàm inject() trong Angular 14+:
+    - Tiêm phụ thuộc hiện đại không dùng constructor, giải quyết vấn đề kế thừa class cha (extends BaseComponent).
+[ ] 5. Tích hợp Taiga UI & Advanced Form Control:
+    - Value Transformer cho Input DateTime (DateTimeTransformer).
+    - Binding Checkbox với ngModel (ControlValueAccessor).
+
+--------------------------------------------------------------------------------
+MỤC IV. BÀI TOÁN TỐI ƯU HIỆU NĂNG TRONG THỰC TẾ (PERFORMANCE)
+--------------------------------------------------------------------------------
+[ ] 1. Duyệt / Hủy duyệt hàng loạt theo Danh sách ID (Batch Processing).
+[ ] 2. Cronjob 5s Scheduler tự động cập nhật IS_ACTIVE bằng SQL Bulk Update.
+[ ] 3. Tối ưu hóa DOM Rendering bằng trackBy trong Angular *ngFor.
+[ ] 4. Kéo giãn cột bảng 60 FPS với requestAnimationFrame và Event Guard.
+
+================================================================================

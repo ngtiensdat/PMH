@@ -18,51 +18,49 @@ public class ActiveStatusScheduler {
 
     /**
      * Tự động quét và cập nhật trạng thái IS_ACTIVE mỗi 5 giây (fixedRate = 5000ms)
-     * dựa theo thời gian thực (SYSDATE của Oracle DB) so với EFFECTIVE_DATE và END_EFFECTIVE_DATE.
+     * dựa theo thời gian thực (SYSDATE của Oracle DB) so với EFFECTIVE_DATE và
+     * END_EFFECTIVE_DATE.
      */
     @Scheduled(fixedRate = 5000)
     @Transactional
     public void updateActiveStatus() {
         try {
             // ─── 1. BẢNG PMH_GROUP_CATEGORY ──────────────────────────────────────────
-            // Kích hoạt = 1 nếu: Đã đến ngày hiệu lực VÀ (Chưa có ngày hết hạn HOẶC Chưa đến ngày hết hạn) VÀ IS_ACTIVE đang là 0
-            String sqlCatActive = 
-                "UPDATE PMH_GROUP_CATEGORY " +
-                "SET IS_ACTIVE = 1 " +
-                "WHERE EFFECTIVE_DATE <= SYSDATE " +
-                "  AND (END_EFFECTIVE_DATE IS NULL OR END_EFFECTIVE_DATE >= SYSDATE) " +
-                "  AND IS_ACTIVE = 0";
-            int catActivated = jdbcTemplate.update(sqlCatActive);
-
-            // Vô hiệu hóa = 0 nếu: Chưa đến ngày hiệu lực HOẶC Đã quá ngày hết hạn VÀ IS_ACTIVE đang là 1
-            String sqlCatInactive = 
-                "UPDATE PMH_GROUP_CATEGORY " +
-                "SET IS_ACTIVE = 0 " +
-                "WHERE (EFFECTIVE_DATE > SYSDATE OR (END_EFFECTIVE_DATE IS NOT NULL AND END_EFFECTIVE_DATE < SYSDATE)) " +
-                "  AND IS_ACTIVE = 1";
-            int catDeactivated = jdbcTemplate.update(sqlCatInactive);
+            // Gộp cả 2 luồng Bật (1) và Tắt (0) thành 1 câu SQL duy nhất bằng CASE WHEN
+            String sqlCat = "UPDATE PMH_GROUP_CATEGORY " +
+                    "SET IS_ACTIVE = CASE " +
+                    "    WHEN EFFECTIVE_DATE <= SYSDATE AND (END_EFFECTIVE_DATE IS NULL OR END_EFFECTIVE_DATE >= SYSDATE) THEN 1 "
+                    +
+                    "    ELSE 0 " +
+                    "END " +
+                    "WHERE IS_ACTIVE <> ( " +
+                    "    CASE " +
+                    "        WHEN EFFECTIVE_DATE <= SYSDATE AND (END_EFFECTIVE_DATE IS NULL OR END_EFFECTIVE_DATE >= SYSDATE) THEN 1 "
+                    +
+                    "        ELSE 0 " +
+                    "    END " +
+                    ")";
+            int catUpdated = jdbcTemplate.update(sqlCat);
 
             // ─── 2. BẢNG PMH_COMPONENTS ──────────────────────────────────────────────
-            // Kích hoạt = 1
-            String sqlCompActive = 
-                "UPDATE PMH_COMPONENTS " +
-                "SET IS_ACTIVE = 1 " +
-                "WHERE EFFECTIVE_DATE <= SYSDATE " +
-                "  AND (END_EFFECTIVE_DATE IS NULL OR END_EFFECTIVE_DATE >= SYSDATE) " +
-                "  AND IS_ACTIVE = 0";
-            int compActivated = jdbcTemplate.update(sqlCompActive);
+            String sqlComp = "UPDATE PMH_COMPONENTS " +
+                    "SET IS_ACTIVE = CASE " +
+                    "    WHEN EFFECTIVE_DATE <= SYSDATE AND (END_EFFECTIVE_DATE IS NULL OR END_EFFECTIVE_DATE >= SYSDATE) THEN 1 "
+                    +
+                    "    ELSE 0 " +
+                    "END " +
+                    "WHERE IS_ACTIVE <> ( " +
+                    "    CASE " +
+                    "        WHEN EFFECTIVE_DATE <= SYSDATE AND (END_EFFECTIVE_DATE IS NULL OR END_EFFECTIVE_DATE >= SYSDATE) THEN 1 "
+                    +
+                    "        ELSE 0 " +
+                    "    END " +
+                    ")";
+            int compUpdated = jdbcTemplate.update(sqlComp);
 
-            // Vô hiệu hóa = 0
-            String sqlCompInactive = 
-                "UPDATE PMH_COMPONENTS " +
-                "SET IS_ACTIVE = 0 " +
-                "WHERE (EFFECTIVE_DATE > SYSDATE OR (END_EFFECTIVE_DATE IS NOT NULL AND END_EFFECTIVE_DATE < SYSDATE)) " +
-                "  AND IS_ACTIVE = 1";
-            int compDeactivated = jdbcTemplate.update(sqlCompInactive);
-
-            if (catActivated > 0 || catDeactivated > 0 || compActivated > 0 || compDeactivated > 0) {
-                log.info("[ActiveStatusScheduler] Updated IS_ACTIVE. Categories: +{} / -{}, Components: +{} / -{}",
-                        catActivated, catDeactivated, compActivated, compDeactivated);
+            if (catUpdated > 0 || compUpdated > 0) {
+                log.info("[ActiveStatusScheduler] Updated IS_ACTIVE. Categories updated: {}, Components updated: {}",
+                        catUpdated, compUpdated);
             }
         } catch (Exception e) {
             log.error("[ActiveStatusScheduler] Error updating active status: {}", e.getMessage(), e);

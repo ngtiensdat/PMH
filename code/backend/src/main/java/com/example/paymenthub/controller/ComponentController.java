@@ -3,6 +3,7 @@ package com.example.paymenthub.controller;
 import com.example.paymenthub.common.base.ApiResponse;
 import com.example.paymenthub.common.base.BaseController;
 import com.example.paymenthub.dto.request.ComponentDTO;
+import com.example.paymenthub.dto.request.ComponentSearchCriteria;
 import com.example.paymenthub.dto.response.ComponentResponseDTO;
 import com.example.paymenthub.entity.ProcessingComponent;
 import com.example.paymenthub.service.ComponentService;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.web.PageableDefault;
 
 import java.util.List;
 import java.util.Map;
@@ -33,28 +35,14 @@ public class ComponentController extends BaseController {
 
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<Page<ComponentResponseDTO>>> search(
-            @RequestParam(required = false) String componentCode,
-            @RequestParam(required = false) String componentName,
-            @RequestParam(required = false) String messageType,
-            @RequestParam(required = false) String connectionMethod,
-            @RequestParam(required = false) List<Integer> status,
-            @RequestParam(required = false) List<Integer> isActive,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "updatedDate,desc") String sort
+            ComponentSearchCriteria criteria,
+            @PageableDefault(page = 0, size = 10, sort = "updatedDate", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        String[] sortParts = sort.split(",");
-        String sortField = sortParts[0];
-        Sort.Direction direction = (sortParts.length > 1 && "asc".equalsIgnoreCase(sortParts[1]))
-                ? Sort.Direction.ASC : Sort.Direction.DESC;
-
         // Thêm trường sắp xếp phụ theo COMPONENT_CODE để đảm bảo phân trang ổn định (stable sorting) khi các cột chính trùng giá trị
-        Pageable pageable = PageRequest.of(page, size, 
-                Sort.by(direction, sortField)
-                    .and(Sort.by(Sort.Direction.DESC, "componentCode"))
+        Pageable pageableWithFallback = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), 
+                pageable.getSort().and(Sort.by(Sort.Direction.DESC, "componentCode"))
         );
-        Page<ProcessingComponent> result = service.search(
-                componentCode, componentName, messageType, connectionMethod, status, isActive, pageable);
+        Page<ProcessingComponent> result = service.search(criteria, pageableWithFallback);
         Page<ComponentResponseDTO> dtoResult = result.map(ComponentResponseDTO::fromEntity);
         return ok(dtoResult, "Lấy danh sách cấu phần thành công");
     }

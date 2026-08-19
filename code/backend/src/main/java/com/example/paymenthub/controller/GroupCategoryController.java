@@ -3,6 +3,7 @@ package com.example.paymenthub.controller;
 import com.example.paymenthub.common.base.ApiResponse;
 import com.example.paymenthub.common.base.BaseController;
 import com.example.paymenthub.dto.request.GroupCategoryDTO;
+import com.example.paymenthub.dto.request.GroupCategorySearchCriteria;
 import com.example.paymenthub.dto.response.GroupCategoryResponseDTO;
 import com.example.paymenthub.entity.GroupCategory;
 import com.example.paymenthub.service.GroupCategoryService;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -35,28 +37,14 @@ public class GroupCategoryController extends BaseController {
      */
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<Page<GroupCategoryResponseDTO>>> search(
-            @RequestParam(required = false) String paramType,
-            @RequestParam(required = false) String paramValue,
-            @RequestParam(required = false) String paramName,
-            @RequestParam(required = false) List<Integer> status,
-            @RequestParam(required = false) List<Integer> isActive,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "updatedDate,desc") String sort
+            GroupCategorySearchCriteria criteria,
+            @PageableDefault(page = 0, size = 10, sort = "updatedDate", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        String[] sortParts = sort.split(",");
-        String sortField = sortParts[0];
-        Sort.Direction sortDirection = Sort.Direction.DESC;
-        if (sortParts.length > 1 && "asc".equalsIgnoreCase(sortParts[1])) {
-            sortDirection = Sort.Direction.ASC;
-        }
-
         // Thêm trường sắp xếp phụ theo ID để đảm bảo phân trang ổn định (stable sorting) khi các cột chính trùng giá trị
-        Pageable pageable = PageRequest.of(page, size, 
-                Sort.by(sortDirection, sortField)
-                    .and(Sort.by(Sort.Direction.DESC, "id"))
+        Pageable pageableWithFallback = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), 
+                pageable.getSort().and(Sort.by(Sort.Direction.DESC, "id"))
         );
-        Page<GroupCategory> result = service.search(paramType, paramValue, paramName, status, isActive, pageable);
+        Page<GroupCategory> result = service.search(criteria, pageableWithFallback);
         Page<GroupCategoryResponseDTO> dtoResult = result.map(GroupCategoryResponseDTO::fromEntity);
         return ok(dtoResult, "Lấy danh sách tham số thành công");
     }
