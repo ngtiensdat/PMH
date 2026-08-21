@@ -4,18 +4,22 @@ import com.example.paymenthub.common.base.ApiResponse;
 import com.example.paymenthub.common.base.BaseController;
 import com.example.paymenthub.dto.request.ComponentDTO;
 import com.example.paymenthub.dto.request.ComponentSearchCriteria;
+import com.example.paymenthub.dto.response.BatchItemResultDTO;
 import com.example.paymenthub.dto.response.ComponentResponseDTO;
 import com.example.paymenthub.entity.ProcessingComponent;
+import com.example.paymenthub.security.SecurityUtils;
 import com.example.paymenthub.service.ComponentService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.data.web.PageableDefault;
 
 import java.util.List;
 import java.util.Map;
@@ -23,23 +27,18 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/components")
+@RequiredArgsConstructor
 public class ComponentController extends BaseController {
 
     private final ComponentService service;
 
-    public ComponentController(ComponentService service) {
-        this.service = service;
-    }
-
-    // ─── DẠNG 1: JPA & JPA SPECIFICATION ──────────────────────────────────────
-
     @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('MAKER', 'CHECKER')")
     public ResponseEntity<ApiResponse<Page<ComponentResponseDTO>>> search(
-            ComponentSearchCriteria criteria,
+            @Valid @ModelAttribute ComponentSearchCriteria criteria,
             @PageableDefault(page = 0, size = 10, sort = "updatedDate", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        // Thêm trường sắp xếp phụ theo COMPONENT_CODE để đảm bảo phân trang ổn định (stable sorting) khi các cột chính trùng giá trị
-        Pageable pageableWithFallback = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), 
+        Pageable pageableWithFallback = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
                 pageable.getSort().and(Sort.by(Sort.Direction.DESC, "componentCode"))
         );
         Page<ProcessingComponent> result = service.search(criteria, pageableWithFallback);
@@ -48,15 +47,14 @@ public class ComponentController extends BaseController {
     }
 
     @GetMapping("/{code}")
+    @PreAuthorize("hasAnyRole('MAKER', 'CHECKER')")
     public ResponseEntity<ApiResponse<ComponentResponseDTO>> getByCode(@PathVariable String code) {
         ProcessingComponent entity = service.getByCode(code);
         return ok(ComponentResponseDTO.fromEntity(entity), "Lấy chi tiết cấu phần thành công");
     }
 
-    /**
-     * Lấy danh sách cấu phần đang hoạt động cho dropdown tại màn Danh mục theo nhóm
-     */
     @GetMapping("/active-list")
+    @PreAuthorize("hasAnyRole('MAKER', 'CHECKER')")
     public ResponseEntity<ApiResponse<List<ComponentResponseDTO>>> getActiveList(
             @RequestParam(value = "status", required = false) Integer status
     ) {
@@ -68,91 +66,69 @@ public class ComponentController extends BaseController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<ComponentResponseDTO>> create(
-            @Valid @RequestBody ComponentDTO dto,
-            @RequestHeader(value = "X-Username", required = false) String username
-    ) {
-        validateUsername(username);
+    @PreAuthorize("hasRole('MAKER')")
+    public ResponseEntity<ApiResponse<ComponentResponseDTO>> create(@Valid @RequestBody ComponentDTO dto) {
+        String username = SecurityUtils.getCurrentUsername();
         ProcessingComponent created = service.create(dto, username);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(ComponentResponseDTO.fromEntity(created), "Tạo mới cấu phần thành công"));
     }
 
     @PutMapping("/{code}")
+    @PreAuthorize("hasRole('MAKER')")
     public ResponseEntity<ApiResponse<ComponentResponseDTO>> update(
             @PathVariable String code,
-            @Valid @RequestBody ComponentDTO dto,
-            @RequestHeader(value = "X-Username", required = false) String username
+            @Valid @RequestBody ComponentDTO dto
     ) {
-        validateUsername(username);
+        String username = SecurityUtils.getCurrentUsername();
         ProcessingComponent updated = service.update(code, dto, username);
         return ok(ComponentResponseDTO.fromEntity(updated), "Cập nhật cấu phần thành công");
     }
 
     @DeleteMapping("/{code}")
-    public ResponseEntity<Void> delete(
-            @PathVariable String code,
-            @RequestHeader(value = "X-Username", required = false) String username
-    ) {
-        validateUsername(username);
+    @PreAuthorize("hasRole('MAKER')")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable String code) {
+        String username = SecurityUtils.getCurrentUsername();
         service.delete(code, username);
-        return ResponseEntity.noContent().build();
+        return ok(null, "Xóa cấu phần thành công");
     }
 
     @PostMapping("/{code}/send-approval")
-    public ResponseEntity<ApiResponse<ComponentResponseDTO>> sendApproval(
-            @PathVariable String code,
-            @RequestHeader(value = "X-Username", required = false) String username
-    ) {
-        validateUsername(username);
+    @PreAuthorize("hasRole('MAKER')")
+    public ResponseEntity<ApiResponse<ComponentResponseDTO>> sendApproval(@PathVariable String code) {
+        String username = SecurityUtils.getCurrentUsername();
         ProcessingComponent updated = service.sendForApproval(code, username);
         return ok(ComponentResponseDTO.fromEntity(updated), "Gửi duyệt cấu phần thành công");
     }
 
-    /**
-     * Hủy duyệt bằng JPA
-     */
     @PostMapping("/{code}/cancel-approval")
-    public ResponseEntity<ApiResponse<ComponentResponseDTO>> cancelApproval(
-            @PathVariable String code,
-            @RequestHeader(value = "X-Username", required = false) String username
-    ) {
-        validateUsername(username);
+    @PreAuthorize("hasRole('MAKER')")
+    public ResponseEntity<ApiResponse<ComponentResponseDTO>> cancelApproval(@PathVariable String code) {
+        String username = SecurityUtils.getCurrentUsername();
         ProcessingComponent updated = service.cancelApproval(code, username);
         return ok(ComponentResponseDTO.fromEntity(updated), "Hủy duyệt cấu phần thành công");
     }
 
-    // ─── DẠNG 2: NATIVE QUERY ──────────────────────────────────────────────────
-
     @GetMapping("/export")
+    @PreAuthorize("hasAnyRole('MAKER', 'CHECKER')")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> exportData() {
         return ok(service.getRawDataForExport(), "Xuất dữ liệu thành công");
     }
 
-    // ─── DẠNG 3: STORED PROCEDURE ──────────────────────────────────────────────
-
     @PostMapping("/batch-approve")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> batchApprove(
-            @RequestBody List<String> codes,
-            @RequestHeader(value = "X-Username", required = false) String username
-    ) {
-        validateUsername(username);
+    @PreAuthorize("hasRole('CHECKER')")
+    public ResponseEntity<ApiResponse<List<BatchItemResultDTO>>> batchApprove(@RequestBody List<String> codes) {
+        String username = SecurityUtils.getCurrentUsername();
         return ok(service.batchApprove(codes, username), "Phê duyệt hàng loạt thành công");
     }
 
     @PostMapping("/batch-reject")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> batchReject(
+    @PreAuthorize("hasRole('CHECKER')")
+    public ResponseEntity<ApiResponse<List<BatchItemResultDTO>>> batchReject(
             @RequestBody List<String> codes,
-            @RequestParam(required = false) String reason,
-            @RequestHeader(value = "X-Username", required = false) String username
+            @RequestParam(required = false) String reason
     ) {
-        validateUsername(username);
+        String username = SecurityUtils.getCurrentUsername();
         return ok(service.batchReject(codes, reason, username), "Từ chối/Hủy duyệt hàng loạt thành công");
-    }
-
-    private void validateUsername(String username) {
-        if (username == null || username.trim().isEmpty()) {
-            throw new com.example.paymenthub.common.exception.UnauthorizedAccessException("Yêu cầu cần có Header X-Username!");
-        }
     }
 }

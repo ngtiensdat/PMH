@@ -9,6 +9,7 @@ import { ComponentSchema, zodFormValidator, zodFieldValidator } from '../../../.
 import { ParamStatus, ActiveStatus, DisplayStatus, FormMode } from '../../../../shared/enums/status.enum';
 import { ProcessingComponentResponse, ProcessingComponentRequest } from '../../../../shared/models/component.model';
 import { LanguageService } from '../../../../core/services/language.service';
+import { HttpErrorResponse } from '@angular/common/http';
 import { TUI_INPUT_DATE_TIME_OPTIONS, tuiInputDateTimeOptionsProvider } from '@taiga-ui/kit';
 import { DateTimeTransformer } from '../../../../shared/utils/datetime-transformer';
 
@@ -116,8 +117,10 @@ export class ComponentDialogComponent implements OnInit {
           this.component = res.data;
           this.populateForm();
         },
-        error: (err: any) => {
-          this.notificationService.error('Không thể nạp dữ liệu cấu phần: ' + (err.error?.message || err.message));
+        error: (err: HttpErrorResponse) => {
+          if (err.status !== 401 && err.status !== 403) {
+            this.notificationService.error('Không thể nạp dữ liệu cấu phần: ' + (err.error?.message || err.message));
+          }
           this.goBack();
         }
       });
@@ -132,7 +135,6 @@ export class ComponentDialogComponent implements OnInit {
         connectionMethod: [[], zodFieldValidator(ComponentSchema, 'connectionMethod')],
         checkToken: [false, zodFieldValidator(ComponentSchema, 'checkToken')],
         description: ['', zodFieldValidator(ComponentSchema, 'description')],
-        isActive: [1, zodFieldValidator(ComponentSchema, 'isActive')],
         effectiveDate: ['', zodFieldValidator(ComponentSchema, 'effectiveDate')],
         endEffectiveDate: ['', zodFieldValidator(ComponentSchema, 'endEffectiveDate')]
       },
@@ -140,59 +142,70 @@ export class ComponentDialogComponent implements OnInit {
     );
   }
 
+  get parsedNewData(): Record<string, any> | null {
+    if (!this.component?.newData) return null;
+    try {
+      return typeof this.component.newData === 'string' ? JSON.parse(this.component.newData) : this.component.newData;
+    } catch { return null; }
+  }
+
   private populateForm() {
     if (!this.component) return;
+    const draft = this.parsedNewData;
+    const dataToPopulate = draft ? { ...this.component, ...draft } : this.component;
+
     this.dialogForm.patchValue({
-      componentCode: this.component.componentCode,
-      componentName: this.component.componentName,
-      messageType: this.component.messageType ? this.component.messageType.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
-      connectionMethod: this.component.connectionMethod ? this.component.connectionMethod.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
-      checkToken: this.component.checkToken === 'Y',
-      description: this.component.description || '',
-      isActive: this.component.isActive ?? 1,
-      effectiveDate: this.mode === 'copy' ? '' : this.component.effectiveDate,
-      endEffectiveDate: this.mode === 'copy' ? '' : this.component.endEffectiveDate
+      componentCode: dataToPopulate.componentCode,
+      componentName: dataToPopulate.componentName,
+      messageType: dataToPopulate.messageType ? String(dataToPopulate.messageType).split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+      connectionMethod: dataToPopulate.connectionMethod ? String(dataToPopulate.connectionMethod).split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+      checkToken: dataToPopulate.checkToken === 'Y',
+      description: dataToPopulate.description || '',
+      effectiveDate: this.mode === 'copy' ? '' : dataToPopulate.effectiveDate,
+      endEffectiveDate: this.mode === 'copy' ? '' : dataToPopulate.endEffectiveDate
     });
 
     if (this.mode === 'edit') {
       this.dialogForm.get('componentCode')?.disable();
-      if (this.component.isDisplay === DisplayStatus.ONCE_APPROVED) {
-        this.dialogForm.get('effectiveDate')?.disable();
-      }
     }
   }
 
   hasFormChanged(): boolean {
     if (!this.component) return true;
     const formValue = this.dialogForm.getRawValue();
+    const base = this.component;
 
     const normalizeDate = (val: any) => {
       if (!val) return '';
       const d = new Date(val);
-      return isNaN(d.getTime()) ? '' : d.toISOString();
+      if (isNaN(d.getTime())) return '';
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
     };
 
-    const fields = ['componentName', 'description', 'isActive'];
+    const fields = ['componentName', 'description'];
     for (const f of fields) {
-      const orig = (this.component as any)[f] != null ? String((this.component as any)[f]).trim() : '';
+      const orig = (base as any)[f] != null ? String((base as any)[f]).trim() : '';
       const curr = formValue[f] != null ? String(formValue[f]).trim() : '';
       if (orig !== curr) return true;
     }
 
-    const origMessageType = (this.component.messageType || '').split(',').map((s: string) => s.trim()).filter(Boolean).sort().join(', ');
+    const origMessageType = String(base.messageType || '').split(',').map((s: string) => s.trim()).filter(Boolean).sort().join(', ');
     const currMessageType = (formValue.messageType || []).map((s: string) => s.trim()).filter(Boolean).sort().join(', ');
     if (origMessageType !== currMessageType) return true;
 
-    const origConnectionMethod = (this.component.connectionMethod || '').split(',').map((s: string) => s.trim()).filter(Boolean).sort().join(', ');
+    const origConnectionMethod = String(base.connectionMethod || '').split(',').map((s: string) => s.trim()).filter(Boolean).sort().join(', ');
     const currConnectionMethod = (formValue.connectionMethod || []).map((s: string) => s.trim()).filter(Boolean).sort().join(', ');
     if (origConnectionMethod !== currConnectionMethod) return true;
 
-    const origCheck = this.component.checkToken === 'Y';
+    const origCheck = base.checkToken === 'Y';
     const currCheck = !!formValue.checkToken;
     if (origCheck !== currCheck) return true;
 
-    if (normalizeDate(this.component.effectiveDate) !== normalizeDate(formValue.effectiveDate)) return true;
-    if (normalizeDate(this.component.endEffectiveDate) !== normalizeDate(formValue.endEffectiveDate)) return true;
+    if (normalizeDate(base.effectiveDate) !== normalizeDate(formValue.effectiveDate)) return true;
+    if (normalizeDate(base.endEffectiveDate) !== normalizeDate(formValue.endEffectiveDate)) return true;
 
     return false;
   }

@@ -115,21 +115,6 @@
           {{ getFieldError('endEffectiveDate') || getFormError('endEffectiveDate') }}
         </span>
       </div>
-
-      <!-- Trạng thái hoạt động (Chỉ xuất hiện ở màn hình Sửa, chiếm 25% / span 1) -->
-      <div class="input-container" *ngIf="mode === 'edit'" style="grid-column: span 1;">
-        <tui-textfield tuiChevron [stringify]="stringifyActive">
-          <label tuiLabel>{{ languageService.labels().category.activeStatus }} <span class="tui-required">*</span></label>
-          <input tuiSelect formControlName="isActive" />
-          <tui-data-list-wrapper *tuiDropdown [items]="activeCodes" />
-        </tui-textfield>
-        <span *ngIf="getFieldError('isActive')" class="error-message">
-          {{ getFieldError('isActive') }}
-        </span>
-      </div>
-
-      <!-- Ô trống giữ nhịp cho Grid 4 cột khi Sửa -->
-      <div *ngIf="mode === 'edit'" style="grid-column: span 1;"></div>
     </div>
 
     <!-- Hàng 3: Mô tả chiếm trọn chiều rộng -->

@@ -22,6 +22,7 @@ public class GroupCategoryResponseDTO {
     private String newData;
     private LocalDateTime effectiveDate;
     private LocalDateTime endEffectiveDate;
+    private Long version;
     private String createdBy;
     private LocalDateTime createdDate;
     private String updatedBy;
@@ -42,6 +43,7 @@ public class GroupCategoryResponseDTO {
                 .newData(entity.getNewData())
                 .effectiveDate(entity.getEffectiveDate())
                 .endEffectiveDate(entity.getEndEffectiveDate())
+                .version(entity.getVersion())
                 .createdBy(entity.getCreatedBy())
                 .createdDate(entity.getCreatedDate())
                 .updatedBy(entity.getUpdatedBy())

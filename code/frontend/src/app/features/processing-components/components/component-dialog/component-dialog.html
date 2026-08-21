@@ -116,21 +116,6 @@
           {{ languageService.labels().components.checkToken }}
         </label>
       </div>
-
-      <!-- Cột 2: Trạng thái hoạt động (25% / 1fr - Chỉ xuất hiện ở chế độ Sửa) -->
-      <div class="input-container" *ngIf="mode === 'edit'">
-        <tui-textfield tuiChevron [stringify]="stringifyActive">
-          <label tuiLabel>{{ languageService.labels().components.activeStatus }} <span class="tui-required">*</span></label>
-          <input tuiSelect formControlName="isActive" />
-          <tui-data-list-wrapper *tuiDropdown [items]="activeCodes" />
-        </tui-textfield>
-        <span *ngIf="getFieldError('isActive')" class="error-message">
-          {{ getFieldError('isActive') }}
-        </span>
-      </div>
-
-      <!-- Cột 3: Để trống giữ nhịp cho Grid khi Sửa (25% / 1fr) -->
-      <div *ngIf="mode === 'edit'"></div>
     </div>
 
     <!-- Hàng 4: Mô tả chiếm trọn chiều rộng (Tùy chọn, không bắt buộc) -->

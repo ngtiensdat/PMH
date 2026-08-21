@@ -37,6 +37,39 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(MakerCheckerConflictException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMakerCheckerConflictException(MakerCheckerConflictException ex) {
+        ApiResponse<Object> response = ApiResponse.builder()
+                .success(false)
+                .message(ex.getMessage())
+                .data(null)
+                .timestamp(LocalDateTime.now())
+                .build();
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(InvalidStateTransitionException.class)
+    public ResponseEntity<ApiResponse<Object>> handleInvalidStateTransitionException(InvalidStateTransitionException ex) {
+        ApiResponse<Object> response = ApiResponse.builder()
+                .success(false)
+                .message(ex.getMessage())
+                .data(null)
+                .timestamp(LocalDateTime.now())
+                .build();
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(BusinessRuleException.class)
+    public ResponseEntity<ApiResponse<Object>> handleBusinessRuleException(BusinessRuleException ex) {
+        ApiResponse<Object> response = ApiResponse.builder()
+                .success(false)
+                .message(ex.getMessage())
+                .data(null)
+                .timestamp(LocalDateTime.now())
+                .build();
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(CustomBusinessException.class)
     public ResponseEntity<ApiResponse<Object>> handleCustomBusinessException(CustomBusinessException ex) {
         Map<String, Object> errorDetails = new HashMap<>();
@@ -170,6 +203,28 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .build();
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(org.springframework.security.access.AccessDeniedException ex) {
+        ApiResponse<Object> response = ApiResponse.builder()
+                .success(false)
+                .message("Tài khoản của bạn không có quyền truy cập hoặc thực hiện thao tác này!")
+                .data(null)
+                .timestamp(LocalDateTime.now())
+                .build();
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAuthenticationException(org.springframework.security.core.AuthenticationException ex) {
+        ApiResponse<Object> response = ApiResponse.builder()
+                .success(false)
+                .message("Tên đăng nhập hoặc mật khẩu không chính xác!")
+                .data(null)
+                .timestamp(LocalDateTime.now())
+                .build();
+        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(Exception.class)

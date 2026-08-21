@@ -31,35 +31,17 @@
       }
     </div>
 
-    <!-- User Profile (Hỗ trợ click để đổi tên động không fix cứng) -->
-    <div class="user-profile-wrapper" style="position: relative;">
-      <div class="user-profile clickable" (click)="toggleUserDropdown()" title="Click để đổi vai trò giả lập">
+    <!-- User Profile -->
+    <div *ngIf="authService.currentUser()" class="user-profile-wrapper">
+      <div class="user-profile">
         <div class="user-avatar">
-          <span class="avatar-placeholder">{{ languageService.avatarText() }}</span>
+          <span class="avatar-placeholder">{{ authService.currentUser()?.username?.substring(0, 2) }}</span>
         </div>
         <div class="user-info">
-          <span class="user-name">{{ languageService.userName() }}</span>
-          <span class="user-role-label">{{ languageService.userRole() }}</span>
-        </div>
-        <span class="edit-profile-icon">
-          <tui-icon icon="@tui.wifi-high"></tui-icon>
-        </span>
-      </div>
-      @if (isUserDropdownOpen()) {
-      <div class="user-popover">
-        <div class="user-popover-header">Chọn vai trò</div>
-        <div class="user-popover-item" [class.active]="languageService.userCode() === 'USER01'"
-          (click)="selectUser('Hoàng Văn Tạo', 'Chuyên viên (Maker)', 'USER01')">
-          <div class="popover-name">Hoàng Văn Tạo</div>
-          <div class="popover-role">Maker - Chuyên viên</div>
-        </div>
-        <div class="user-popover-item" [class.active]="languageService.userCode() === 'APPROVER'"
-          (click)="selectUser('Nguyễn Văn Duyệt', 'Kiểm soát viên (Checker)', 'APPROVER')">
-          <div class="popover-name">Nguyễn Văn Duyệt</div>
-          <div class="popover-role">Checker - Kiểm soát</div>
+          <span class="user-name">{{ authService.currentUser()?.fullName }}</span>
+          <span class="user-role-label">{{ authService.currentUser()?.role === 'MAKER' ? 'Chuyên viên (Maker)' : 'Kiểm soát viên (Checker)' }}</span>
         </div>
       </div>
-      }
     </div>
   </div>
 </header>

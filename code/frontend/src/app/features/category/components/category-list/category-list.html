@@ -8,7 +8,7 @@
     </div>
     <div class="title-action-row">
       <h1 class="page-title">{{ languageService.labels().category.title }}</h1>
-      <button *ngIf="languageService.userCode() === 'USER01'" tuiButton type="button" class="btn-primary-pmh"
+      <button *ngIf="languageService.isMaker()" tuiButton type="button" class="btn-primary-pmh"
         (click)="openAddDialog()">
         + {{ languageService.labels().common.addNew }}
       </button>
@@ -81,12 +81,12 @@
         <span class="grid-count-badge">{{ totalElements() }}</span>
       </div>
       <div class="grid-actions">
-        <button *ngIf="languageService.userCode() === 'APPROVER'" tuiButton appearance="secondary" type="button"
+        <button *ngIf="languageService.isChecker()" tuiButton appearance="secondary" type="button"
           (click)="onBatchApprove()" [disabled]="selectedIds().length === 0" class="btn-approve-secondary"
           iconStart="@tui.check">
           {{ languageService.labels().common.batchApprove }}
         </button>
-        <button *ngIf="languageService.userCode() === 'APPROVER'" tuiButton appearance="secondary" type="button"
+        <button *ngIf="languageService.isChecker()" tuiButton appearance="secondary" type="button"
           (click)="onBatchReject()" [disabled]="selectedIds().length === 0" class="btn-reject-secondary"
           iconStart="@tui.x">
           {{ languageService.labels().common.batchReject }}
@@ -233,19 +233,14 @@
 
                   <!-- Status -->
                   <ng-container *ngSwitchCase="'status'">
-                    <span class="dot-badge"
-                      [ngClass]="item.status === ParamStatus.REJECTED && item.isDisplay === DisplayStatus.ONCE_APPROVED ? 'badge-canceled' : statusMap[item.status]?.css">
+                    <span class="dot-badge" [ngClass]="statusMap[item.status]?.css">
                       <span class="dot" *ngIf="item.status !== ParamStatus.APPROVED"></span>
                       <span class="check-icon" *ngIf="item.status === ParamStatus.APPROVED">
                         <tui-icon icon="@tui.check"
                           style="--tui-icon-size: 12px; display: inline-block; vertical-align: middle;"></tui-icon>
                       </span>
                       <span class="label">
-                        {{
-                        item.status === ParamStatus.REJECTED && item.isDisplay === DisplayStatus.ONCE_APPROVED
-                        ? '7 - Hủy duyệt'
-                        : (languageService.labels().common.status[statusMap[item.status]?.labelKey || 'new'])
-                        }}
+                        {{ languageService.labels().common.status[statusMap[item.status]?.labelKey || 'new'] }}
                       </span>
                     </span>
                   </ng-container>
@@ -269,19 +264,19 @@
                         <tui-icon icon="@tui.eye" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
 
-                      <!-- Slot 2: Edit or Cancel Approval (Maker only, occupying the same slot) -->
-                      <button *ngIf="languageService.userCode() === 'USER01'"
+                      <!-- Slot 2: Edit or Cancel Approval (Maker only) -->
+                      <button *ngIf="languageService.isMaker()"
                         (click)="item.status === ParamStatus.APPROVED ? onCancelApproval(item.id) : openEditDialog(item)"
                         class="action-btn" [disabled]="isLoading()" [class.edit]="item.status !== ParamStatus.APPROVED"
                         [class.cancel-approve]="item.status === ParamStatus.APPROVED"
-                        [class.invisible]="item.status !== ParamStatus.NEW && item.status !== ParamStatus.REJECTED && item.status !== ParamStatus.CANCELED && item.status !== ParamStatus.APPROVED"
+                        [class.invisible]="item.status === ParamStatus.PENDING"
                         [title]="item.status === ParamStatus.APPROVED ? 'Hủy duyệt' : languageService.labels().common.edit">
                         <tui-icon [icon]="item.status === ParamStatus.APPROVED ? '@tui.ban' : '@tui.pencil'"
                           style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
 
                       <!-- Slot 3: Copy (Maker only) -->
-                      <button *ngIf="languageService.userCode() === 'USER01'" (click)="openCopyDialog(item)"
+                      <button *ngIf="languageService.isMaker()" (click)="openCopyDialog(item)"
                         class="action-btn copy" [disabled]="isLoading()" [title]="languageService.labels().common.copy">
                         <tui-icon icon="@tui.copy" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
@@ -292,18 +287,18 @@
                         <tui-icon icon="@tui.history" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
 
-                      <!-- Slot 5: Delete (Maker only, occupies space when invisible) -->
-                      <button *ngIf="languageService.userCode() === 'USER01'" (click)="onDelete(item.id)"
+                      <!-- Slot 5: Delete (Maker only, invisible when isDisplay !== 1 or status is PENDING) -->
+                      <button *ngIf="languageService.isMaker()" (click)="onDelete(item.id)"
                         class="action-btn delete" [disabled]="isLoading()"
-                        [title]="languageService.labels().common.delete" [class.invisible]="item.isDisplay !== 1">
+                        [title]="languageService.labels().common.delete" [class.invisible]="item.isDisplay !== 1 || item.status === ParamStatus.PENDING">
                         <tui-icon icon="@tui.trash" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
 
-                      <!-- Slot 6: Send Approval (Maker only, occupies space when invisible) -->
-                      <button *ngIf="viewMode() === 'jpa' && languageService.userCode() === 'USER01'"
+                      <!-- Slot 6: Send Approval (Maker only, invisible when not in submittable status or when once-approved with no newData) -->
+                      <button *ngIf="viewMode() === 'jpa' && languageService.isMaker()"
                         (click)="onSendApproval(item.id)" class="action-btn approve" [disabled]="isLoading()"
                         [title]="languageService.labels().common.sendApproval"
-                        [class.invisible]="item.status !== 1 && item.status !== 5 && item.status !== 7">
+                        [class.invisible]="(item.status !== 1 && item.status !== 5 && item.status !== 7) || (item.isDisplay === 2 && (!item.newData || item.newData === ''))">
                         <tui-icon icon="@tui.send" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
                     </div>

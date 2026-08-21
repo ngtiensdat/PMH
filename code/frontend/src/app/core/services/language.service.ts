@@ -16,7 +16,19 @@ export class LanguageService {
   // Tên người dùng, vai trò và mã người dùng đọc động từ localStorage
   userName = signal<string>(localStorage.getItem('app_username') || '');
   userRole = signal<string>(localStorage.getItem('app_userrole') || '');
-  userCode = signal<string>(localStorage.getItem('app_usercode') || 'USER01');
+  userCode = signal<string>(localStorage.getItem('app_usercode') || 'make');
+
+  isMaker = computed(() => {
+    const role = this.userRole();
+    const code = (this.userCode() || '').toUpperCase();
+    return role === 'MAKER' || code === 'MAKE' || code === 'USER01';
+  });
+
+  isChecker = computed(() => {
+    const role = this.userRole();
+    const code = (this.userCode() || '').toUpperCase();
+    return role === 'CHECKER' || code === 'CHECK' || code === 'APPROVER' || code === 'ADMIN';
+  });
 
   avatarText = computed(() => {
     const name = this.userName() || this.labels().navigation.user.name;
@@ -37,7 +49,7 @@ export class LanguageService {
       this.userRole.set(this.labels().navigation.user.role);
     }
     if (!localStorage.getItem('app_usercode')) {
-      localStorage.setItem('app_usercode', 'USER01');
+      localStorage.setItem('app_usercode', 'make');
     }
   }
 

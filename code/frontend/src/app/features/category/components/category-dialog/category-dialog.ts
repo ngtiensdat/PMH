@@ -113,7 +113,9 @@ export class CategoryDialogComponent implements OnInit {
           this.populateForm();
         },
         error: (err: HttpErrorResponse) => {
-          this.notificationService.error('Không thể nạp dữ liệu tham số: ' + (err.error?.message || err.message));
+          if (err.status !== 401 && err.status !== 403) {
+            this.notificationService.error('Không thể nạp dữ liệu tham số: ' + (err.error?.message || err.message));
+          }
           this.goBack();
         }
       });
@@ -148,7 +150,6 @@ export class CategoryDialogComponent implements OnInit {
         paramName: ['', zodFieldValidator(CategorySchema, 'paramName')],
         description: ['', zodFieldValidator(CategorySchema, 'description')],
         componentCode: [[], zodFieldValidator(CategorySchema, 'componentCode')],
-        isActive: [1, zodFieldValidator(CategorySchema, 'isActive')],
         effectiveDate: ['', zodFieldValidator(CategorySchema, 'effectiveDate')],
         endEffectiveDate: ['', zodFieldValidator(CategorySchema, 'endEffectiveDate')]
       },
@@ -156,51 +157,62 @@ export class CategoryDialogComponent implements OnInit {
     );
   }
 
+  get parsedNewData(): Record<string, any> | null {
+    if (!this.category?.newData) return null;
+    try {
+      return typeof this.category.newData === 'string' ? JSON.parse(this.category.newData) : this.category.newData;
+    } catch { return null; }
+  }
+
   private populateForm() {
     if (!this.category) return;
+    const draft = this.parsedNewData;
+    const dataToPopulate = draft ? { ...this.category, ...draft } : this.category;
+
     this.dialogForm.patchValue({
-      paramType: this.category.paramType,
-      paramValue: this.category.paramValue,
-      paramName: this.category.paramName,
-      description: this.category.description,
-      componentCode: this.category.componentCode ? this.category.componentCode.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
-      isActive: this.category.isActive,
-      effectiveDate: this.mode === 'copy' ? '' : this.category.effectiveDate,
-      endEffectiveDate: this.mode === 'copy' ? '' : this.category.endEffectiveDate
+      paramType: dataToPopulate.paramType,
+      paramValue: dataToPopulate.paramValue,
+      paramName: dataToPopulate.paramName,
+      description: dataToPopulate.description,
+      componentCode: dataToPopulate.componentCode ? String(dataToPopulate.componentCode).split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+      effectiveDate: this.mode === 'copy' ? '' : dataToPopulate.effectiveDate,
+      endEffectiveDate: this.mode === 'copy' ? '' : dataToPopulate.endEffectiveDate
     });
 
     if (this.mode === 'edit') {
       this.dialogForm.get('paramType')?.disable();
       this.dialogForm.get('paramValue')?.disable();
-      if (this.category.isDisplay === DisplayStatus.ONCE_APPROVED) {
-        this.dialogForm.get('effectiveDate')?.disable();
-      }
     }
   }
 
   hasFormChanged(): boolean {
     if (!this.category) return true;
     const formValue = this.dialogForm.getRawValue();
+    const base = this.category;
 
     const normalizeDate = (val: string | number | Date | null | undefined) => {
       if (!val) return '';
       const d = new Date(val);
-      return isNaN(d.getTime()) ? '' : d.toISOString();
+      if (isNaN(d.getTime())) return '';
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
     };
 
-    const fields: (keyof GroupCategoryResponse)[] = ['paramName', 'description', 'isActive'];
+    const fields: (keyof GroupCategoryResponse)[] = ['paramName', 'description'];
     for (const f of fields) {
-      const orig = this.category[f] != null ? String(this.category[f]).trim() : '';
+      const orig = (base as any)[f] != null ? String((base as any)[f]).trim() : '';
       const curr = formValue[f] != null ? String(formValue[f]).trim() : '';
       if (orig !== curr) return true;
     }
 
-    const origComponentCode = (this.category.componentCode || '').split(',').map((s: string) => s.trim()).filter(Boolean).sort().join(', ');
+    const origComponentCode = String(base.componentCode || '').split(',').map((s: string) => s.trim()).filter(Boolean).sort().join(', ');
     const currComponentCode = (formValue.componentCode || []).map((s: string) => s.trim()).filter(Boolean).sort().join(', ');
     if (origComponentCode !== currComponentCode) return true;
 
-    if (normalizeDate(this.category.effectiveDate) !== normalizeDate(formValue.effectiveDate)) return true;
-    if (normalizeDate(this.category.endEffectiveDate) !== normalizeDate(formValue.endEffectiveDate)) return true;
+    if (normalizeDate(base.effectiveDate) !== normalizeDate(formValue.effectiveDate)) return true;
+    if (normalizeDate(base.endEffectiveDate) !== normalizeDate(formValue.endEffectiveDate)) return true;
 
     return false;
   }

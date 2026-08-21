@@ -5,16 +5,20 @@ import com.example.paymenthub.dto.response.AuditLogDTO;
 import com.example.paymenthub.entity.AuditLog;
 import com.example.paymenthub.repository.AuditLogRepository;
 import com.example.paymenthub.service.AuditLogService;
+import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.LocalDateTime;
 
@@ -25,15 +29,21 @@ public class AuditLogServiceImpl implements AuditLogService {
 
     private final AuditLogRepository repository;
     private final PlatformTransactionManager transactionManager;
+    private TransactionTemplate transactionTemplate;
+
+    @PostConstruct
+    public void init() {
+        // Khởi tạo TransactionTemplate 1 lần duy nhất để tối ưu bộ nhớ GC dưới tải cao
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    }
 
     private String getClientIp() {
         try {
-            org.springframework.web.context.request.RequestAttributes attributes = 
-                org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
-            if (attributes instanceof org.springframework.web.context.request.ServletRequestAttributes) {
-                jakarta.servlet.http.HttpServletRequest request = 
-                    ((org.springframework.web.context.request.ServletRequestAttributes) attributes).getRequest();
-                
+            RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
+            if (attributes instanceof ServletRequestAttributes servletAttributes) {
+                HttpServletRequest request = servletAttributes.getRequest();
+
                 String ipAddress = request.getHeader("X-Forwarded-For");
                 if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
                     ipAddress = request.getHeader("Proxy-Client-IP");
@@ -44,7 +54,6 @@ public class AuditLogServiceImpl implements AuditLogService {
                 if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
                     ipAddress = request.getRemoteAddr();
                 }
-                // Nếu đi qua nhiều proxy thì lấy IP đầu tiên
                 if (ipAddress != null && ipAddress.contains(",")) {
                     ipAddress = ipAddress.split(",")[0].trim();
                 }
@@ -57,8 +66,8 @@ public class AuditLogServiceImpl implements AuditLogService {
     }
 
     /**
-     * Ghi log trong transaction độc lập sử dụng TransactionTemplate để tránh
-     * gây lỗi UnexpectedRollbackException cho nghiệp vụ chính khi ghi log thất bại.
+     * Ghi log trong transaction độc lập sử dụng TransactionTemplate tái sử dụng
+     * để tránh gây lỗi UnexpectedRollbackException cho nghiệp vụ chính khi ghi log thất bại.
      */
     @Override
     public void log(AuditLogRequest req) {
@@ -77,12 +86,8 @@ public class AuditLogServiceImpl implements AuditLogService {
                     .ipAddress(getClientIp())
                     .build();
 
-            TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
-            transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-
-            transactionTemplate.executeWithoutResult(status -> {
-                repository.save(entry);
-            });
+            // Thực thi ghi log qua TransactionTemplate đã sẵn sàng
+            this.transactionTemplate.executeWithoutResult(status -> repository.save(entry));
 
             log.debug("[AuditLog] Saved. module={}, recordId={}, action={}, user={}, ip={}",
                     req.getModule(), req.getRecordId(), req.getAction(), req.getPerformedBy(), entry.getIpAddress());

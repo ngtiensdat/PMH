@@ -3,7 +3,7 @@ package com.example.paymenthub.entity;
 import com.example.paymenthub.common.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "PMH_GROUP_CATEGORY", uniqueConstraints = {
@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class GroupCategory extends BaseEntity {
 
     @Id
@@ -35,41 +35,4 @@ public class GroupCategory extends BaseEntity {
 
     @Column(name = "COMPONENT_CODE", nullable = false, length = 255)
     private String componentCode;
-
-    @Column(name = "STATUS", nullable = false)
-    private Integer status; // 1: Mới, 3: Chờ duyệt, 4: Đã duyệt, 5: Từ chối, 7: Hủy duyệt
-
-    @Column(name = "IS_ACTIVE", nullable = false)
-    private Integer isActive; // 0: Không hoạt động, 1: Hoạt động
-
-    @Column(name = "IS_DISPLAY", nullable = false)
-    private Integer isDisplay; // 1: Chưa duyệt (cho phép xóa), 2: Đã duyệt (không cho phép xóa)
-
-    @Column(name = "NEW_DATA", length = 4000)
-    private String newData; // Lưu JSON chuỗi dữ liệu mới thay đổi trước khi duyệt
-
-    @Column(name = "EFFECTIVE_DATE", nullable = false)
-    private LocalDateTime effectiveDate;
-
-    @Column(name = "END_EFFECTIVE_DATE")
-    private LocalDateTime endEffectiveDate;
-
-    @Version
-    @Column(name = "VERSION")
-    private Long version;
-
-    @PrePersist
-    @Override
-    protected void onCreate() {
-        super.onCreate();
-        if (isActive == null) isActive = 1;
-        if (isDisplay == null) isDisplay = 1;
-        if (status == null) status = 1; // Mới
-    }
-
-    @PreUpdate
-    @Override
-    protected void onUpdate() {
-        super.onUpdate();
-    }
 }

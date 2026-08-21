@@ -2,40 +2,40 @@ import { z } from 'zod';
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 
 // ─── Helper: parse ISO string an toàn ────────────────────────────────────────
-function parseDate(val: string | undefined | null): Date | null {
-  if (!val || val.trim() === '') return null;
-  const d = new Date(val);
-  return isNaN(d.getTime()) ? null : d;
+function parseDate(val: any): Date | null {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+  if (typeof val === 'string') {
+    if (val.trim() === '') return null;
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return null;
 }
 
 // ─── Reusable date refinements ────────────────────────────────────────────────
 
-/** Kiểm tra chuỗi là ISO datetime hợp lệ (có cả ngày + giờ) */
-function isValidDatetime(val: string): boolean {
-  if (!val) return false;
-  const d = new Date(val);
-  if (isNaN(d.getTime())) return false;
-  // Phải có ít nhất thông tin ngày (yyyy-MM-dd hoặc yyyy-MM-ddTHH:mm)
-  return val.length >= 10;
+function isValidDatetime(val: any): boolean {
+  if (!val) return true;
+  return parseDate(val) !== null;
 }
 
-/** Kiểm tra không phải ngày quá xa trong quá khứ (>100 năm trước) */
-function isNotTooFarPast(val: string): boolean {
+function isNotTooFarPast(val: any): boolean {
+  if (!val) return true;
   const d = parseDate(val);
   if (!d) return true;
-  const minYear = new Date().getFullYear() - 100;
-  return d.getFullYear() >= minYear;
+  return d.getFullYear() >= (new Date().getFullYear() - 100);
 }
 
-/** Kiểm tra không phải ngày quá xa trong tương lai (>100 năm sau) */
-function isNotTooFarFuture(val: string): boolean {
+function isNotTooFarFuture(val: any): boolean {
+  if (!val) return true;
   const d = parseDate(val);
   if (!d) return true;
-  const maxYear = new Date().getFullYear() + 100;
-  return d.getFullYear() <= maxYear;
+  return d.getFullYear() <= (new Date().getFullYear() + 100);
 }
 
-function isNotPastDate(val: string): boolean {
+function isNotPastDate(val: any): boolean {
+  if (!val) return true;
   const d = parseDate(val);
   if (!d) return true;
   return d.getTime() >= Date.now() - 60000;
@@ -63,16 +63,22 @@ export const CategorySchema = z.object({
     }),
 
   description: z
-    .string()
-    .max(4000, 'Mô tả tối đa 4000 ký tự')
+    .any()
     .optional()
-    .or(z.literal('')),
+    .nullable()
+    .refine(val => !val || (typeof val === 'string' && val.length <= 4000), {
+      message: 'Mô tả tối đa 4000 ký tự'
+    }),
 
   componentCode: z
-    .string()
-    .min(1, 'Cấu phần xử lý không được để trống'),
+    .any()
+    .refine(val => {
+      if (Array.isArray(val)) return val.length > 0;
+      if (typeof val === 'string') return val.trim().length > 0;
+      return false;
+    }, { message: 'Cấu phần xử lý không được để trống' }),
 
-  isActive: z.number(),
+  isActive: z.number().optional().nullable(),
 
   effectiveDate: z
     .string()
@@ -80,21 +86,22 @@ export const CategorySchema = z.object({
     .refine(isValidDatetime, {
       message: 'Ngày hiệu lực không phải định dạng ngày giờ hợp lệ (yyyy-MM-ddTHH:mm)'
     })
-    .refine(isNotPastDate, {
-      message: 'Ngày hiệu lực không được là ngày trong quá khứ'
+    .refine(isNotTooFarPast, {
+      message: 'Ngày hiệu lực không được quá 100 năm trong quá khứ'
     })
     .refine(isNotTooFarFuture, {
       message: 'Ngày hiệu lực không được vượt quá 100 năm trong tương lai'
     }),
 
   endEffectiveDate: z
-    .string()
+    .any()
     .optional()
+    .nullable()
     .refine(val => !val || isValidDatetime(val), {
       message: 'Ngày hết hiệu lực không phải định dạng ngày giờ hợp lệ (yyyy-MM-ddTHH:mm)'
     })
-    .refine(val => !val || isNotPastDate(val), {
-      message: 'Ngày hết hiệu lực không được là ngày trong quá khứ'
+    .refine(val => !val || isNotTooFarPast(val), {
+      message: 'Ngày hết hiệu lực không được quá 100 năm trong quá khứ'
     })
     .refine(val => !val || isNotTooFarFuture(val), {
       message: 'Ngày hết hiệu lực không được vượt quá 100 năm trong tương lai'

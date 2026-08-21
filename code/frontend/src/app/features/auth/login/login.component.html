@@ -1,0 +1,40 @@
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="login-header">
+      <h2 class="login-title">ĐĂNG NHẬP</h2>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+      <div class="input-group">
+        <tui-textfield>
+          <label tuiLabel>Tên đăng nhập</label>
+          <input tuiInput id="username" formControlName="username" placeholder="Nhập tên đăng nhập" />
+        </tui-textfield>
+      </div>
+
+      <div class="input-group">
+        <tui-textfield>
+          <label tuiLabel>Mật khẩu</label>
+          <input tuiInput id="password" type="password" formControlName="password" placeholder="Nhập mật khẩu" />
+        </tui-textfield>
+      </div>
+
+      <button tuiButton type="submit" class="btn-login" [disabled]="isLoading()">
+        <span *ngIf="!isLoading()">ĐĂNG NHẬP</span>
+        <span *ngIf="isLoading()">Đang đăng nhập...</span>
+      </button>
+    </form>
+
+    <div class="quick-login-section">
+      <div class="quick-login-label">Chọn nhanh tài khoản:</div>
+      <div class="quick-login-buttons">
+        <button type="button" class="chip-account maker" (click)="fillAccount('make')" title="Dùng cho Chuyên viên tạo dữ liệu">
+          <span class="role-badge">Maker</span> <b>make</b>
+        </button>
+        <button type="button" class="chip-account checker" (click)="fillAccount('check')" title="Dùng cho Kiểm soát viên phê duyệt">
+          <span class="role-badge">Checker</span> <b>check</b>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

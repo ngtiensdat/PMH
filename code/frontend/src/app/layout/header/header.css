@@ -124,37 +124,18 @@
   transition: all 0.2s ease;
 }
 
-.user-profile.clickable {
-  cursor: pointer;
-}
-
-.user-profile.clickable:hover {
-  background: #f1f5f9;
-}
-
-.edit-profile-icon {
-  font-size: 0.75rem;
-  opacity: 0.3;
-  transition: opacity 0.2s ease;
-  margin-left: 0.15rem;
-}
-
-.user-profile.clickable:hover .edit-profile-icon {
-  opacity: 1;
-}
-
 .user-profile .user-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background-color: #00796b;
+  background-color: #005953;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
   font-size: 0.85rem;
   font-weight: 700;
-  box-shadow: 0 2px 8px rgba(0, 121, 107, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 89, 83, 0.25);
 }
 
 .user-profile .user-info {
@@ -171,69 +152,26 @@
 .user-profile .user-info .user-role-label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #10b981; /* Green color for role */
+  color: #0284c7;
 }
 
-/* User Popover Dropdown */
-.user-popover {
-  position: absolute;
-  top: 110%;
-  right: 0;
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
-  width: 220px;
-  z-index: 100;
-  padding: 0.5rem 0;
-  animation: fadeIn 0.15s ease;
-}
-
-.user-popover-header {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #64748b;
-  padding: 0.25rem 0.75rem 0.5rem;
-  border-bottom: 1px solid #f1f5f9;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.user-popover-item {
-  padding: 0.6rem 0.75rem;
+.btn-logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  color: #ef4444;
   cursor: pointer;
-  transition: all 0.15s ease;
-  border-bottom: 1px solid #f8fafc;
+  margin-left: 0.5rem;
+  transition: all 0.2s ease;
 }
 
-.user-popover-item:last-child {
-  border-bottom: none;
-}
-
-.user-popover-item:hover {
-  background: #f1f5f9;
-}
-
-.user-popover-item.active {
-  background: var(--primary-light);
-}
-
-.user-popover-item.active .popover-name {
-  color: var(--primary);
-}
-
-.user-popover-item.active .popover-role {
-  color: var(--primary);
-}
-
-.popover-name {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #334155;
-}
-
-.popover-role {
-  font-size: 0.7rem;
-  color: #64748b;
-  margin-top: 0.15rem;
+.btn-logout:hover {
+  background-color: #fef2f2;
+  border-color: #fca5a5;
+  transform: scale(1.05);
 }

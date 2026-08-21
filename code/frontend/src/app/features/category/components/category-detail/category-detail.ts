@@ -73,7 +73,9 @@ export class CategoryDetailComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (err: HttpErrorResponse) => {
-        this.notificationService.error('Không thể nạp dữ liệu chi tiết tham số: ' + (err.error?.message || err.message));
+        if (err.status !== 401 && err.status !== 403) {
+          this.notificationService.error('Không thể nạp dữ liệu chi tiết tham số: ' + (err.error?.message || err.message));
+        }
         this.isLoading.set(false);
         this.goBack();
       }
@@ -155,18 +157,26 @@ export class CategoryDetailComponent implements OnInit {
     }));
   }
 
+  isDeleteOpen = false;
+
   onDeleteRecord() {
-    if (confirm('Bạn có chắc chắn muốn xóa bản ghi này?')) {
-      this.categoryService.delete(this.category!.id).subscribe({
-        next: () => {
-          this.notificationService.success('Xóa thành công!');
-          this.goBack();
-        },
-        error: (err: HttpErrorResponse) => {
-          this.notificationService.error('Không thể xóa: ' + (err.error?.message || err.message));
-        }
-      });
-    }
+    this.isDeleteOpen = true;
+  }
+
+  onConfirmDelete() {
+    this.isDeleteOpen = false;
+    this.categoryService.delete(this.category!.id).subscribe({
+      next: () => {
+        const msg = this.category?.isDisplay === DisplayStatus.ONCE_APPROVED 
+          ? 'Hủy yêu cầu sửa thành công!' 
+          : 'Xóa thành công!';
+        this.notificationService.success(msg);
+        this.goBack();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.notificationService.error('Thực thi thất bại: ' + (err.error?.message || err.message));
+      }
+    });
   }
 
   onSendApprovalRecord() {
@@ -181,22 +191,26 @@ export class CategoryDetailComponent implements OnInit {
     });
   }
 
-  // Reject Dialog state
+  // Approve & Reject Dialog state
+  isApproveOpen = false;
   isRejectOpen = false;
   rejectReason = '';
 
   onApproveRecord() {
-    if (confirm('Bạn có chắc chắn muốn duyệt bản ghi này?')) {
-      this.categoryService.batchApprove([this.category!.id]).subscribe({
-        next: () => {
-          this.notificationService.success('Duyệt bản ghi thành công!');
-          this.goBack();
-        },
-        error: (err: HttpErrorResponse) => {
-          this.notificationService.error('Lỗi khi duyệt: ' + (err.error?.message || err.message));
-        }
-      });
-    }
+    this.isApproveOpen = true;
+  }
+
+  onConfirmApprove() {
+    this.isApproveOpen = false;
+    this.categoryService.batchApprove([this.category!.id]).subscribe({
+      next: () => {
+        this.notificationService.success('Duyệt bản ghi thành công!');
+        this.goBack();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.notificationService.error('Lỗi khi duyệt: ' + (err.error?.message || err.message));
+      }
+    });
   }
 
   onRejectRecord() {

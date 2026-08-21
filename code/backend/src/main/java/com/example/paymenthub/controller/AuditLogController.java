@@ -5,12 +5,12 @@ import com.example.paymenthub.common.base.BaseController;
 import com.example.paymenthub.dto.response.AuditLogDTO;
 import com.example.paymenthub.service.AuditLogService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/audit-log")
@@ -21,9 +21,9 @@ public class AuditLogController extends BaseController {
 
     /**
      * Lấy lịch sử thao tác cho một Tham số danh mục theo nhóm.
-     * GET /api/audit-log/group-category/{id}
      */
     @GetMapping("/group-category/{id}")
+    @PreAuthorize("hasAnyRole('MAKER', 'CHECKER')")
     public ResponseEntity<ApiResponse<Page<AuditLogDTO>>> getGroupCategoryHistory(
             @PathVariable Long id,
             @PageableDefault(page = 0, size = 5) Pageable pageable
@@ -34,9 +34,9 @@ public class AuditLogController extends BaseController {
 
     /**
      * Lấy lịch sử thao tác cho một Cấu phần xử lý.
-     * GET /api/audit-log/component/{code}
      */
     @GetMapping("/component/{code}")
+    @PreAuthorize("hasAnyRole('MAKER', 'CHECKER')")
     public ResponseEntity<ApiResponse<Page<AuditLogDTO>>> getComponentHistory(
             @PathVariable String code,
             @PageableDefault(page = 0, size = 5) Pageable pageable

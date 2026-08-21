@@ -39,7 +39,7 @@ MỤC II. TỔNG HỢP CHECKLIST KIẾN THỨC JAVA BACKEND (SPRING BOOT & JPA)
 [ ] 7. Kiểu dữ liệu Nguyên thủy (int) vs Kiểu Wrapper (Integer):
     - Khác biệt Stack vs Heap, giá trị null, Autoboxing/Unboxing.
     - Tại sao DB Entity & DTO bắt buộc dùng kiểu Integer?
-[ ] 8. Đối tượng ObjectMapper (Jackson):
+[x] 8. Đối tượng ObjectMapper (Jackson):
     - Serialization (Object -> JSON writeValueAsString) và Deserialization (JSON -> Object readValue).
 [ ] 9. Cơ chế Transaction & Tính chất ACID:
     - Cơ chế Rollback, Undo Log / WAL trong Database.
@@ -53,7 +53,7 @@ MỤC II. TỔNG HỢP CHECKLIST KIẾN THỨC JAVA BACKEND (SPRING BOOT & JPA)
     - @Transactional (Declarative).
     - @Transactional(readOnly = true) (Tắt Dirty Checking, tiết kiệm RAM/CPU).
     - TransactionTemplate (Programmatic - PROPAGATION_REQUIRES_NEW cho Batch Processing độc lập).
-[ ] 13. Stored Procedure & Oracle Integration:
+[x] 13. Stored Procedure & Oracle Integration:
     - ParameterMode.IN, ParameterMode.OUT, đọc kết quả từ StoredProcedureQuery.
 [ ] 14. 4 Tính chất Lập trình Hướng đối tượng (OOP):
     - Đóng gói (Encapsulation), Kế thừa (Inheritance), Đa hình (Polymorphism), Trừu tượng (Abstraction).

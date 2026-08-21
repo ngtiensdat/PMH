@@ -35,3 +35,10 @@ export interface GroupCategoryRequest {
   effectiveDate: string;
   endEffectiveDate?: string;
 }
+
+export interface BatchItemResult {
+  id?: number;
+  code?: string;
+  status: string; // "SUCCESS" | "FAILED"
+  errorMessage?: string;
+}

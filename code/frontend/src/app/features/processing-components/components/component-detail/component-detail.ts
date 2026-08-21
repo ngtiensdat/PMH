@@ -76,7 +76,9 @@ export class ComponentDetailComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (err: HttpErrorResponse) => {
-        this.notificationService.error('Không thể nạp dữ liệu chi tiết cấu phần: ' + (err.error?.message || err.message));
+        if (err.status !== 401 && err.status !== 403) {
+          this.notificationService.error('Không thể nạp dữ liệu chi tiết cấu phần: ' + (err.error?.message || err.message));
+        }
         this.isLoading.set(false);
         this.goBack();
       }
@@ -166,18 +168,26 @@ export class ComponentDetailComponent implements OnInit {
     }));
   }
 
+  isDeleteOpen = false;
+
   onDeleteRecord() {
-    if (confirm('Bạn có chắc chắn muốn xóa cấu phần xử lý này?')) {
-      this.componentService.delete(this.component!.componentCode).subscribe({
-        next: () => {
-          this.notificationService.success('Xóa thành công!');
-          this.goBack();
-        },
-        error: (err: HttpErrorResponse) => {
-          this.notificationService.error('Không thể xóa: ' + (err.error?.message || err.message));
-        }
-      });
-    }
+    this.isDeleteOpen = true;
+  }
+
+  onConfirmDelete() {
+    this.isDeleteOpen = false;
+    this.componentService.delete(this.component!.componentCode).subscribe({
+      next: () => {
+        const msg = this.component?.isDisplay === DisplayStatus.ONCE_APPROVED 
+          ? 'Hủy yêu cầu sửa thành công!' 
+          : 'Xóa thành công!';
+        this.notificationService.success(msg);
+        this.goBack();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.notificationService.error('Thực thi thất bại: ' + (err.error?.message || err.message));
+      }
+    });
   }
 
   onSendApprovalRecord() {
@@ -192,22 +202,26 @@ export class ComponentDetailComponent implements OnInit {
     });
   }
 
-  // Reject Dialog state
+  // Approve & Reject Dialog state
+  isApproveOpen = false;
   isRejectOpen = false;
   rejectReason = '';
 
   onApproveRecord() {
-    if (confirm('Bạn có chắc chắn muốn duyệt cấu phần xử lý này?')) {
-      this.componentService.batchApprove([this.component!.componentCode]).subscribe({
-        next: () => {
-          this.notificationService.success('Duyệt cấu phần thành công!');
-          this.goBack();
-        },
-        error: (err: HttpErrorResponse) => {
-          this.notificationService.error('Lỗi khi duyệt: ' + (err.error?.message || err.message));
-        }
-      });
-    }
+    this.isApproveOpen = true;
+  }
+
+  onConfirmApprove() {
+    this.isApproveOpen = false;
+    this.componentService.batchApprove([this.component!.componentCode]).subscribe({
+      next: () => {
+        this.notificationService.success('Duyệt cấu phần thành công!');
+        this.goBack();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.notificationService.error('Lỗi khi duyệt: ' + (err.error?.message || err.message));
+      }
+    });
   }
 
   onRejectRecord() {

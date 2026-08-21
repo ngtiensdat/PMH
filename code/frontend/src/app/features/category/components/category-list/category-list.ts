@@ -4,11 +4,12 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, FormsModule } from '@angul
 import { Router } from '@angular/router';
 import { CategoryService } from '../../services/category.service';
 import { LanguageService } from '../../../../core/services/language.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { STATUS_MAP, APPROVAL_STATUS_OPTIONS, IS_ACTIVE_OPTIONS, ACTION_PILL_MAP } from '../../../../shared/constants/status.constants';
 import { ParamStatus, ActiveStatus, DisplayStatus } from '../../../../shared/enums/status.enum';
 import { parseDateString } from '../../../../shared/utils/date.utils';
 import { NotificationService } from '../../../../shared/components/notification/notification.service';
-import { GroupCategoryResponse } from '../../../../shared/models/group-category.model';
+import { GroupCategoryResponse, BatchItemResult } from '../../../../shared/models/group-category.model';
 import { AuditLogItem } from '../../../../shared/models/audit-log.model';
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -46,6 +47,7 @@ export class CategoryListComponent implements OnInit {
   private fb = inject(FormBuilder);
   private categoryService = inject(CategoryService);
   public languageService = inject(LanguageService);
+  public authService = inject(AuthService);
   private notificationService = inject(NotificationService);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
@@ -143,7 +145,7 @@ export class CategoryListComponent implements OnInit {
   ];
 
   get displayColumns() {
-    if (this.languageService.userCode() === 'USER01') {
+    if (this.languageService.isMaker()) {
       return this.columns.filter(c => c.id !== 'checkbox');
     }
     return this.columns;
@@ -353,28 +355,16 @@ export class CategoryListComponent implements OnInit {
     this.categoryService.search(filters, this.page(), this.size(), sortParam).subscribe({
       next: (res) => {
         console.log('[CategoryListComponent] search success, res:', res);
-        const content = (res.data.content || []).map((item: GroupCategoryResponse) => {
-          if (item.newData) {
-            try {
-              const parsed = typeof item.newData === 'string' ? JSON.parse(item.newData) : item.newData;
-              if (parsed) {
-                if (parsed.effectiveDate) parsed.effectiveDate = parseDateString(parsed.effectiveDate);
-                if (parsed.endEffectiveDate) parsed.endEffectiveDate = parseDateString(parsed.endEffectiveDate);
-                return { ...item, ...parsed };
-              }
-            } catch (e) {
-              console.error('Error parsing category newData:', e);
-            }
-          }
-          return item;
-        });
+        const content = res.data.content || [];
         this.categories.set(content);
         this.totalElements.set(res.data.page?.totalElements ?? res.data.totalElements ?? 0);
         this.selectedIds.set([]);
         this.isLoading.set(false);
       },
       error: (err: HttpErrorResponse) => {
-        this.notificationService.error('Lỗi tải dữ liệu: ' + (err.error?.message || err.message));
+        if (err.status !== 401 && err.status !== 403 && this.authService.isLoggedIn()) {
+          this.notificationService.error('Lỗi tải dữ liệu: ' + (err.error?.message || err.message));
+        }
         this.isLoading.set(false);
       }
     });
@@ -384,21 +374,7 @@ export class CategoryListComponent implements OnInit {
     this.categoryService.getComplexList().subscribe({
       next: (res) => {
         console.log('[CategoryListComponent] loadJoinedData success, res:', res);
-        const content = (res.data || []).map((item: GroupCategoryResponse) => {
-          if (item.newData) {
-            try {
-              const parsed = typeof item.newData === 'string' ? JSON.parse(item.newData) : item.newData;
-              if (parsed) {
-                if (parsed.effectiveDate) parsed.effectiveDate = parseDateString(parsed.effectiveDate);
-                if (parsed.endEffectiveDate) parsed.endEffectiveDate = parseDateString(parsed.endEffectiveDate);
-                return { ...item, ...parsed };
-              }
-            } catch (e) {
-              console.error('Error parsing joined category newData:', e);
-            }
-          }
-          return item;
-        });
+        const content = res.data || [];
         this.joinedCategories.set(content);
         this.selectedIds.set([]);
         this.isLoading.set(false);
@@ -549,7 +525,7 @@ export class CategoryListComponent implements OnInit {
 
     this.categoryService.batchReject(ids, reason).subscribe({
       next: (res) => {
-        const successCount = (res.data || []).filter((r: Record<string, unknown>) => r['success']).length;
+        const successCount = (res.data || []).filter((r: BatchItemResult) => r.status === 'SUCCESS').length;
         this.notificationService.success(`Đã từ chối thành công ${successCount}/${ids.length} bản ghi! Lý do: ${reason}`);
         this.loadData();
       },
@@ -659,7 +635,7 @@ export class CategoryListComponent implements OnInit {
       const ids = this.selectedIds();
       this.categoryService.batchApprove(ids).subscribe({
         next: (res) => {
-          const successCount = (res.data || []).filter((r: Record<string, unknown>) => r['success']).length;
+          const successCount = (res.data || []).filter((r: BatchItemResult) => r.status === 'SUCCESS').length;
           this.notificationService.success(`Đã duyệt thành công ${successCount}/${ids.length} bản ghi!`);
           this.loadData();
         },

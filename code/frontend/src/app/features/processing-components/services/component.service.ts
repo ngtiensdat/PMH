@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import { ApiResponse, PageResponse } from '../../../shared/models/api-response.model';
 import { ProcessingComponentResponse, ProcessingComponentRequest } from '../../../shared/models/component.model';
+import { BatchItemResult } from '../../../shared/models/group-category.model';
 import { AuditLogItem } from '../../../shared/models/audit-log.model';
 
 @Injectable({
@@ -15,15 +16,6 @@ export class ComponentService {
   private activeComponentsCache = new Map<string, ApiResponse<ProcessingComponentResponse[]>>();
 
   constructor(private http: HttpClient) {}
-
-  private getHeaders(username?: string): HttpHeaders {
-    const activeUser = localStorage.getItem('app_usercode') || 'USER01';
-    const finalUser = (username === 'USER01' || username === 'APPROVER' || !username) ? activeUser : username;
-    return new HttpHeaders({
-      'Content-Type': 'application/json',
-      'X-Username': finalUser
-    });
-  }
 
   search(
     filters: { componentCode?: string; componentName?: string; messageType?: string[]; connectionMethod?: string[]; status?: number[]; isActive?: number[] },
@@ -73,41 +65,38 @@ export class ComponentService {
     );
   }
 
-  create(dto: ProcessingComponentRequest, username: string = 'USER01'): Observable<ApiResponse<ProcessingComponentResponse>> {
-    return this.http.post<ApiResponse<ProcessingComponentResponse>>(this.apiUrl, dto, { headers: this.getHeaders(username) });
+  create(dto: ProcessingComponentRequest): Observable<ApiResponse<ProcessingComponentResponse>> {
+    return this.http.post<ApiResponse<ProcessingComponentResponse>>(this.apiUrl, dto);
   }
 
-  update(code: string, dto: ProcessingComponentRequest, username: string = 'USER01'): Observable<ApiResponse<ProcessingComponentResponse>> {
-    return this.http.put<ApiResponse<ProcessingComponentResponse>>(`${this.apiUrl}/${code}`, dto, { headers: this.getHeaders(username) });
+  update(code: string, dto: ProcessingComponentRequest): Observable<ApiResponse<ProcessingComponentResponse>> {
+    return this.http.put<ApiResponse<ProcessingComponentResponse>>(`${this.apiUrl}/${code}`, dto);
   }
 
-  delete(code: string, username: string = 'USER01'): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${code}`, { headers: this.getHeaders(username) });
+  delete(code: string): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${code}`);
   }
 
-  sendApproval(code: string, username: string = 'USER01'): Observable<ApiResponse<ProcessingComponentResponse>> {
-    return this.http.post<ApiResponse<ProcessingComponentResponse>>(`${this.apiUrl}/${code}/send-approval`, {}, { headers: this.getHeaders(username) });
+  sendApproval(code: string): Observable<ApiResponse<ProcessingComponentResponse>> {
+    return this.http.post<ApiResponse<ProcessingComponentResponse>>(`${this.apiUrl}/${code}/send-approval`, {});
   }
 
-  cancelApproval(code: string, username: string = 'USER01'): Observable<ApiResponse<ProcessingComponentResponse>> {
-    return this.http.post<ApiResponse<ProcessingComponentResponse>>(`${this.apiUrl}/${code}/cancel-approval`, {}, { headers: this.getHeaders(username) });
+  cancelApproval(code: string): Observable<ApiResponse<ProcessingComponentResponse>> {
+    return this.http.post<ApiResponse<ProcessingComponentResponse>>(`${this.apiUrl}/${code}/cancel-approval`, {});
   }
 
   exportExcel(): Observable<ApiResponse<Record<string, unknown>[]>> {
     return this.http.get<ApiResponse<Record<string, unknown>[]>>(`${this.apiUrl}/export`);
   }
 
-  batchApprove(codes: string[], username: string = 'APPROVER'): Observable<ApiResponse<Record<string, unknown>[]>> {
-    return this.http.post<ApiResponse<Record<string, unknown>[]>>(`${this.apiUrl}/batch-approve`, codes, { headers: this.getHeaders(username) });
+  batchApprove(codes: string[]): Observable<ApiResponse<BatchItemResult[]>> {
+    return this.http.post<ApiResponse<BatchItemResult[]>>(`${this.apiUrl}/batch-approve`, codes);
   }
 
-  batchReject(codes: string[], reason?: string, username: string = 'APPROVER'): Observable<ApiResponse<Record<string, unknown>[]>> {
+  batchReject(codes: string[], reason?: string): Observable<ApiResponse<BatchItemResult[]>> {
     let params = new HttpParams();
     if (reason) params = params.set('reason', reason);
-    return this.http.post<ApiResponse<Record<string, unknown>[]>>(`${this.apiUrl}/batch-reject`, codes, {
-      params,
-      headers: this.getHeaders(username)
-    });
+    return this.http.post<ApiResponse<BatchItemResult[]>>(`${this.apiUrl}/batch-reject`, codes, { params });
   }
 
   getHistory(code: string, page: number = 0, size: number = 5): Observable<ApiResponse<PageResponse<AuditLogItem>>> {

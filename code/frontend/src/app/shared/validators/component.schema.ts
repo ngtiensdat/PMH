@@ -2,34 +2,40 @@ import { z } from 'zod';
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 
 // ─── Helper: parse ISO string an toàn ────────────────────────────────────────
-function parseDate(val: string | undefined | null): Date | null {
-  if (!val || val.trim() === '') return null;
-  const d = new Date(val);
-  return isNaN(d.getTime()) ? null : d;
+function parseDate(val: any): Date | null {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+  if (typeof val === 'string') {
+    if (val.trim() === '') return null;
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return null;
 }
 
 // ─── Reusable date refinements ────────────────────────────────────────────────
 
-function isValidDatetime(val: string): boolean {
-  if (!val) return false;
-  const d = new Date(val);
-  if (isNaN(d.getTime())) return false;
-  return val.length >= 10;
+function isValidDatetime(val: any): boolean {
+  if (!val) return true;
+  return parseDate(val) !== null;
 }
 
-function isNotTooFarPast(val: string): boolean {
+function isNotTooFarPast(val: any): boolean {
+  if (!val) return true;
   const d = parseDate(val);
   if (!d) return true;
   return d.getFullYear() >= (new Date().getFullYear() - 100);
 }
 
-function isNotTooFarFuture(val: string): boolean {
+function isNotTooFarFuture(val: any): boolean {
+  if (!val) return true;
   const d = parseDate(val);
   if (!d) return true;
   return d.getFullYear() <= (new Date().getFullYear() + 100);
 }
 
-function isNotPastDate(val: string): boolean {
+function isNotPastDate(val: any): boolean {
+  if (!val) return true;
   const d = parseDate(val);
   if (!d) return true;
   return d.getTime() >= Date.now() - 60000;
@@ -52,31 +58,24 @@ export const ComponentSchema = z.object({
       message: 'Tên cấu phần không được chứa khoảng trắng đặc biệt hay ký tự đặc biệt (^, #, |, *, @, $, ...)'
     }),
 
-  messageType: z
-    .string()
-    .max(150, 'Chuẩn tin điện tối đa 150 ký tự')
-    .optional()
-    .or(z.literal('')),
+  messageType: z.any().optional().nullable(),
 
-  connectionMethod: z
-    .string()
-    .max(100, 'Phương thức kết nối tối đa 100 ký tự')
-    .optional()
-    .or(z.literal('')),
+  connectionMethod: z.any().optional().nullable(),
 
   checkToken: z
-    .string()
-    .refine(val => val === 'Y' || val === 'N', {
-      message: 'Kiểm tra Token chỉ nhận giá trị Y hoặc N'
-    }),
+    .any()
+    .optional()
+    .nullable(),
 
   description: z
-    .string()
-    .max(4000, 'Mô tả tối đa 4000 ký tự')
+    .any()
     .optional()
-    .or(z.literal('')),
+    .nullable()
+    .refine(val => !val || (typeof val === 'string' && val.length <= 4000), {
+      message: 'Mô tả tối đa 4000 ký tự'
+    }),
 
-  isActive: z.number(),
+  isActive: z.number().optional().nullable(),
 
   effectiveDate: z
     .string()
@@ -84,21 +83,22 @@ export const ComponentSchema = z.object({
     .refine(isValidDatetime, {
       message: 'Ngày hiệu lực không phải định dạng ngày giờ hợp lệ (yyyy-MM-ddTHH:mm)'
     })
-    .refine(isNotPastDate, {
-      message: 'Ngày hiệu lực không được là ngày trong quá khứ'
+    .refine(isNotTooFarPast, {
+      message: 'Ngày hiệu lực không được quá 100 năm trong quá khứ'
     })
     .refine(isNotTooFarFuture, {
       message: 'Ngày hiệu lực không được vượt quá 100 năm trong tương lai'
     }),
 
   endEffectiveDate: z
-    .string()
+    .any()
     .optional()
+    .nullable()
     .refine(val => !val || isValidDatetime(val), {
       message: 'Ngày hết hiệu lực không phải định dạng ngày giờ hợp lệ (yyyy-MM-ddTHH:mm)'
     })
-    .refine(val => !val || isNotPastDate(val), {
-      message: 'Ngày hết hiệu lực không được là ngày trong quá khứ'
+    .refine(val => !val || isNotTooFarPast(val), {
+      message: 'Ngày hết hiệu lực không được quá 100 năm trong quá khứ'
     })
     .refine(val => !val || isNotTooFarFuture(val), {
       message: 'Ngày hết hiệu lực không được vượt quá 100 năm trong tương lai'

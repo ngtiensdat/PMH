@@ -3,6 +3,7 @@ package com.example.paymenthub.service;
 import com.example.paymenthub.dto.request.ComponentDTO;
 import com.example.paymenthub.dto.request.ComponentSearchCriteria;
 import com.example.paymenthub.entity.ProcessingComponent;
+import com.example.paymenthub.dto.response.BatchItemResultDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -29,7 +30,7 @@ public interface ComponentService {
 
     List<Map<String, Object>> getRawDataForExport();
 
-    List<Map<String, Object>> batchApprove(List<String> codes, String approver);
+    List<BatchItemResultDTO> batchApprove(List<String> codes, String approver);
 
-    List<Map<String, Object>> batchReject(List<String> codes, String reason, String approver);
+    List<BatchItemResultDTO> batchReject(List<String> codes, String reason, String approver);
 }

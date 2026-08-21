@@ -49,8 +49,17 @@ Code a Trường:
     } 
 
 
+Câu hỏi:
+@Transactional
+public A
 
-
-	
-
-
+public B {
+A
+}
+		
+- sửa date (v)
+- validate gửi guyệt
+- bổ sung base entity :status, display
+- sửa hàm update
+- viết crob job trên db (v)
+- đăng nhập, phân quyền

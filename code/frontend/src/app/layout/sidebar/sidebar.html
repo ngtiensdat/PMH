@@ -20,9 +20,9 @@
     </a>
   </nav>
   <div class="sidebar-footer">
-    <a class="nav-item logout">
+    <a class="nav-item logout" (click)="onLogout()" style="cursor: pointer;" title="Đăng xuất">
       <span class="icon">
-        <tui-icon icon="@tui.arrow-right"></tui-icon>
+        <tui-icon icon="@tui.log-out"></tui-icon>
       </span>
       <span class="text">{{ languageService.labels().navigation.logout }}</span>
     </a>

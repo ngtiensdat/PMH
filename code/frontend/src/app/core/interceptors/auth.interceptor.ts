@@ -1,12 +1,21 @@
-import { HttpInterceptorFn } from '@angular/common/http';
+import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { AuthService } from '../services/auth.service';
+import { catchError, throwError } from 'rxjs';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  // Tự động đính kèm X-Username vào header nếu chưa có
-  const username = req.headers.get('X-Username') || 'USER01';
-  
-  const authReq = req.clone({
-    headers: req.headers.set('X-Username', username)
+  const authService = inject(AuthService);
+
+  let requestToPass = req.clone({
+    withCredentials: true
   });
 
-  return next(authReq);
+  return next(requestToPass).pipe(
+    catchError((error: HttpErrorResponse) => {
+      if ((error.status === 401 || error.status === 403) && !req.url.includes('/api/auth/')) {
+        authService.logout();
+      }
+      return throwError(() => error);
+    })
+  );
 };

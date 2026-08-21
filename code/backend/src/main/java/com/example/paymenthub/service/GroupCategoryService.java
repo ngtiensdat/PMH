@@ -3,6 +3,7 @@ package com.example.paymenthub.service;
 import com.example.paymenthub.dto.request.GroupCategoryDTO;
 import com.example.paymenthub.dto.request.GroupCategorySearchCriteria;
 import com.example.paymenthub.entity.GroupCategory;
+import com.example.paymenthub.dto.response.BatchItemResultDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -29,7 +30,7 @@ public interface GroupCategoryService {
 
     List<Map<String, Object>> getRawDataForExport();
 
-    List<Map<String, Object>> batchApprove(List<Long> ids, String approver);
+    List<BatchItemResultDTO> batchApprove(List<Long> ids, String approver);
 
-    List<Map<String, Object>> batchReject(List<Long> ids, String reason, String approver);
+    List<BatchItemResultDTO> batchReject(List<Long> ids, String reason, String approver);
 }

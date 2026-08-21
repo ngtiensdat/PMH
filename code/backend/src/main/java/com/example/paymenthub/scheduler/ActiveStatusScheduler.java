@@ -2,7 +2,7 @@ package com.example.paymenthub.scheduler;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.scheduling.annotation.Scheduled;
+//import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +21,7 @@ public class ActiveStatusScheduler {
      * dựa theo thời gian thực (SYSDATE của Oracle DB) so với EFFECTIVE_DATE và
      * END_EFFECTIVE_DATE.
      */
-    @Scheduled(fixedRate = 5000)
+    // @Scheduled(fixedRate = 5000)
     @Transactional
     public void updateActiveStatus() {
         try {

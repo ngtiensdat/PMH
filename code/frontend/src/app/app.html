@@ -1,11 +1,19 @@
 <tui-root>
-  <div class="app-layout">
-    <app-sidebar></app-sidebar>
-    <div class="main-workspace">
-      <app-header></app-header>
-      <main class="workspace-content">
-        <router-outlet></router-outlet>
-      </main>
+  <ng-container *ngIf="authService.isLoggedIn(); else loginLayout">
+    <div class="app-layout">
+      <app-sidebar></app-sidebar>
+      <div class="main-workspace">
+        <app-header></app-header>
+        <main class="workspace-content">
+          <router-outlet></router-outlet>
+        </main>
+      </div>
     </div>
-  </div>
+  </ng-container>
+
+  <ng-template #loginLayout>
+    <div class="full-page-layout">
+      <router-outlet></router-outlet>
+    </div>
+  </ng-template>
 </tui-root>

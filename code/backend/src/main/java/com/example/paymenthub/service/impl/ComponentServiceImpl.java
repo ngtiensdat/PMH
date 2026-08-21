@@ -12,6 +12,7 @@ import com.example.paymenthub.repository.ComponentRepository;
 import com.example.paymenthub.service.ComponentService;
 import com.example.paymenthub.repository.specification.ComponentSpecification;
 import com.example.paymenthub.service.AuditLogService;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.ParameterMode;
@@ -25,16 +26,21 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.example.paymenthub.common.exception.ResourceNotFoundException;
-import com.example.paymenthub.common.exception.ForbiddenAccessException;
+import com.example.paymenthub.common.exception.BusinessRuleException;
+import com.example.paymenthub.common.exception.MakerCheckerConflictException;
+import com.example.paymenthub.common.exception.InvalidStateTransitionException;
+import com.example.paymenthub.dto.response.BatchItemResultDTO;
+import com.example.paymenthub.common.util.DateUtils;
+import com.example.paymenthub.security.SecurityUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 @Transactional
@@ -46,7 +52,7 @@ public class ComponentServiceImpl implements ComponentService {
     private final ComponentRepository repository;
     private final ObjectMapper objectMapper;
     private final AuditLogService auditLogService;
-    private final PlatformTransactionManager transactionManager;
+    private final TransactionTemplate transactionTemplate;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -58,7 +64,8 @@ public class ComponentServiceImpl implements ComponentService {
         this.repository = repository;
         this.objectMapper = objectMapper;
         this.auditLogService = auditLogService;
-        this.transactionManager = transactionManager;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
     // ─── Helper: compute active status from effective dates ─────────────────
@@ -78,25 +85,6 @@ public class ComponentServiceImpl implements ComponentService {
             log.warn("[Component] Failed to serialize to JSON: {}", e.getMessage());
             return null;
         }
-    }
-
-    // ─── Helper: snapshot entity ─────────────────────────────────────────────
-    private Map<String, Object> snapshot(ProcessingComponent e) {
-        Map<String, Object> m = new HashMap<>();
-        m.put("componentCode", e.getComponentCode());
-        m.put("componentName", e.getComponentName());
-        m.put("messageType", e.getMessageType());
-        m.put("connectionMethod", e.getConnectionMethod());
-        m.put("checkToken", e.getCheckToken());
-        m.put("description", e.getDescription());
-        m.put("status", e.getStatus());
-        m.put("isActive", e.getIsActive());
-        m.put("isDisplay", e.getIsDisplay());
-        m.put("effectiveDate", e.getEffectiveDate() != null ? e.getEffectiveDate().toString() : null);
-        m.put("endEffectiveDate", e.getEndEffectiveDate() != null ? e.getEndEffectiveDate().toString() : null);
-        m.put("createdBy", e.getCreatedBy());
-        m.put("updatedBy", e.getUpdatedBy());
-        return m;
     }
 
     @Override
@@ -126,23 +114,20 @@ public class ComponentServiceImpl implements ComponentService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        List<ProcessingComponent> activeList = new ArrayList<>();
-        for (ProcessingComponent c : rawList) {
-            if (c.getEffectiveDate() != null && !c.getEffectiveDate().isAfter(now)) {
-                if (c.getEndEffectiveDate() == null || !c.getEndEffectiveDate().isBefore(now)) {
-                    activeList.add(c);
-                }
-            }
-        }
-        return activeList;
+        return rawList.stream()
+                .filter(c -> c.getEffectiveDate() != null && !c.getEffectiveDate().isAfter(now))
+                .filter(c -> c.getEndEffectiveDate() == null || !c.getEndEffectiveDate().isBefore(now))
+                .toList();
     }
 
     @Override
     public ProcessingComponent create(ComponentDTO dto, String username) {
         log.info("[Component] Creating. user={}, componentCode={}", username, dto.getComponentCode());
 
+        DateUtils.validateEffectiveDates(dto.getEffectiveDate(), dto.getEndEffectiveDate());
+
         if (dto.getComponentCode() != null && repository.existsByComponentCode(dto.getComponentCode().toUpperCase())) {
-            throw new IllegalStateException("Mã cấu phần '" + dto.getComponentCode().toUpperCase() + "' đã tồn tại!");
+            throw new BusinessRuleException("Mã cấu phần '" + dto.getComponentCode().toUpperCase() + "' đã tồn tại!");
         }
 
         ProcessingComponent entity = ProcessingComponent.builder()
@@ -152,14 +137,14 @@ public class ComponentServiceImpl implements ComponentService {
                 .connectionMethod(dto.getConnectionMethod())
                 .checkToken(dto.getCheckToken() != null ? dto.getCheckToken() : "N")
                 .description(dto.getDescription())
-                .status(ParamStatus.NEW.getCode())
-                .isActive(computeActiveStatus(dto.getEffectiveDate(), dto.getEndEffectiveDate()))
-                .isDisplay(DisplayStatus.INITIAL.getCode())
                 .effectiveDate(dto.getEffectiveDate())
                 .endEffectiveDate(dto.getEndEffectiveDate())
+                .status(ParamStatus.NEW.getCode())
+                .isDisplay(DisplayStatus.INITIAL.getCode())
+                .isActive(computeActiveStatus(dto.getEffectiveDate(), dto.getEndEffectiveDate()))
+                .createdBy(username)
+                .updatedBy(username)
                 .build();
-        entity.setCreatedBy(username);
-        entity.setUpdatedBy(username);
 
         ProcessingComponent saved = repository.save(entity);
         log.info("[Component] Created. code={}", saved.getComponentCode());
@@ -168,7 +153,7 @@ public class ComponentServiceImpl implements ComponentService {
         auditLogService.log(
                 MODULE, saved.getComponentCode(),
                 AuditAction.CREATE.getActionName(), username,
-                null, toJson(snapshot(saved)),
+                null, toJson(saved),
                 String.format("Tạo mới cấu phần: %s - %s", saved.getComponentCode(), saved.getComponentName()),
                 null, ParamStatus.NEW.getCode());
 
@@ -177,47 +162,38 @@ public class ComponentServiceImpl implements ComponentService {
 
     @Override
     public ProcessingComponent update(String code, ComponentDTO dto, String username) {
+        log.info("[Component] Updating. code={}, user={}", code, username);
+        if (username == null || username.trim().isEmpty()) {
+            username = SecurityUtils.getCurrentUsername();
+        }
+
         ProcessingComponent entity = getByCode(code);
-        String oldJson = toJson(snapshot(entity));
+        String oldJson = toJson(entity);
         int statusBefore = entity.getStatus();
 
-        // 1. Kiểm tra trạng thái được phép sửa: Tạo mới (1), Từ chối (5), Hủy duyệt (7)
-        if (entity.getStatus() != ParamStatus.NEW.getCode() 
-                && entity.getStatus() != ParamStatus.REJECTED.getCode() 
-                && entity.getStatus() != ParamStatus.CANCELED.getCode()) {
-            throw new IllegalStateException("Không được phép chỉnh sửa cấu phần đang ở trạng thái: "
-                    + (entity.getStatus() == ParamStatus.PENDING.getCode() ? "Chờ duyệt" : "Đã duyệt"));
+        // 1. Kiểm tra dựa trên status: Nếu đang PENDING (3) -> ném lỗi không được sửa
+        if (entity.isPending()) {
+            throw new InvalidStateTransitionException("Không được phép chỉnh sửa cấu phần đang ở trạng thái Chờ duyệt!");
         }
+
+        // 2. Validate ngày hiệu lực doanh nghiệp
+        DateUtils.validateEffectiveDates(dto.getEffectiveDate(), dto.getEndEffectiveDate());
 
         ProcessingComponent saved;
         String action;
         int statusAfter;
 
-        if (entity.getIsDisplay() == DisplayStatus.ONCE_APPROVED.getCode()) {
-            try {
-                // Bản ghi đã từng được duyệt (isDisplay == 2): không sửa trực tiếp vào các cột,
-                // chỉ lưu vào NEW_DATA
-                Map<String, Object> changes = new HashMap<>();
-                changes.put("componentName", dto.getComponentName());
-                changes.put("messageType", dto.getMessageType());
-                changes.put("connectionMethod", dto.getConnectionMethod());
-                changes.put("checkToken", dto.getCheckToken());
-                changes.put("description", dto.getDescription());
-                changes.put("isActive", computeActiveStatus(dto.getEffectiveDate(), dto.getEndEffectiveDate()));
-                changes.put("effectiveDate", dto.getEffectiveDate() != null ? dto.getEffectiveDate().toString() : null);
-                changes.put("endEffectiveDate",
-                        dto.getEndEffectiveDate() != null ? dto.getEndEffectiveDate().toString() : null);
-
-                entity.setNewData(objectMapper.writeValueAsString(changes));
-                entity.setUpdatedBy(username);
-                entity.setStatus(ParamStatus.CANCELED.getCode()); // Khi sửa một thay đổi của bản ghi đã duyệt, đặt trạng thái về Hủy duyệt (7) để
-                                     // Maker gửi duyệt lại
-                saved = repository.save(entity);
-                action = "Lưu sửa nháp (Hủy duyệt)";
-                statusAfter = ParamStatus.CANCELED.getCode();
-            } catch (Exception e) {
-                throw new RuntimeException("Lỗi serialize NEW_DATA: " + e.getMessage());
+        // 3. Phân nhánh lưu trữ dựa vào status và isDisplay
+        if (entity.isApproved() || entity.isOnceApproved()) {
+            if (!isDtoDifferentFromEntity(entity, dto)) {
+                throw new BusinessRuleException("Dữ liệu cập nhật trùng khớp 100% với dữ liệu đang vận hành, không có thay đổi nào để gửi duyệt!");
             }
+            entity.setNewData(toJson(dto));
+            entity.setUpdatedBy(username);
+            entity.setStatus(ParamStatus.CANCELED.getCode()); // Đặt trạng thái về Hủy duyệt (7) để Maker gửi duyệt lại
+            saved = repository.save(entity);
+            action = "Lưu sửa nháp (Hủy duyệt)";
+            statusAfter = ParamStatus.CANCELED.getCode();
         } else {
             // Bản ghi chưa từng được duyệt (isDisplay == 1): cập nhật trực tiếp vào các cột
             entity.setComponentName(dto.getComponentName());
@@ -236,7 +212,7 @@ public class ComponentServiceImpl implements ComponentService {
             statusAfter = ParamStatus.NEW.getCode();
         }
 
-        String newJson = toJson(snapshot(saved));
+        String newJson = toJson(saved);
 
         // Ghi audit log
         auditLogService.log(
@@ -253,43 +229,24 @@ public class ComponentServiceImpl implements ComponentService {
     public void delete(String code, String username) {
         log.info("[Component] Deleting. code={}, user={}", code, username);
 
-        // Phân quyền: Yêu cầu phải có định danh người dùng (username)
         if (username == null || username.trim().isEmpty()) {
-            throw new ForbiddenAccessException("Yêu cầu cần có định danh người dùng (username)!");
+            username = SecurityUtils.getCurrentUsername();
         }
 
         ProcessingComponent entity = getByCode(code);
 
-        if (entity.getIsDisplay() == DisplayStatus.ONCE_APPROVED.getCode()) {
-            // Bản ghi đã được duyệt trước đó (isDisplay == 2):
-            // Nếu bản ghi đang có thay đổi chờ duyệt (status = 3) hoặc bị từ chối (status = 5):
-            // Hành động xóa sẽ đóng vai trò hủy bỏ yêu cầu chỉnh sửa này và khôi phục về bản duyệt cũ.
-            if (entity.getStatus() == ParamStatus.PENDING.getCode() || entity.getStatus() == ParamStatus.REJECTED.getCode()) {
-                String oldJson = toJson(snapshot(entity));
-                entity.setNewData(null);
-                entity.setStatus(ParamStatus.APPROVED.getCode()); // Khôi phục trạng thái đã phê duyệt
-                entity.setUpdatedBy(username);
-                ProcessingComponent saved = repository.save(entity);
-
-                // Ghi audit log
-                auditLogService.log(
-                        MODULE, code,
-                        "Hủy yêu cầu sửa", username,
-                        oldJson, toJson(snapshot(saved)),
-                        String.format("Hủy yêu cầu chỉnh sửa và khôi phục trạng thái đã duyệt cho cấu phần Code=%s",
-                                code),
-                        ParamStatus.PENDING.getCode(), ParamStatus.APPROVED.getCode());
-                return;
-            }
-            throw new IllegalStateException("Bản ghi đã phê duyệt và đang vận hành (STATUS = 4), không được phép xóa!");
+        if (entity.isOnceApproved()) {
+            throw new BusinessRuleException("Bản ghi đã từng được phê duyệt (isDisplay = 2) là bản ghi chuẩn của hệ thống, không được phép xóa!");
         }
 
-        // Bản ghi chưa từng được duyệt (isDisplay == 1): Xóa vật lý
-        String oldJson = toJson(snapshot(entity));
+        if (entity.isPending()) {
+            throw new InvalidStateTransitionException("Bản ghi đang ở trạng thái Chờ duyệt (STATUS = 3), không được phép xóa!");
+        }
+
+        String oldJson = toJson(entity);
         repository.delete(entity);
         log.info("[Component] Deleted. code={}", code);
 
-        // Ghi audit log
         auditLogService.log(
                 MODULE, code,
                 AuditAction.DELETE.getActionName(), username,
@@ -301,11 +258,22 @@ public class ComponentServiceImpl implements ComponentService {
     @Override
     public ProcessingComponent sendForApproval(String code, String username) {
         log.info("[Component] Sending for approval. code={}, user={}", code, username);
+        if (username == null || username.trim().isEmpty()) {
+            username = SecurityUtils.getCurrentUsername();
+        }
+
         ProcessingComponent entity = getByCode(code);
 
-        if (entity.getStatus() == ParamStatus.PENDING.getCode()) {
-            throw new IllegalStateException("Bản ghi đã ở trạng thái Chờ duyệt!");
+        if (!entity.isCanBeSubmitted()) {
+            throw new InvalidStateTransitionException("Chỉ được phép gửi duyệt cấu phần ở trạng thái Mới (1), Từ chối (5) hoặc Hủy duyệt (7)!");
         }
+
+        if (entity.isOnceApproved()
+                && (entity.getNewData() == null || entity.getNewData().trim().isEmpty())) {
+            throw new BusinessRuleException("Cấu phần chưa có bất kỳ thay đổi nào so với dữ liệu đã duyệt, không cần gửi duyệt lại!");
+        }
+
+        DateUtils.validateEffectiveDates(entity.getEffectiveDate(), entity.getEndEffectiveDate());
 
         int statusBefore = entity.getStatus();
 
@@ -313,7 +281,6 @@ public class ComponentServiceImpl implements ComponentService {
         entity.setUpdatedBy(username);
         ProcessingComponent saved = repository.save(entity);
 
-        // Ghi audit log
         auditLogService.log(
                 MODULE, code,
                 AuditAction.SEND_APPROVAL.getActionName(), username,
@@ -328,24 +295,22 @@ public class ComponentServiceImpl implements ComponentService {
     public ProcessingComponent cancelApproval(String code, String username) {
         log.info("[Component] Canceling approval. code={}, user={}", code, username);
 
-        // 1. Phân quyền: Yêu cầu phải có định danh người dùng (username)
         if (username == null || username.trim().isEmpty()) {
-            throw new ForbiddenAccessException("Yêu cầu cần có định danh người dùng (username)!");
+            username = SecurityUtils.getCurrentUsername();
         }
 
         ProcessingComponent entity = getByCode(code);
-        if (entity.getStatus() != ParamStatus.APPROVED.getCode()) {
-            throw new IllegalStateException(
+        if (!entity.isApproved()) {
+            throw new InvalidStateTransitionException(
                     "Chỉ được phép hủy duyệt bản ghi đang ở trạng thái đã phê duyệt (STATUS = 4)!");
         }
 
         int statusBefore = entity.getStatus();
 
-        entity.setStatus(ParamStatus.CANCELED.getCode()); // Hủy duyệt
-        entity.setUpdatedBy(username); // Lưu định danh người sửa vào DB
+        entity.setStatus(ParamStatus.CANCELED.getCode());
+        entity.setUpdatedBy(username);
         ProcessingComponent saved = repository.save(entity);
 
-        // Ghi audit log kiểm toán với đích danh cá nhân (username) thực hiện
         auditLogService.log(
                 MODULE, code,
                 AuditAction.CANCEL_APPROVAL.getActionName(), username,
@@ -358,59 +323,40 @@ public class ComponentServiceImpl implements ComponentService {
 
     @Override
     @Transactional(readOnly = true)
-    @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getRawDataForExport() {
-        String sql = "SELECT COMPONENT_CODE, COMPONENT_NAME, MESSAGE_TYPE, CONNECTION_METHOD, " +
-                "CHECK_TOKEN, DESCRIPTION, STATUS, IS_ACTIVE, EFFECTIVE_DATE, END_EFFECTIVE_DATE " +
-                "FROM PMH_COMPONENTS WHERE IS_ACTIVE = 1 ORDER BY COMPONENT_NAME";
-
-        List<Object[]> rows = entityManager.createNativeQuery(sql).getResultList();
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (Object[] row : rows) {
-            Map<String, Object> map = new HashMap<>();
-            map.put("componentCode", row[0]);
-            map.put("componentName", row[1]);
-            map.put("messageType", row[2]);
-            map.put("connectionMethod", row[3]);
-            map.put("checkToken", row[4]);
-            map.put("description", row[5]);
-            map.put("status", row[6] != null ? ((Number) row[6]).intValue() : null);
-            map.put("isActive", row[7] != null ? ((Number) row[7]).intValue() : null);
-            map.put("effectiveDate", row[8]);
-            map.put("endEffectiveDate", row[9]);
-            result.add(map);
-        }
-        return result;
+        List<ProcessingComponent> activeList = repository.findAllByIsActiveOrderByComponentNameAsc(ActiveStatus.ACTIVE.getCode());
+        return activeList.stream()
+                .map(entity -> objectMapper.convertValue(entity, new TypeReference<Map<String, Object>>() {}))
+                .toList();
     }
 
     @Override
-    public List<Map<String, Object>> batchApprove(List<String> codes, String approver) {
+    public List<BatchItemResultDTO> batchApprove(List<String> codes, String approver) {
         log.info("[Component] Batch approve started. count={}, approver={}", codes.size(), approver);
-        List<Map<String, Object>> results = new ArrayList<>();
-        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
-        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        List<BatchItemResultDTO> results = new ArrayList<>();
 
         for (String code : codes) {
-            results.add(approveSingleComponent(code, approver, transactionTemplate));
+            results.add(approveSingleComponent(code, approver));
         }
 
-        long successCount = results.stream().filter(r -> Boolean.TRUE.equals(r.get("success"))).count();
+        long successCount = results.stream().filter(r -> "SUCCESS".equalsIgnoreCase(r.getStatus())).count();
         log.info("[Component] Batch approve done. success={}/{}", successCount, codes.size());
         return results;
     }
 
-    private Map<String, Object> approveSingleComponent(String code, String approver,
-            TransactionTemplate transactionTemplate) {
-        Map<String, Object> res = new HashMap<>();
-        res.put("code", code);
+    private BatchItemResultDTO approveSingleComponent(String code, String approver) {
+        BatchItemResultDTO result = BatchItemResultDTO.builder().build();
         try {
-            transactionTemplate.executeWithoutResult(status -> {
+            this.transactionTemplate.executeWithoutResult(status -> {
                 ProcessingComponent entity = getByCode(code);
 
-                // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
+                if (!entity.isPending()) {
+                    throw new InvalidStateTransitionException("Chỉ được phép phê duyệt cấu phần đang ở trạng thái Chờ duyệt (STATUS = 3)!");
+                }
+
                 if (approver.equalsIgnoreCase(entity.getCreatedBy())
                         || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
-                    throw new ForbiddenAccessException(
+                    throw new MakerCheckerConflictException(
                             "Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
                 }
 
@@ -418,32 +364,19 @@ public class ComponentServiceImpl implements ComponentService {
 
                 if (entity.getNewData() != null && !entity.getNewData().isEmpty()) {
                     try {
-                        Map<String, Object> changes = objectMapper.readValue(
-                                entity.getNewData(),
-                                new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
-                                });
-                        if (changes.containsKey("componentName"))
-                            entity.setComponentName((String) changes.get("componentName"));
-                        if (changes.containsKey("messageType"))
-                            entity.setMessageType((String) changes.get("messageType"));
-                        if (changes.containsKey("connectionMethod"))
-                            entity.setConnectionMethod((String) changes.get("connectionMethod"));
-                        if (changes.containsKey("checkToken"))
-                            entity.setCheckToken((String) changes.get("checkToken"));
-                        if (changes.containsKey("description"))
-                            entity.setDescription((String) changes.get("description"));
-                        if (changes.containsKey("effectiveDate") && changes.get("effectiveDate") != null
-                                && !((String) changes.get("effectiveDate")).trim().isEmpty())
-                            entity.setEffectiveDate(LocalDateTime.parse((String) changes.get("effectiveDate")));
-                        if (changes.containsKey("endEffectiveDate") && changes.get("endEffectiveDate") != null
-                                && !((String) changes.get("endEffectiveDate")).trim().isEmpty())
-                            entity.setEndEffectiveDate(
-                                    LocalDateTime.parse((String) changes.get("endEffectiveDate")));
+                        ComponentDTO changes = objectMapper.readValue(entity.getNewData(), ComponentDTO.class);
+                        if (changes.getComponentName() != null) entity.setComponentName(changes.getComponentName());
+                        if (changes.getMessageType() != null) entity.setMessageType(changes.getMessageType());
+                        if (changes.getConnectionMethod() != null) entity.setConnectionMethod(changes.getConnectionMethod());
+                        if (changes.getCheckToken() != null) entity.setCheckToken(changes.getCheckToken());
+                        entity.setDescription(changes.getDescription());
+                        if (changes.getEffectiveDate() != null) entity.setEffectiveDate(changes.getEffectiveDate());
+                        entity.setEndEffectiveDate(changes.getEndEffectiveDate());
                         entity.setIsActive(computeActiveStatus(entity.getEffectiveDate(), entity.getEndEffectiveDate()));
                         entity.setNewData(null);
                         repository.saveAndFlush(entity);
                     } catch (Exception ex) {
-                        throw new RuntimeException("Lỗi giải mã dữ liệu thay đổi: " + ex.getMessage(), ex);
+                        throw new BusinessRuleException("Lỗi giải mã dữ liệu thay đổi: " + ex.getMessage(), ex);
                     }
                 }
 
@@ -458,16 +391,11 @@ public class ComponentServiceImpl implements ComponentService {
 
                 Object spStatusObj = query.getOutputParameterValue("p_status");
                 String spMessage = (String) query.getOutputParameterValue("p_message");
-                boolean success = false;
-                if (spStatusObj instanceof Number) {
-                    success = ((Number) spStatusObj).intValue() == 1;
-                }
-
-                res.put("success", success);
-                res.put("message", spMessage);
+                boolean success = spStatusObj instanceof Number && ((Number) spStatusObj).intValue() == 1;
 
                 if (success) {
-                    // Ghi audit log
+                    result.setStatus("SUCCESS");
+                    result.setErrorMessage(spMessage);
                     auditLogService.log(
                             MODULE, code,
                             AuditAction.APPROVE.getActionName(), approver,
@@ -475,45 +403,44 @@ public class ComponentServiceImpl implements ComponentService {
                             String.format("Phê duyệt cấu phần Code=%s. SP: %s", code, spMessage),
                             statusBefore, ParamStatus.APPROVED.getCode());
                 } else {
-                    throw new RuntimeException(spMessage);
+                    throw new BusinessRuleException(spMessage);
                 }
             });
         } catch (Exception e) {
-            res.put("success", false);
-            res.put("message", e.getMessage() != null ? e.getMessage() : "Lỗi thực thi");
+            result.setStatus("FAILED");
+            result.setErrorMessage(e.getMessage() != null ? e.getMessage() : "Lỗi thực thi");
             log.error("[Component] Batch approve failed for code={}. error={}", code, e.getMessage());
         }
-        return res;
+        return result;
     }
 
     @Override
-    public List<Map<String, Object>> batchReject(List<String> codes, String reason, String approver) {
+    public List<BatchItemResultDTO> batchReject(List<String> codes, String reason, String approver) {
         log.info("[Component] Batch reject started. count={}, approver={}", codes.size(), approver);
-        List<Map<String, Object>> results = new ArrayList<>();
-        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
-        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        List<BatchItemResultDTO> results = new ArrayList<>();
 
         for (String code : codes) {
-            results.add(rejectSingleComponent(code, reason, approver, transactionTemplate));
+            results.add(rejectSingleComponent(code, reason, approver));
         }
 
-        long successCount = results.stream().filter(r -> Boolean.TRUE.equals(r.get("success"))).count();
+        long successCount = results.stream().filter(r -> "SUCCESS".equalsIgnoreCase(r.getStatus())).count();
         log.info("[Component] Batch reject done. success={}/{}", successCount, codes.size());
         return results;
     }
 
-    private Map<String, Object> rejectSingleComponent(String code, String reason, String approver,
-            TransactionTemplate transactionTemplate) {
-        Map<String, Object> res = new HashMap<>();
-        res.put("code", code);
+    private BatchItemResultDTO rejectSingleComponent(String code, String reason, String approver) {
+        BatchItemResultDTO result = BatchItemResultDTO.builder().build();
         try {
-            transactionTemplate.executeWithoutResult(status -> {
+            this.transactionTemplate.executeWithoutResult(status -> {
                 ProcessingComponent entity = getByCode(code);
 
-                // Kiểm tra phân quyền: Người duyệt không được trùng với người tạo/cập nhật yêu cầu
+                if (!entity.isPending()) {
+                    throw new InvalidStateTransitionException("Chỉ được phép từ chối cấu phần đang ở trạng thái Chờ duyệt (STATUS = 3)!");
+                }
+
                 if (approver.equalsIgnoreCase(entity.getCreatedBy())
                         || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
-                    throw new ForbiddenAccessException(
+                    throw new MakerCheckerConflictException(
                             "Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
                 }
 
@@ -530,15 +457,11 @@ public class ComponentServiceImpl implements ComponentService {
 
                 Object spStatusObj = query.getOutputParameterValue("p_status");
                 String spMessage = (String) query.getOutputParameterValue("p_message");
-                boolean success = false;
-                if (spStatusObj instanceof Number) {
-                    success = ((Number) spStatusObj).intValue() == 1;
-                }
-
-                res.put("success", success);
-                res.put("message", spMessage);
+                boolean success = spStatusObj instanceof Number && ((Number) spStatusObj).intValue() == 1;
 
                 if (success) {
+                    result.setStatus("SUCCESS");
+                    result.setErrorMessage(spMessage);
                     auditLogService.log(
                             MODULE, code,
                             AuditAction.REJECT.getActionName(), approver,
@@ -549,14 +472,25 @@ public class ComponentServiceImpl implements ComponentService {
                                     : String.format("Từ chối duyệt cấu phần Code=%s. SP: %s", code, spMessage),
                             statusBefore, ParamStatus.REJECTED.getCode());
                 } else {
-                    throw new RuntimeException(spMessage);
+                    throw new BusinessRuleException(spMessage);
                 }
             });
         } catch (Exception e) {
-            res.put("success", false);
-            res.put("message", e.getMessage() != null ? e.getMessage() : "Lỗi thực thi");
+            result.setStatus("FAILED");
+            result.setErrorMessage(e.getMessage() != null ? e.getMessage() : "Lỗi thực thi");
             log.error("[Component] Batch reject failed for code={}. error={}", code, e.getMessage());
         }
-        return res;
+        return result;
+    }
+
+    private boolean isDtoDifferentFromEntity(ProcessingComponent entity, ComponentDTO dto) {
+        return !Objects.equals(entity.getComponentName(), dto.getComponentName())
+                || !Objects.equals(entity.getMessageType(), dto.getMessageType())
+                || !Objects.equals(entity.getConnectionMethod(), dto.getConnectionMethod())
+                || !Objects.equals(entity.getCheckToken(), dto.getCheckToken())
+                || !Objects.equals(entity.getDescription(), dto.getDescription())
+                || !Objects.equals(entity.getIsActive(), dto.getIsActive())
+                || !Objects.equals(entity.getEffectiveDate(), dto.getEffectiveDate())
+                || !Objects.equals(entity.getEndEffectiveDate(), dto.getEndEffectiveDate());
     }
 }

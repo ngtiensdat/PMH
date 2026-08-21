@@ -16,8 +16,8 @@
       </span>
       <h1 class="form-page-title" style="display: flex; align-items: center; gap: 0.75rem;">
         {{ languageService.labels().common.viewDetail }}
-        <span *ngIf="category" class="status-pill" [ngClass]="category.status === ParamStatus.REJECTED && category.isDisplay === DisplayStatus.ONCE_APPROVED ? 'badge-canceled' : statusMap[category.status]?.css">
-          ● {{ category.status }} - {{ category.status === ParamStatus.REJECTED && category.isDisplay === DisplayStatus.ONCE_APPROVED ? (languageService.labels().common.status.canceled || 'Hủy duyệt') : statusMap[category.status]?.label }}
+        <span *ngIf="category" class="status-pill" [ngClass]="statusMap[category.status]?.css">
+          ● {{ category.status }} - {{ statusMap[category.status]?.label }}
         </span>
       </h1>
     </div>
@@ -58,17 +58,17 @@
     <!-- Nút hành động ở dưới cùng bên phải -->
     <div class="form-footer-actions">
       <!-- Maker actions: Mới (1), Từ chối (5), Hủy duyệt (7) -->
-      <ng-container *ngIf="(category.status === ParamStatus.NEW || category.status === ParamStatus.REJECTED || category.status === ParamStatus.CANCELED) && languageService.userCode() === 'USER01'">
-        <button tuiButton appearance="secondary" type="button" (click)="onDeleteRecord()" style="margin-right: 0.75rem; --tui-primary: #ef4444; --tui-primary-hover: #dc2626;">
+      <ng-container *ngIf="(category.status === ParamStatus.NEW || category.status === ParamStatus.REJECTED || category.status === ParamStatus.CANCELED) && languageService.isMaker()">
+        <button *ngIf="category.isDisplay === DisplayStatus.INITIAL" tuiButton appearance="secondary" type="button" (click)="onDeleteRecord()" style="margin-right: 0.75rem; --tui-primary: #ef4444; --tui-primary-hover: #dc2626;">
           {{ languageService.labels().common.delete }}
         </button>
-        <button tuiButton type="button" (click)="onSendApprovalRecord()">
+        <button *ngIf="category.isDisplay === DisplayStatus.INITIAL || (category.newData && category.newData !== '')" tuiButton type="button" (click)="onSendApprovalRecord()">
           {{ languageService.labels().common.sendApproval }}
         </button>
       </ng-container>
 
       <!-- Checker actions: Chờ duyệt (3) -->
-      <ng-container *ngIf="category.status === ParamStatus.PENDING && languageService.userCode() === 'APPROVER'">
+      <ng-container *ngIf="category.status === ParamStatus.PENDING && languageService.isChecker()">
         <button tuiButton appearance="secondary" type="button" (click)="onRejectRecord()" style="margin-right: 0.75rem; --tui-primary: #ef4444; --tui-primary-hover: #dc2626;">
           {{ languageService.labels().common.reject }}
         </button>
@@ -83,6 +83,32 @@
     </div>
   </div>
 </div>
+
+<!-- Hộp thoại xác nhận Xóa / Hủy yêu cầu sửa dùng tuiDialog -->
+<ng-template [(tuiDialog)]="isDeleteOpen" [tuiDialogOptions]="{label: category?.isDisplay === DisplayStatus.ONCE_APPROVED ? 'Xác nhận hủy yêu cầu sửa' : (languageService.labels().common.delete || 'Xác nhận xóa'), size: 's'}">
+  <div style="padding: 0.75rem 0; font-size: 0.88rem; color: #334155;">
+    {{ category?.isDisplay === DisplayStatus.ONCE_APPROVED 
+      ? 'Bạn có chắc chắn muốn hủy yêu cầu chỉnh sửa này và khôi phục về bản ghi đang chạy?' 
+      : 'Bạn có chắc chắn muốn xóa bản ghi chưa duyệt này không?' }}
+  </div>
+  
+  <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; border-top: 1px solid #f1f5f9; padding-top: 0.75rem;">
+    <button tuiButton appearance="outline" type="button" (click)="isDeleteOpen = false">{{ languageService.labels().common.cancel }}</button>
+    <button tuiButton type="button" (click)="onConfirmDelete()" style="--tui-primary: #ef4444; --tui-primary-hover: #dc2626;">{{ languageService.labels().common.confirm }}</button>
+  </div>
+</ng-template>
+
+<!-- Hộp thoại xác nhận Phê duyệt -->
+<ng-template [(tuiDialog)]="isApproveOpen" [tuiDialogOptions]="{label: languageService.labels().common.approve || 'Xác nhận phê duyệt', size: 's'}">
+  <div style="padding: 0.75rem 0; font-size: 0.88rem; color: #334155;">
+    Bạn có chắc chắn muốn phê duyệt bản ghi này không?
+  </div>
+  
+  <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; border-top: 1px solid #f1f5f9; padding-top: 0.75rem;">
+    <button tuiButton appearance="outline" type="button" (click)="isApproveOpen = false">{{ languageService.labels().common.cancel }}</button>
+    <button tuiButton type="button" (click)="onConfirmApprove()">{{ languageService.labels().common.confirm }}</button>
+  </div>
+</ng-template>
 
 <!-- Hộp thoại nhập Lý do từ chối dùng tuiDialog -->
 <ng-template [(tuiDialog)]="isRejectOpen" [tuiDialogOptions]="{label: languageService.labels().common.reasonReject, size: 's'}">
