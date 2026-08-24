@@ -78,10 +78,8 @@ export class ComponentListComponent implements OnInit {
     console.log('[ComponentListComponent] Constructor - searchForm status:', this.searchForm ? 'defined' : 'undefined');
   }
 
-  // Dùng shared STATUS_MAP từ constants
   statusMap = STATUS_MAP;
 
-  // Dropdown items cho bộ lọc (dạng string code)
   readonly statusCodes = ['', '1', '3', '4', '5', '7'];
   readonly activeCodes = ['', '1', '0'];
 
@@ -124,7 +122,6 @@ export class ComponentListComponent implements OnInit {
     return map[id] || id;
   }
 
-  // Dynamic getters for component code/name dropdown items (plain strings)
   get componentCodeItems(): string[] {
     return [this.languageService.labels().common.selectValue, ...this.componentCodesList.map(o => o.value)];
   }
@@ -133,7 +130,6 @@ export class ComponentListComponent implements OnInit {
     return [this.languageService.labels().common.selectValue, ...this.componentNamesList.map(o => o.value)];
   }
 
-  // Dynamic columns definition with generous default widths
   columns = [
     { id: 'checkbox', label: '', isFixed: true, width: 40 },
     { id: 'stt', label: 'STT', isFixed: true, width: 60 },
@@ -164,7 +160,6 @@ export class ComponentListComponent implements OnInit {
   isResizing = false;
   justResized = false;
 
-  // Column resizing implementation (Ultra-smooth 60fps with requestAnimationFrame)
   onResizeStart(event: MouseEvent, col: any) {
     event.stopPropagation();
     event.preventDefault();
@@ -207,7 +202,6 @@ export class ComponentListComponent implements OnInit {
     document.addEventListener('mouseup', onMouseUp, { once: true });
   }
 
-  // Column reordering implementation
   onDragStart(colId: string, event: DragEvent) {
     const index = this.columns.findIndex(c => c.id === colId);
     if (this.isResizing || this.justResized || index === -1 || this.columns[index].isFixed) {
@@ -246,7 +240,6 @@ export class ComponentListComponent implements OnInit {
     this.dragOverColumnIndex = null;
   }
 
-  // Column sorting implementation
   toggleSort(colId: string) {
     if (this.isResizing || this.justResized || colId === 'checkbox' || colId === 'stt' || colId === 'actions') return;
 
@@ -260,8 +253,6 @@ export class ComponentListComponent implements OnInit {
       if (currentDir === 'asc') {
         newDir = 'desc';
       } else {
-        // If it is already desc, reset to default (updatedDate, desc)
-        // Unless we are already sorting by updatedDate, in which case we toggle back to asc
         if (colId !== 'updatedDate') {
           newField = 'updatedDate';
           newDir = 'desc';
@@ -278,7 +269,6 @@ export class ComponentListComponent implements OnInit {
     this.loadData();
   }
 
-  // TrackBy functions to optimize Angular DOM rendering
   trackByCode(index: number, item: ProcessingComponentResponse): any {
     return item.componentCode;
   }
@@ -321,7 +311,6 @@ export class ComponentListComponent implements OnInit {
 
   loadData() {
     console.log('[ComponentListComponent] loadData called');
-    // Auto save list state
     this.componentService.setListState({
       page: this.page(),
       size: this.size(),
@@ -353,7 +342,8 @@ export class ComponentListComponent implements OnInit {
       },
       error: (err: HttpErrorResponse) => {
         if (err.status !== 401 && err.status !== 403 && this.authService.isLoggedIn()) {
-          this.notificationService.error('Lỗi tải dữ liệu: ' + (err.error?.message || err.message));
+          const prefix = this.languageService.labels().messages?.errorPrefix?.loadData || 'Lỗi tải dữ liệu: ';
+          this.notificationService.error(prefix + (err.error?.message || err.message));
         }
         this.isLoading.set(false);
       }
@@ -397,7 +387,6 @@ export class ComponentListComponent implements OnInit {
     this.router.navigate(['/components/detail', item.componentCode], { state: { data: item } });
   }
 
-  // Confirmation dialog state
   isConfirmOpen = false;
   confirmTitle = '';
   confirmMessage = '';
@@ -428,12 +417,10 @@ export class ComponentListComponent implements OnInit {
     this.isConfirmOpen = true;
   }
 
-  // Reject Dialog state
   isRejectOpen = false;
   rejectReason = '';
   rejectTargetCodes: string[] = [];
 
-  // History Dialog state
   isHistoryOpen = false;
   historyTargetCode: string | null = null;
   historyData = signal<any[]>([]);
@@ -447,7 +434,8 @@ export class ComponentListComponent implements OnInit {
   onBatchApprove() {
     const codes = this.selectedCodes();
     if (codes.length === 0) {
-      this.notificationService.warning('Vui lòng chọn ít nhất một cấu phần để duyệt!');
+      const warnMsg = this.languageService.labels().messages?.warning?.selectAtLeastOneComponentToApprove || 'Vui lòng chọn ít nhất một cấu phần để duyệt!';
+      this.notificationService.warning(warnMsg);
       return;
     }
     this.confirmTitle = 'Phê duyệt';
@@ -459,7 +447,8 @@ export class ComponentListComponent implements OnInit {
   onBatchReject() {
     const codes = this.selectedCodes();
     if (codes.length === 0) {
-      this.notificationService.warning('Vui lòng chọn ít nhất một cấu phần để từ chối!');
+      const warnMsg = this.languageService.labels().messages?.warning?.selectAtLeastOneComponentToReject || 'Vui lòng chọn ít nhất một cấu phần để từ chối!';
+      this.notificationService.warning(warnMsg);
       return;
     }
     this.rejectTargetCodes = codes;
@@ -486,7 +475,8 @@ export class ComponentListComponent implements OnInit {
         this.loadData();
       },
       error: (err: any) => {
-        this.notificationService.error('Lỗi thực hiện từ chối duyệt: ' + (err.error?.message || err.message));
+        const prefix = this.languageService.labels().messages?.errorPrefix?.reject || 'Lỗi thực hiện từ chối duyệt: ';
+        this.notificationService.error(prefix + (err.error?.message || err.message));
         this.isLoading.set(false);
       }
     });
@@ -539,7 +529,8 @@ export class ComponentListComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (err: any) => {
-        this.notificationService.error('Không thể tải lịch sử thao tác: ' + (err.error?.message || err.message));
+        const prefix = this.languageService.labels().messages?.errorPrefix?.history || 'Không thể tải lịch sử thao tác: ';
+        this.notificationService.error(prefix + (err.error?.message || err.message));
       }
     });
   }
@@ -554,36 +545,38 @@ export class ComponentListComponent implements OnInit {
     this.isConfirmOpen = false;
     this.isLoading.set(true);
 
+    const msgs = this.languageService.labels().messages;
+
     if (action === 'delete' && code) {
       this.componentService.delete(code).subscribe({
         next: () => {
-          this.notificationService.success('Xóa thành công!');
+          this.notificationService.success(msgs?.success?.delete || 'Xóa thành công!');
           this.loadData();
         },
         error: (err: any) => {
-          this.notificationService.error('Không thể xóa: ' + (err.error?.message || err.message));
+          this.notificationService.error((msgs?.errorPrefix?.delete || 'Không thể xóa: ') + (err.error?.message || err.message));
           this.isLoading.set(false);
         }
       });
     } else if (action === 'sendApproval' && code) {
       this.componentService.sendApproval(code).subscribe({
         next: () => {
-          this.notificationService.success('Gửi duyệt thành công!');
+          this.notificationService.success(msgs?.success?.sendApproval || 'Gửi duyệt thành công!');
           this.loadData();
         },
         error: (err: any) => {
-          this.notificationService.error('Lỗi gửi duyệt: ' + (err.error?.message || err.message));
+          this.notificationService.error((msgs?.errorPrefix?.sendApproval || 'Lỗi gửi duyệt: ') + (err.error?.message || err.message));
           this.isLoading.set(false);
         }
       });
     } else if (action === 'cancelApproval' && code) {
       this.componentService.cancelApproval(code).subscribe({
         next: () => {
-          this.notificationService.success('Hủy duyệt thành công!');
+          this.notificationService.success(msgs?.success?.cancelApproval || 'Hủy duyệt thành công!');
           this.loadData();
         },
         error: (err: any) => {
-          this.notificationService.error('Lỗi hủy duyệt: ' + (err.error?.message || err.message));
+          this.notificationService.error((msgs?.errorPrefix?.cancelApproval || 'Lỗi hủy duyệt: ') + (err.error?.message || err.message));
           this.isLoading.set(false);
         }
       });
@@ -596,7 +589,7 @@ export class ComponentListComponent implements OnInit {
           this.loadData();
         },
         error: (err: any) => {
-          this.notificationService.error('Lỗi duyệt hàng loạt: ' + (err.error?.message || err.message));
+          this.notificationService.error((msgs?.errorPrefix?.batchApprove || 'Lỗi duyệt hàng loạt: ') + (err.error?.message || err.message));
           this.isLoading.set(false);
         }
       });
@@ -608,7 +601,8 @@ export class ComponentListComponent implements OnInit {
       next: (res) => {
         const data = (res.data || []) as unknown as ProcessingComponentResponse[];
         if (data.length === 0) {
-          this.notificationService.warning('Không có dữ liệu cấu phần để xuất!');
+          const warnMsg = this.languageService.labels().messages?.warning?.noComponentDataToExport || 'Không có dữ liệu cấu phần để xuất!';
+          this.notificationService.warning(warnMsg);
           return;
         }
 
@@ -630,16 +624,15 @@ export class ComponentListComponent implements OnInit {
         document.body.removeChild(link);
       },
       error: (err: HttpErrorResponse) => {
-        this.notificationService.error('Lỗi xuất Excel: ' + (err.error?.message || err.message));
+        const prefix = this.languageService.labels().messages?.errorPrefix?.exportExcel || 'Lỗi xuất Excel: ';
+        this.notificationService.error(prefix + (err.error?.message || err.message));
       }
     });
   }
 
-  // Options getters
   get statusOptions() { return APPROVAL_STATUS_OPTIONS; }
   get activeOptions() { return IS_ACTIVE_OPTIONS; }
 
-  // Toggle selection check
   toggleSelectAll(event: Event) {
     const checked = (event.target as HTMLInputElement).checked;
     if (checked) {

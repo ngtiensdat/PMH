@@ -46,7 +46,6 @@ com\example\paymenthub\dto\request\ComponentSearchCriteria.class
 com\example\paymenthub\security\SecurityUtils.class
 com\example\paymenthub\service\AuditLogService.class
 com\example\paymenthub\service\AuthService.class
-com\example\paymenthub\service\impl\AuthServiceImpl$UserCredentials.class
 com\example\paymenthub\dto\response\GroupCategoryResponseDTO$GroupCategoryResponseDTOBuilder.class
 com\example\paymenthub\security\JwtAuthenticationFilter.class
 com\example\paymenthub\common\base\BaseEntity.class

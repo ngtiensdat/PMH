@@ -1,6 +1,12 @@
 server:
   port: 8080
 
+app:
+  security:
+    max-failed-attempts: 5
+    lockout-minutes: 15
+
+
 spring:
   output:
     ansi:

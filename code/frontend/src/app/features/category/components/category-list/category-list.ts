@@ -69,13 +69,12 @@ export class CategoryListComponent implements OnInit {
   sortDirection = signal<string>('desc');
 
   viewMode = signal<'jpa' | 'native'>('jpa');
-  activeTabIndex = 0; // Index 0: JPA, 1: Native Query
+  activeTabIndex = 0;
 
   joinedCategories = signal<GroupCategoryResponse[]>([]);
   selectedIds = signal<number[]>([]);
   isLoading = signal<boolean>(false);
 
-  // Dùng shared STATUS_MAP từ constants
   statusMap = STATUS_MAP;
 
   constructor() {
@@ -83,7 +82,6 @@ export class CategoryListComponent implements OnInit {
     console.log('[CategoryListComponent] Constructor - viewMode:', this.viewMode());
   }
 
-  // Dropdown items cho bộ lọc (dạng string code)
   readonly statusCodes = ['', '1', '3', '4', '5', '7'];
   readonly activeCodes = ['', '1', '0'];
 
@@ -128,7 +126,6 @@ export class CategoryListComponent implements OnInit {
     return map[id] || id;
   }
 
-  // Dynamic columns definition with generous default widths
   columns = [
     { id: 'checkbox', label: '', isFixed: true, width: 45 },
     { id: 'stt', label: 'STT', isFixed: true, width: 60 },
@@ -161,7 +158,6 @@ export class CategoryListComponent implements OnInit {
   isResizing = false;
   justResized = false;
 
-  // Column resizing implementation (Ultra-smooth 60fps with requestAnimationFrame)
   onResizeStart(event: MouseEvent, col: any) {
     event.stopPropagation();
     event.preventDefault();
@@ -204,7 +200,6 @@ export class CategoryListComponent implements OnInit {
     document.addEventListener('mouseup', onMouseUp, { once: true });
   }
 
-  // Column reordering implementation
   onDragStart(colId: string, event: DragEvent) {
     const index = this.columns.findIndex(c => c.id === colId);
     if (this.isResizing || this.justResized || index === -1 || this.columns[index].isFixed) {
@@ -243,7 +238,6 @@ export class CategoryListComponent implements OnInit {
     this.dragOverColumnIndex = null;
   }
 
-  // Column sorting implementation
   toggleSort(colId: string) {
     if (this.isResizing || this.justResized || colId === 'checkbox' || colId === 'stt' || colId === 'actions') return;
 
@@ -257,8 +251,6 @@ export class CategoryListComponent implements OnInit {
       if (currentDir === 'asc') {
         newDir = 'desc';
       } else {
-        // If it is already desc, reset to default (updatedDate, desc)
-        // Unless we are already sorting by updatedDate, in which case we toggle back to asc
         if (colId !== 'updatedDate') {
           newField = 'updatedDate';
           newDir = 'desc';
@@ -298,7 +290,6 @@ export class CategoryListComponent implements OnInit {
     }
   }
 
-  // TrackBy functions to optimize Angular DOM rendering
   trackById(index: number, item: GroupCategoryResponse): any {
     return item.id;
   }
@@ -326,7 +317,6 @@ export class CategoryListComponent implements OnInit {
 
   loadData() {
     console.log('[CategoryListComponent] loadData - viewMode:', this.viewMode());
-    // Auto save list state
     this.categoryService.setListState({
       page: this.page(),
       size: this.size(),
@@ -363,7 +353,8 @@ export class CategoryListComponent implements OnInit {
       },
       error: (err: HttpErrorResponse) => {
         if (err.status !== 401 && err.status !== 403 && this.authService.isLoggedIn()) {
-          this.notificationService.error('Lỗi tải dữ liệu: ' + (err.error?.message || err.message));
+          const prefix = this.languageService.labels().messages?.errorPrefix?.loadData || 'Lỗi tải dữ liệu: ';
+          this.notificationService.error(prefix + (err.error?.message || err.message));
         }
         this.isLoading.set(false);
       }
@@ -380,18 +371,17 @@ export class CategoryListComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (err: HttpErrorResponse) => {
-        this.notificationService.error('Lỗi tải dữ liệu liên kết: ' + (err.error?.message || err.message));
+        const prefix = this.languageService.labels().messages?.errorPrefix?.loadLinkedData || 'Lỗi tải dữ liệu liên kết: ';
+        this.notificationService.error(prefix + (err.error?.message || err.message));
         this.isLoading.set(false);
       }
     });
   }
 
   onTabChange(index: number) {
-    console.log('[CategoryListComponent] onTabChange - index:', index);
     if (index === undefined || index === null || index < 0) return;
     this.activeTabIndex = index;
     const targetMode = index === 0 ? 'jpa' : 'native';
-    console.log('[CategoryListComponent] onTabChange - targetMode:', targetMode, 'current viewMode:', this.viewMode());
     if (this.viewMode() !== targetMode) {
       this.switchViewMode(targetMode);
     }
@@ -437,7 +427,6 @@ export class CategoryListComponent implements OnInit {
     this.router.navigate(['/categories/copy', item.id], { state: { data: item } });
   }
 
-  // Confirmation dialog state
   isConfirmOpen = false;
   confirmTitle = '';
   confirmMessage = '';
@@ -472,12 +461,10 @@ export class CategoryListComponent implements OnInit {
     this.router.navigate(['/categories/detail', item.id], { state: { data: item } });
   }
 
-  // Reject Dialog state
   isRejectOpen = false;
   rejectReason = '';
   rejectTargetIds: number[] = [];
 
-  // History Dialog state
   isHistoryOpen = false;
   historyTargetId: number | null = null;
   historyData = signal<MappedHistoryItem[]>([]);
@@ -491,7 +478,8 @@ export class CategoryListComponent implements OnInit {
   onBatchApprove() {
     const ids = this.selectedIds();
     if (ids.length === 0) {
-      this.notificationService.warning('Vui lòng chọn ít nhất một bản ghi để duyệt!');
+      const warnMsg = this.languageService.labels().messages?.warning?.selectAtLeastOneToApprove || 'Vui lòng chọn ít nhất một bản ghi để duyệt!';
+      this.notificationService.warning(warnMsg);
       return;
     }
     this.confirmTitle = 'Phê duyệt';
@@ -503,7 +491,8 @@ export class CategoryListComponent implements OnInit {
   onBatchReject() {
     const ids = this.selectedIds();
     if (ids.length === 0) {
-      this.notificationService.warning('Vui lòng chọn ít nhất một bản ghi để từ chối!');
+      const warnMsg = this.languageService.labels().messages?.warning?.selectAtLeastOneToReject || 'Vui lòng chọn ít nhất một bản ghi để từ chối!';
+      this.notificationService.warning(warnMsg);
       return;
     }
     this.rejectTargetIds = ids;
@@ -530,7 +519,8 @@ export class CategoryListComponent implements OnInit {
         this.loadData();
       },
       error: (err: HttpErrorResponse) => {
-        this.notificationService.error('Lỗi thực hiện từ chối duyệt: ' + (err.error?.message || err.message));
+        const prefix = this.languageService.labels().messages?.errorPrefix?.reject || 'Lỗi thực hiện từ chối duyệt: ';
+        this.notificationService.error(prefix + (err.error?.message || err.message));
         this.isLoading.set(false);
       }
     });
@@ -583,7 +573,8 @@ export class CategoryListComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (err: HttpErrorResponse) => {
-        this.notificationService.error('Không thể tải lịch sử thao tác: ' + (err.error?.message || err.message));
+        const prefix = this.languageService.labels().messages?.errorPrefix?.history || 'Không thể tải lịch sử thao tác: ';
+        this.notificationService.error(prefix + (err.error?.message || err.message));
       }
     });
   }
@@ -598,36 +589,38 @@ export class CategoryListComponent implements OnInit {
     this.isConfirmOpen = false;
     this.isLoading.set(true);
 
+    const msgs = this.languageService.labels().messages;
+
     if (action === 'delete' && id !== null) {
       this.categoryService.delete(id).subscribe({
         next: () => {
-          this.notificationService.success('Xóa thành công!');
+          this.notificationService.success(msgs?.success?.delete || 'Xóa thành công!');
           this.loadData();
         },
         error: (err: HttpErrorResponse) => {
-          this.notificationService.error('Không thể xóa: ' + (err.error?.message || err.message));
+          this.notificationService.error((msgs?.errorPrefix?.delete || 'Không thể xóa: ') + (err.error?.message || err.message));
           this.isLoading.set(false);
         }
       });
     } else if (action === 'sendApproval' && id !== null) {
       this.categoryService.sendApproval(id).subscribe({
         next: () => {
-          this.notificationService.success('Gửi duyệt thành công!');
+          this.notificationService.success(msgs?.success?.sendApproval || 'Gửi duyệt thành công!');
           this.loadData();
         },
         error: (err: HttpErrorResponse) => {
-          this.notificationService.error('Lỗi gửi duyệt: ' + (err.error?.message || err.message));
+          this.notificationService.error((msgs?.errorPrefix?.sendApproval || 'Lỗi gửi duyệt: ') + (err.error?.message || err.message));
           this.isLoading.set(false);
         }
       });
     } else if (action === 'cancelApproval' && id !== null) {
       this.categoryService.cancelApproval(id).subscribe({
         next: () => {
-          this.notificationService.success('Hủy duyệt thành công!');
+          this.notificationService.success(msgs?.success?.cancelApproval || 'Hủy duyệt thành công!');
           this.loadData();
         },
         error: (err: HttpErrorResponse) => {
-          this.notificationService.error('Lỗi hủy duyệt: ' + (err.error?.message || err.message));
+          this.notificationService.error((msgs?.errorPrefix?.cancelApproval || 'Lỗi hủy duyệt: ') + (err.error?.message || err.message));
           this.isLoading.set(false);
         }
       });
@@ -640,7 +633,7 @@ export class CategoryListComponent implements OnInit {
           this.loadData();
         },
         error: (err: HttpErrorResponse) => {
-          this.notificationService.error('Lỗi thực hiện duyệt hàng loạt: ' + (err.error?.message || err.message));
+          this.notificationService.error((msgs?.errorPrefix?.batchApprove || 'Lỗi duyệt hàng loạt: ') + (err.error?.message || err.message));
           this.isLoading.set(false);
         }
       });
@@ -652,7 +645,8 @@ export class CategoryListComponent implements OnInit {
       next: (res) => {
         const data = (res.data || []) as unknown as GroupCategoryResponse[];
         if (data.length === 0) {
-          this.notificationService.warning('Không có dữ liệu để xuất!');
+          const warnMsg = this.languageService.labels().messages?.warning?.noDataToExport || 'Không có dữ liệu để xuất!';
+          this.notificationService.warning(warnMsg);
           return;
         }
 
@@ -674,16 +668,15 @@ export class CategoryListComponent implements OnInit {
         document.body.removeChild(link);
       },
       error: (err: HttpErrorResponse) => {
-        this.notificationService.error('Lỗi xuất dữ liệu: ' + (err.error?.message || err.message));
+        const prefix = this.languageService.labels().messages?.errorPrefix?.exportExcel || 'Lỗi xuất dữ liệu: ';
+        this.notificationService.error(prefix + (err.error?.message || err.message));
       }
     });
   }
 
-  // Options getters
   get statusOptions() { return APPROVAL_STATUS_OPTIONS; }
   get activeOptions() { return IS_ACTIVE_OPTIONS; }
 
-  // Toggle selection check
   toggleSelectAll(event: Event) {
     const checked = (event.target as HTMLInputElement).checked;
     if (checked) {

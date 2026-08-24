@@ -2,6 +2,7 @@ package com.example.paymenthub.service.impl;
 
 import com.example.paymenthub.common.enums.ActiveStatus;
 import com.example.paymenthub.common.enums.AuditAction;
+import com.example.paymenthub.common.enums.BusinessErrorCode;
 import com.example.paymenthub.common.enums.DisplayStatus;
 import com.example.paymenthub.common.enums.ModuleType;
 import com.example.paymenthub.common.enums.ParamStatus;
@@ -168,7 +169,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
 
         // 1. Kiểm tra dựa trên status: Nếu đang PENDING (3) -> ném lỗi không được sửa
         if (entity.isPending()) {
-            throw new InvalidStateTransitionException("Không được phép chỉnh sửa bản ghi đang ở trạng thái Chờ duyệt!");
+            throw new InvalidStateTransitionException(BusinessErrorCode.PENDING_EDIT_NOT_ALLOWED);
         }
 
         // 2. Validate ngày hiệu lực doanh nghiệp
@@ -188,7 +189,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         // 3. Phân nhánh lưu trữ dựa vào status và isDisplay
         if (entity.isApproved() || entity.isOnceApproved()) {
             if (!isDtoDifferentFromEntity(entity, dto)) {
-                throw new BusinessRuleException("Dữ liệu cập nhật trùng khớp 100% với dữ liệu đang vận hành, không có thay đổi nào để gửi duyệt!");
+                throw new BusinessRuleException(BusinessErrorCode.DATA_UNCHANGED_UPDATE);
             }
             entity.setNewData(toJson(dto));
             entity.setUpdatedBy(username);
@@ -243,11 +244,11 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         GroupCategory entity = getById(id);
 
         if (entity.isOnceApproved()) {
-            throw new BusinessRuleException("Bản ghi đã từng được phê duyệt (isDisplay = 2) là bản ghi chuẩn của hệ thống, không được phép xóa!");
+            throw new BusinessRuleException(BusinessErrorCode.APPROVED_RECORD_DELETE_NOT_ALLOWED);
         }
 
         if (entity.isPending()) {
-            throw new InvalidStateTransitionException("Bản ghi đang ở trạng thái Chờ duyệt (STATUS = 3), không được phép xóa!");
+            throw new InvalidStateTransitionException(BusinessErrorCode.PENDING_RECORD_DELETE_NOT_ALLOWED);
         }
 
         String oldJson = toJson(entity);
@@ -275,12 +276,12 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         GroupCategory entity = getById(id);
 
         if (!entity.isCanBeSubmitted()) {
-            throw new InvalidStateTransitionException("Chỉ được phép gửi duyệt bản ghi ở trạng thái Mới (1), Từ chối (5) hoặc Hủy duyệt (7)!");
+            throw new InvalidStateTransitionException(BusinessErrorCode.INVALID_SUBMIT_STATUS);
         }
 
         if (entity.isOnceApproved()
                 && (entity.getNewData() == null || entity.getNewData().trim().isEmpty())) {
-            throw new BusinessRuleException("Bản ghi chưa có bất kỳ thay đổi nào so với dữ liệu đã duyệt, không cần gửi duyệt lại!");
+            throw new BusinessRuleException(BusinessErrorCode.DATA_UNCHANGED_SUBMIT);
         }
 
         DateUtils.validateEffectiveDates(entity.getEffectiveDate(), entity.getEndEffectiveDate());
@@ -398,13 +399,12 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 GroupCategory entity = getById(id);
 
                 if (!entity.isPending()) {
-                    throw new InvalidStateTransitionException("Chỉ được phép phê duyệt bản ghi đang ở trạng thái Chờ duyệt (STATUS = 3)!");
+                    throw new InvalidStateTransitionException(BusinessErrorCode.INVALID_APPROVE_STATUS);
                 }
 
                 if (approver.equalsIgnoreCase(entity.getCreatedBy())
                         || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
-                    throw new MakerCheckerConflictException(
-                            "Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
+                    throw new MakerCheckerConflictException(BusinessErrorCode.MAKER_CHECKER_SAME_USER);
                 }
 
                 int statusBefore = entity.getStatus();
@@ -423,7 +423,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                         entity.setNewData(null);
                         repository.saveAndFlush(entity);
                     } catch (Exception ex) {
-                        throw new BusinessRuleException("Lỗi giải mã dữ liệu thay đổi: " + ex.getMessage(), ex);
+                        throw new BusinessRuleException(BusinessErrorCode.DATA_DECODE_ERROR, ex);
                     }
                 }
 
@@ -485,13 +485,12 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 GroupCategory entity = getById(id);
 
                 if (!entity.isPending()) {
-                    throw new InvalidStateTransitionException("Chỉ được phép từ chối bản ghi đang ở trạng thái Chờ duyệt (STATUS = 3)!");
+                    throw new InvalidStateTransitionException(BusinessErrorCode.INVALID_REJECT_STATUS);
                 }
 
                 if (approver.equalsIgnoreCase(entity.getCreatedBy())
                         || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
-                    throw new MakerCheckerConflictException(
-                            "Người phê duyệt (" + approver + ") không được trùng với người tạo/cập nhật yêu cầu!");
+                    throw new MakerCheckerConflictException(BusinessErrorCode.MAKER_CHECKER_SAME_USER);
                 }
 
                 int statusBefore = entity.getStatus();

@@ -30,7 +30,7 @@ export class HeaderComponent {
   }
 
   logout() {
-    this.notificationService.success('Đã đăng xuất khỏi hệ thống');
+    this.notificationService.success(this.languageService.labels().messages.success.logout);
     this.authService.logout();
   }
 }

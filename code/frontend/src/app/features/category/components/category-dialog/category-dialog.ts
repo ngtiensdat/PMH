@@ -69,7 +69,6 @@ export class CategoryDialogComponent implements OnInit {
     return 'Chọn giá trị';
   };
 
-  // Dynamic getter for select dropdown items
   get componentItems(): string[] {
     return this.componentsList.map(o => o.value);
   }
@@ -79,7 +78,6 @@ export class CategoryDialogComponent implements OnInit {
     const found = this.componentsList.find(o => o.value === val);
     return found ? found.label : val;
   };
-
 
   ngOnInit() {
     this.initForm();
@@ -114,7 +112,8 @@ export class CategoryDialogComponent implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           if (err.status !== 401 && err.status !== 403) {
-            this.notificationService.error('Không thể nạp dữ liệu tham số: ' + (err.error?.message || err.message));
+            const prefix = this.languageService.labels().messages?.errorPrefix?.loadCategory || 'Không thể nạp dữ liệu tham số: ';
+            this.notificationService.error(prefix + (err.error?.message || err.message));
           }
           this.goBack();
         }
@@ -229,12 +228,14 @@ export class CategoryDialogComponent implements OnInit {
       this.markFormGroupTouched(this.dialogForm);
       const issues = parseResult.error.issues;
       const firstError = issues[0];
-      this.notificationService.error(firstError?.message ?? 'Dữ liệu nhập không hợp lệ');
+      const defaultMsg = this.languageService.labels().messages?.errorPrefix?.invalidInput || 'Dữ liệu nhập không hợp lệ';
+      this.notificationService.error(firstError?.message ?? defaultMsg);
       return;
     }
 
     if (this.mode === 'edit' && !this.hasFormChanged()) {
-      this.notificationService.warning('Không có thay đổi nào so với dữ liệu gốc! Không cần gửi duyệt sửa.');
+      const warnMsg = this.languageService.labels().messages?.warning?.noFormChange || 'Không có thay đổi nào so với dữ liệu gốc! Không cần gửi duyệt sửa.';
+      this.notificationService.warning(warnMsg);
       return;
     }
 
@@ -243,6 +244,8 @@ export class CategoryDialogComponent implements OnInit {
       effectiveDate: this.formatToISO(mappedRaw.effectiveDate),
       endEffectiveDate: mappedRaw.endEffectiveDate ? this.formatToISO(mappedRaw.endEffectiveDate) : undefined
     };
+
+    const msgs = this.languageService.labels().messages;
 
     if (this.mode === 'edit' && this.category) {
       this.categoryService.update(this.category.id, dto)
@@ -254,21 +257,21 @@ export class CategoryDialogComponent implements OnInit {
                 .pipe(takeUntilDestroyed(this.destroyRef))
                 .subscribe({
                   next: () => {
-                    this.notificationService.success('Thành công!', 'Cập nhật và Gửi duyệt thành công', '/categories/detail/' + this.category!.id);
+                    this.notificationService.success(msgs?.success?.title || 'Thành công!', msgs?.success?.updateAndSendApproval || 'Cập nhật và Gửi duyệt thành công', '/categories/detail/' + this.category!.id);
                     this.goBack();
                   },
                   error: (err: HttpErrorResponse) => {
-                    this.notificationService.error('Lỗi gửi duyệt: ' + (err.error?.message || err.message));
+                    this.notificationService.error((msgs?.errorPrefix?.sendApproval || 'Lỗi gửi duyệt: ') + (err.error?.message || err.message));
                     this.goBack();
                   }
                 });
             } else {
-              this.notificationService.success('Thành công!', 'Cập nhật thành công', '/categories/detail/' + this.category!.id);
+              this.notificationService.success(msgs?.success?.title || 'Thành công!', msgs?.success?.update || 'Cập nhật thành công', '/categories/detail/' + this.category!.id);
               this.goBack();
             }
           },
           error: (err: HttpErrorResponse) => {
-            this.notificationService.error('Lỗi cập nhật: ' + (err.error?.message || err.message));
+            this.notificationService.error((msgs?.errorPrefix?.update || 'Lỗi cập nhật: ') + (err.error?.message || err.message));
           }
         });
     } else {
@@ -282,21 +285,21 @@ export class CategoryDialogComponent implements OnInit {
                 .pipe(takeUntilDestroyed(this.destroyRef))
                 .subscribe({
                   next: () => {
-                    this.notificationService.success('Thành công!', 'Thêm mới và Gửi duyệt thành công', '/categories/detail/' + newId);
+                    this.notificationService.success(msgs?.success?.title || 'Thành công!', msgs?.success?.createAndSendApproval || 'Thêm mới và Gửi duyệt thành công', '/categories/detail/' + newId);
                     this.goBack();
                   },
                   error: (err: HttpErrorResponse) => {
-                    this.notificationService.error('Đã lưu bản ghi, nhưng lỗi gửi duyệt: ' + (err.error?.message || err.message));
+                    this.notificationService.error((msgs?.errorPrefix?.saveAndSendFailed || 'Đã lưu bản ghi, nhưng lỗi gửi duyệt: ') + (err.error?.message || err.message));
                     this.goBack();
                   }
                 });
             } else {
-              this.notificationService.success('Thành công!', 'Thêm mới thành công', '/categories/detail/' + newId);
+              this.notificationService.success(msgs?.success?.title || 'Thành công!', msgs?.success?.create || 'Thêm mới thành công', '/categories/detail/' + newId);
               this.goBack();
             }
           },
           error: (err: HttpErrorResponse) => {
-            this.notificationService.error('Lỗi thêm mới: ' + (err.error?.message || err.message));
+            this.notificationService.error((msgs?.errorPrefix?.create || 'Lỗi thêm mới: ') + (err.error?.message || err.message));
           }
         });
     }

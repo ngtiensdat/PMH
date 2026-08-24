@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
+import { APP_LABELS_VN } from '../../core/constants/labels';
 
 // ─── Helper: parse ISO string an toàn ────────────────────────────────────────
 function parseDate(val: any): Date | null {
@@ -34,28 +35,23 @@ function isNotTooFarFuture(val: any): boolean {
   return d.getFullYear() <= (new Date().getFullYear() + 100);
 }
 
-function isNotPastDate(val: any): boolean {
-  if (!val) return true;
-  const d = parseDate(val);
-  if (!d) return true;
-  return d.getTime() >= Date.now() - 60000;
-}
+const valMsgs = APP_LABELS_VN.messages.validation;
 
 // ─── Zod v4 Schema ────────────────────────────────────────────────────────────
 
 export const ComponentSchema = z.object({
   componentCode: z
     .string()
-    .min(1, 'Mã cấu phần không được để trống')
-    .max(200, 'Mã cấu phần tối đa 200 ký tự')
-    .regex(/^[A-Z0-9_]+$/, 'Mã cấu phần chỉ gồm chữ in hoa, số và dấu gạch dưới, không chứa tiếng Việt, khoảng trắng hay ký tự đặc biệt'),
+    .min(1, valMsgs.componentCodeRequired)
+    .max(200, valMsgs.componentCodeMaxLength)
+    .regex(/^[A-Z0-9_]+$/, valMsgs.componentCodeRegex),
 
   componentName: z
     .string()
-    .min(1, 'Tên cấu phần không được để trống')
-    .max(150, 'Tên cấu phần tối đa 150 ký tự')
+    .min(1, valMsgs.componentNameRequired)
+    .max(150, valMsgs.componentNameMaxLength)
     .refine(val => !/[\^#|*@$`~!%&{}\[\]?<>"'()\/\\:;=,]/.test(val), {
-      message: 'Tên cấu phần không được chứa khoảng trắng đặc biệt hay ký tự đặc biệt (^, #, |, *, @, $, ...)'
+      message: valMsgs.componentNameInvalidChars
     }),
 
   messageType: z.any().optional().nullable(),
@@ -72,22 +68,22 @@ export const ComponentSchema = z.object({
     .optional()
     .nullable()
     .refine(val => !val || (typeof val === 'string' && val.length <= 4000), {
-      message: 'Mô tả tối đa 4000 ký tự'
+      message: valMsgs.descriptionMaxLength
     }),
 
   isActive: z.number().optional().nullable(),
 
   effectiveDate: z
     .string()
-    .min(1, 'Ngày hiệu lực không được để trống')
+    .min(1, valMsgs.effectiveDateRequired)
     .refine(isValidDatetime, {
-      message: 'Ngày hiệu lực không phải định dạng ngày giờ hợp lệ (yyyy-MM-ddTHH:mm)'
+      message: valMsgs.effectiveDateInvalidFormat
     })
     .refine(isNotTooFarPast, {
-      message: 'Ngày hiệu lực không được quá 100 năm trong quá khứ'
+      message: valMsgs.effectiveDateTooFarPast
     })
     .refine(isNotTooFarFuture, {
-      message: 'Ngày hiệu lực không được vượt quá 100 năm trong tương lai'
+      message: valMsgs.effectiveDateTooFarFuture
     }),
 
   endEffectiveDate: z
@@ -95,13 +91,13 @@ export const ComponentSchema = z.object({
     .optional()
     .nullable()
     .refine(val => !val || isValidDatetime(val), {
-      message: 'Ngày hết hiệu lực không phải định dạng ngày giờ hợp lệ (yyyy-MM-ddTHH:mm)'
+      message: valMsgs.endEffectiveDateInvalidFormat
     })
     .refine(val => !val || isNotTooFarPast(val), {
-      message: 'Ngày hết hiệu lực không được quá 100 năm trong quá khứ'
+      message: valMsgs.endEffectiveDateTooFarPast
     })
     .refine(val => !val || isNotTooFarFuture(val), {
-      message: 'Ngày hết hiệu lực không được vượt quá 100 năm trong tương lai'
+      message: valMsgs.endEffectiveDateTooFarFuture
     })
 
 }).refine(data => {
@@ -110,7 +106,7 @@ export const ComponentSchema = z.object({
   if (!start || !end) return true;
   return end.getTime() > start.getTime();
 }, {
-  message: 'Ngày hết hiệu lực phải sau ngày hiệu lực',
+  message: valMsgs.endEffectiveDateMustBeAfter,
   path: ['endEffectiveDate']
 });
 

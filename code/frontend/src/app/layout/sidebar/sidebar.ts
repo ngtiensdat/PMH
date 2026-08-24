@@ -24,7 +24,6 @@ export class SidebarComponent {
   selectMainMenu(menu: string) {
     if (menu === 'params') {
       if (this.activeMenu() === 'params') {
-        // Bấm lại vào Tham số thì toggle ẩn/hiện thanh bên phụ
         this.isSubMenuOpen.update(open => !open);
       } else {
         this.activeMenu.set('params');
@@ -41,7 +40,7 @@ export class SidebarComponent {
   }
 
   onLogout() {
-    this.notificationService.success('Đã đăng xuất khỏi hệ thống');
+    this.notificationService.success(this.languageService.labels().messages.success.logout);
     this.authService.logout();
   }
 }

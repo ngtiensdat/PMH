@@ -5,6 +5,8 @@ E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\base\BaseService
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\base\BaseServiceImpl.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\enums\ActiveStatus.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\enums\AuditAction.java
+E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\enums\AuthErrorCode.java
+E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\enums\BusinessErrorCode.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\enums\DisplayStatus.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\enums\ModuleType.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\enums\ParamStatus.java
@@ -18,6 +20,7 @@ E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\exception\Resour
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\exception\UnauthorizedAccessException.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\util\DateUtils.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\util\JsonUtils.java
+E:\PMH\code\backend\src\main\java\com\example\paymenthub\config\DataInitializer.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\config\JacksonConfig.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\config\SecurityConfig.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\controller\AuditLogController.java
@@ -38,6 +41,7 @@ E:\PMH\code\backend\src\main\java\com\example\paymenthub\dto\response\LoginRespo
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\entity\AuditLog.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\entity\GroupCategory.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\entity\ProcessingComponent.java
+E:\PMH\code\backend\src\main\java\com\example\paymenthub\entity\User.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\mapper\ComponentMapper.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\mapper\GroupCategoryMapper.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\PaymentHubApplication.java
@@ -46,6 +50,7 @@ E:\PMH\code\backend\src\main\java\com\example\paymenthub\repository\ComponentRep
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\repository\GroupCategoryRepository.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\repository\specification\ComponentSpecification.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\repository\specification\GroupCategorySpecification.java
+E:\PMH\code\backend\src\main\java\com\example\paymenthub\repository\UserRepository.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\scheduler\ActiveStatusScheduler.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\security\JwtAuthenticationFilter.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\security\JwtProvider.java

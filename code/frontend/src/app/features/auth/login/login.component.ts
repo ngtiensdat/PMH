@@ -55,13 +55,15 @@ export class LoginComponent {
     this.authService.login(credentials).subscribe({
       next: (res) => {
         this.isLoading.set(false);
-        this.notificationService.success(`Chào mừng ${res.data.fullName} (${res.data.role}) đăng nhập thành công!`);
+        const welcomePrefix = this.languageService.labels().messages.success.login;
+        this.notificationService.success(`${welcomePrefix}: ${res.data.fullName} (${res.data.role})`);
         const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/categories';
         this.router.navigateByUrl(returnUrl);
       },
       error: (err) => {
         this.isLoading.set(false);
-        const errMsg = err.error?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin!';
+        const fallbackMsg = this.languageService.labels().messages.errorPrefix.loginFailed;
+        const errMsg = err.error?.message || fallbackMsg;
         this.notificationService.error(errMsg);
       }
     });

@@ -74,7 +74,8 @@ export class CategoryDetailComponent implements OnInit {
       },
       error: (err: HttpErrorResponse) => {
         if (err.status !== 401 && err.status !== 403) {
-          this.notificationService.error('Không thể nạp dữ liệu chi tiết tham số: ' + (err.error?.message || err.message));
+          const prefix = this.languageService.labels().messages?.errorPrefix?.loadDetail || 'Không thể nạp dữ liệu chi tiết tham số: ';
+          this.notificationService.error(prefix + (err.error?.message || err.message));
         }
         this.isLoading.set(false);
         this.goBack();
@@ -165,33 +166,34 @@ export class CategoryDetailComponent implements OnInit {
 
   onConfirmDelete() {
     this.isDeleteOpen = false;
+    const msgs = this.languageService.labels().messages;
     this.categoryService.delete(this.category!.id).subscribe({
       next: () => {
         const msg = this.category?.isDisplay === DisplayStatus.ONCE_APPROVED 
-          ? 'Hủy yêu cầu sửa thành công!' 
-          : 'Xóa thành công!';
+          ? (msgs?.success?.cancelEditSuccess || 'Hủy yêu cầu sửa thành công!') 
+          : (msgs?.success?.delete || 'Xóa thành công!');
         this.notificationService.success(msg);
         this.goBack();
       },
       error: (err: HttpErrorResponse) => {
-        this.notificationService.error('Thực thi thất bại: ' + (err.error?.message || err.message));
+        this.notificationService.error((msgs?.errorPrefix?.executeFailed || 'Thực thi thất bại: ') + (err.error?.message || err.message));
       }
     });
   }
 
   onSendApprovalRecord() {
+    const msgs = this.languageService.labels().messages;
     this.categoryService.sendApproval(this.category!.id).subscribe({
       next: () => {
-        this.notificationService.success('Gửi duyệt thành công!');
+        this.notificationService.success(msgs?.success?.sendApproval || 'Gửi duyệt thành công!');
         this.goBack();
       },
       error: (err: HttpErrorResponse) => {
-        this.notificationService.error('Lỗi gửi duyệt: ' + (err.error?.message || err.message));
+        this.notificationService.error((msgs?.errorPrefix?.sendApproval || 'Lỗi gửi duyệt: ') + (err.error?.message || err.message));
       }
     });
   }
 
-  // Approve & Reject Dialog state
   isApproveOpen = false;
   isRejectOpen = false;
   rejectReason = '';
@@ -202,13 +204,14 @@ export class CategoryDetailComponent implements OnInit {
 
   onConfirmApprove() {
     this.isApproveOpen = false;
+    const msgs = this.languageService.labels().messages;
     this.categoryService.batchApprove([this.category!.id]).subscribe({
       next: () => {
-        this.notificationService.success('Duyệt bản ghi thành công!');
+        this.notificationService.success(msgs?.success?.approve || 'Duyệt bản ghi thành công!');
         this.goBack();
       },
       error: (err: HttpErrorResponse) => {
-        this.notificationService.error('Lỗi khi duyệt: ' + (err.error?.message || err.message));
+        this.notificationService.error((msgs?.errorPrefix?.approveFailed || 'Lỗi khi duyệt: ') + (err.error?.message || err.message));
       }
     });
   }
@@ -225,14 +228,15 @@ export class CategoryDetailComponent implements OnInit {
   onConfirmReject() {
     const reason = this.rejectReason.trim();
     this.isRejectOpen = false;
+    const msgs = this.languageService.labels().messages;
 
     this.categoryService.batchReject([this.category!.id], reason).subscribe({
       next: () => {
-        this.notificationService.success('Từ chối duyệt thành công! Lý do: ' + reason);
+        this.notificationService.success(`Đã từ chối duyệt thành công! Lý do: ${reason}`);
         this.goBack();
       },
       error: (err: HttpErrorResponse) => {
-        this.notificationService.error('Lỗi khi từ chối: ' + (err.error?.message || err.message));
+        this.notificationService.error((msgs?.errorPrefix?.rejectFailed || 'Lỗi khi từ chối: ') + (err.error?.message || err.message));
       }
     });
   }
