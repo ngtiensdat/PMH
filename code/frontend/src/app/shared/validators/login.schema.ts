@@ -17,13 +17,11 @@ export const LoginSchema = z.object({
 
 export function zodFieldValidator(schema: z.ZodObject<any>, field: string): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
-    if (!control.value && control.value !== 0) {
-      return null;
-    }
     const fieldSchema = schema.shape[field];
     if (!fieldSchema) return null;
 
-    const result = fieldSchema.safeParse(control.value);
+    const val = control.value ?? '';
+    const result = fieldSchema.safeParse(val);
     if (result.success) return null;
 
     const fieldError = result.error.issues[0];

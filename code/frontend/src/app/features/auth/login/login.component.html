@@ -10,6 +10,9 @@
           <label tuiLabel>Tên đăng nhập</label>
           <input tuiInput id="username" formControlName="username" placeholder="Nhập tên đăng nhập" />
         </tui-textfield>
+        <div class="error-msg" *ngIf="loginForm.get('username')?.touched && loginForm.get('username')?.invalid">
+          {{ loginForm.get('username')?.errors?.['zodError'] || 'Tên đăng nhập không được để trống' }}
+        </div>
       </div>
 
       <div class="input-group">
@@ -17,6 +20,9 @@
           <label tuiLabel>Mật khẩu</label>
           <input tuiInput id="password" type="password" formControlName="password" placeholder="Nhập mật khẩu" />
         </tui-textfield>
+        <div class="error-msg" *ngIf="loginForm.get('password')?.touched && loginForm.get('password')?.invalid">
+          {{ loginForm.get('password')?.errors?.['zodError'] || 'Mật khẩu không được để trống' }}
+        </div>
       </div>
 
       <button tuiButton type="submit" class="btn-login" [disabled]="isLoading()">
