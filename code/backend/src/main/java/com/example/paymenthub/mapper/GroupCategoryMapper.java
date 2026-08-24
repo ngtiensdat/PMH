@@ -2,54 +2,19 @@ package com.example.paymenthub.mapper;
 
 import com.example.paymenthub.dto.request.GroupCategoryDTO;
 import com.example.paymenthub.entity.GroupCategory;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-@Component
-public class GroupCategoryMapper {
+@Mapper(componentModel = "spring")
+public interface GroupCategoryMapper {
 
-    public GroupCategoryDTO toDTO(GroupCategory entity) {
-        if (entity == null) {
-            return null;
-        }
-
-        return GroupCategoryDTO.builder()
-                .id(entity.getId())
-                .paramName(entity.getParamName())
-                .paramValue(entity.getParamValue())
-                .paramType(entity.getParamType())
-                .description(entity.getDescription())
-                .componentCode(entity.getComponentCode())
-                .status(entity.getStatus())
-                .isActive(entity.getIsActive())
-                .isDisplay(entity.getIsDisplay())
-                .newData(entity.getNewData())
-                .effectiveDate(entity.getEffectiveDate())
-                .endEffectiveDate(entity.getEndEffectiveDate())
-                .createdBy(entity.getCreatedBy())
-                .createdDate(entity.getCreatedDate())
-                .updatedBy(entity.getUpdatedBy())
-                .updatedDate(entity.getUpdatedDate())
-                .build();
-    }
-
-    public GroupCategory toEntity(GroupCategoryDTO dto) {
-        if (dto == null) {
-            return null;
-        }
-
-        return GroupCategory.builder()
-                .id(dto.getId())
-                .paramName(dto.getParamName())
-                .paramValue(dto.getParamValue())
-                .paramType(dto.getParamType())
-                .description(dto.getDescription())
-                .componentCode(dto.getComponentCode())
-                .status(dto.getStatus())
-                .isActive(dto.getIsActive())
-                .isDisplay(dto.getIsDisplay())
-                .newData(dto.getNewData())
-                .effectiveDate(dto.getEffectiveDate())
-                .endEffectiveDate(dto.getEndEffectiveDate())
-                .build();
-    }
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "newData", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "status", expression = "java(com.example.paymenthub.common.enums.ParamStatus.NEW.getCode())")
+    @Mapping(target = "isDisplay", expression = "java(com.example.paymenthub.common.enums.DisplayStatus.INITIAL.getCode())")
+    @Mapping(target = "isActive", expression = "java(com.example.paymenthub.service.impl.GroupCategoryServiceImpl.computeActiveStatus(dto.getEffectiveDate(), dto.getEndEffectiveDate()))")
+    @Mapping(target = "createdBy", source = "username")
+    @Mapping(target = "updatedBy", source = "username")
+    GroupCategory toEntity(GroupCategoryDTO dto, String username);
 }

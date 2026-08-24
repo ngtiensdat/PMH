@@ -41,6 +41,21 @@ public class DataInitializer implements CommandLineRunner {
             userRepository.save(checker);
 
             log.info("[DataInitializer] Đã tạo thành công 2 tài khoản mẫu: make, check.");
+        } else {
+            // Đảm bảo các tài khoản test mẫu luôn được reset trạng thái mở khóa khi Restart Backend trong quá trình Dev
+            userRepository.findByUsernameIgnoreCase("make").ifPresent(user -> {
+                user.setFailedLoginAttempts(0);
+                user.setLockoutUntil(null);
+                userRepository.save(user);
+                log.info("[DataInitializer] Đã tự động mở khóa tài khoản 'make'.");
+            });
+
+            userRepository.findByUsernameIgnoreCase("check").ifPresent(user -> {
+                user.setFailedLoginAttempts(0);
+                user.setLockoutUntil(null);
+                userRepository.save(user);
+                log.info("[DataInitializer] Đã tự động mở khóa tài khoản 'check'.");
+            });
         }
     }
 }

@@ -5,8 +5,8 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "PMH_USERS", indexes = {
-    @Index(name = "idx_user_username", columnList = "USERNAME", unique = true)
+@Table(name = "PMH_APP_USERS", indexes = {
+    @Index(name = "idx_app_user_username", columnList = "USERNAME", unique = true)
 })
 @Getter
 @Setter
@@ -39,24 +39,11 @@ public class User {
     @Column(name = "LOCKOUT_UNTIL")
     private LocalDateTime lockoutUntil;
 
-    @Column(name = "CREATED_DATE", updatable = false)
-    private LocalDateTime createdDate;
-
-    @Column(name = "UPDATED_DATE")
-    private LocalDateTime updatedDate;
-
     @PrePersist
     protected void onCreate() {
-        createdDate = LocalDateTime.now();
-        updatedDate = LocalDateTime.now();
         if (failedLoginAttempts == null) {
             failedLoginAttempts = 0;
         }
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedDate = LocalDateTime.now();
     }
 
     public boolean isLocked() {

@@ -36,7 +36,7 @@ public class AuthServiceImpl implements AuthService {
     private static final String DUMMY_PASSWORD_HASH = "$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07Xd0LDMxs.55k.4pS";
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = UnauthorizedAccessException.class)
     public LoginResponse login(LoginRequest request) {
         if (request == null || request.getUsername() == null || request.getPassword() == null) {
             throw new UnauthorizedAccessException(AuthErrorCode.CREDENTIALS_REQUIRED);
@@ -57,7 +57,8 @@ public class AuthServiceImpl implements AuthService {
         // Kiểm tra tài khoản có đang bị khóa hay không
         if (user.isLocked()) {
             log.warn("[AuthService] Đăng nhập thất bại (Tài khoản đang bị khóa): username={}", username);
-            throw new UnauthorizedAccessException(AuthErrorCode.ACCOUNT_LOCKED);
+            // Trả về INVALID_CREDENTIALS chung để chống User Enumeration Attack (dò tên tài khoản qua phản hồi khóa)
+            throw new UnauthorizedAccessException(AuthErrorCode.INVALID_CREDENTIALS);
         }
 
         // Kiểm tra mật khẩu
@@ -69,9 +70,11 @@ public class AuthServiceImpl implements AuthService {
 
             if (attempts >= maxFailedAttempts) {
                 user.setLockoutUntil(LocalDateTime.now().plusMinutes(lockoutMinutes));
-                log.warn("[AuthService] Tài khoản {} bị khóa {} phút do nhập sai mật khẩu {} lần", username, lockoutMinutes, attempts);
+                log.warn("[AuthService] Tài khoản {} bị khóa {} phút do nhập sai mật khẩu {} lần (cấu hình max={})", 
+                        username, lockoutMinutes, attempts, maxFailedAttempts);
             } else {
-                log.warn("[AuthService] Đăng nhập thất bại cho username={}. Số lần sai: {}/{}", username, attempts, maxFailedAttempts);
+                log.warn("[AuthService] Đăng nhập thất bại cho username={}. Số lần sai: {}/{} (cấu hình max={})", 
+                        username, attempts, maxFailedAttempts, maxFailedAttempts);
             }
 
             userRepository.save(user);
