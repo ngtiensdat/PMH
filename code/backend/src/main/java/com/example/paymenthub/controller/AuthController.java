@@ -18,20 +18,15 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController extends BaseController {
 
+    private static final String COOKIE_NAME = "pmh_jwt_token";
+    private static final long TOKEN_MAX_AGE_SECONDS = 86400L; // 24 giờ
+
     private final AuthService authService;
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
-
-        // Tạo HttpOnly Cookie chứa JWT Token (SameSite=Lax cho phép gửi Cookie giữa localhost:4200 và localhost:8080)
-        ResponseCookie cookie = ResponseCookie.from("pmh_jwt_token", response.getToken())
-                .httpOnly(true)
-                .secure(false) // Đặt true khi chạy HTTPS trên môi trường Production
-                .path("/")
-                .maxAge(86400) // 24 giờ
-                .sameSite("Lax")
-                .build();
+        ResponseCookie cookie = createJwtCookie(response.getToken(), TOKEN_MAX_AGE_SECONDS);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
@@ -40,28 +35,15 @@ public class AuthController extends BaseController {
 
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(
-            @CookieValue(name = "pmh_jwt_token", required = false) String cookieToken,
+            @CookieValue(name = COOKIE_NAME, required = false) String cookieToken,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
 
-        String token = null;
-        if (cookieToken != null && !cookieToken.trim().isEmpty()) {
-            token = cookieToken;
-        } else if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(7);
-        }
-
+        String token = resolveToken(cookieToken, authHeader);
         if (token != null) {
             authService.logout(token);
         }
 
-        // Xóa Cookie bằng cách đặt Max-Age = 0
-        ResponseCookie cookie = ResponseCookie.from("pmh_jwt_token", "")
-                .httpOnly(true)
-                .secure(false)
-                .path("/")
-                .maxAge(0)
-                .sameSite("Lax")
-                .build();
+        ResponseCookie cookie = createJwtCookie("", 0);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
@@ -73,5 +55,33 @@ public class AuthController extends BaseController {
         String username = SecurityUtils.getCurrentUsername();
         LoginResponse response = authService.getCurrentUser(username);
         return ok(response, "Lấy thông tin tài khoản thành công!");
+    }
+
+    // ─── Private Helper Methods ──────────────────────────────────────────────
+
+    /**
+     * Tạo HttpOnly Cookie bọc JWT Token dùng chung cho Login và Logout
+     */
+    private ResponseCookie createJwtCookie(String value, long maxAgeSeconds) {
+        return ResponseCookie.from(COOKIE_NAME, value != null ? value : "")
+                .httpOnly(true)
+                .secure(false) // Đặt true khi chạy HTTPS trên môi trường Production
+                .path("/")
+                .maxAge(maxAgeSeconds)
+                .sameSite("Lax")
+                .build();
+    }
+
+    /**
+     * Đọc Token từ Cookie hoặc Authorization Header
+     */
+    private String resolveToken(String cookieToken, String authHeader) {
+        if (cookieToken != null && !cookieToken.trim().isEmpty()) {
+            return cookieToken;
+        }
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        return null;
     }
 }

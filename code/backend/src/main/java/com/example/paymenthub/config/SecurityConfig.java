@@ -53,14 +53,15 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .headers(headers -> headers
+                        .frameOptions(frame -> frame.deny()) // chống clickjacking
+                )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(customAuthenticationEntryPoint())
-                        .accessDeniedHandler(customAccessDeniedHandler())
-                )
+                        .accessDeniedHandler(customAccessDeniedHandler()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
                 .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -73,7 +74,8 @@ public class SecurityConfig {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setCharacterEncoding("UTF-8");
-            ApiResponse<Void> apiResponse = ApiResponse.error("Phiên làm việc không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!");
+            ApiResponse<Void> apiResponse = ApiResponse
+                    .error("Phiên làm việc không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!");
             response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
         };
     }
