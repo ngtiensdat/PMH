@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class BatchItemResultDTO {
     private Long id;
+    private String code;
     private String status; // "SUCCESS" or "FAILED"
     private String errorMessage;
 }

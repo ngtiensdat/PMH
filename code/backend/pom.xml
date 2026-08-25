@@ -62,6 +62,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Bucket4j for Rate Limiting -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j-core</artifactId>
+            <version>8.10.1</version>
+        </dependency>
+
         <!-- Oracle Database Driver -->
         <dependency>
             <groupId>com.oracle.database.jdbc</groupId>

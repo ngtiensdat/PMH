@@ -54,7 +54,9 @@ E:\PMH\code\backend\src\main\java\com\example\paymenthub\repository\UserReposito
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\scheduler\ActiveStatusScheduler.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\security\JwtAuthenticationFilter.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\security\JwtProvider.java
+E:\PMH\code\backend\src\main\java\com\example\paymenthub\security\RateLimitingFilter.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\security\SecurityUtils.java
+E:\PMH\code\backend\src\main\java\com\example\paymenthub\security\TokenBlacklistService.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\service\AuditLogService.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\service\AuthService.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\service\ComponentService.java

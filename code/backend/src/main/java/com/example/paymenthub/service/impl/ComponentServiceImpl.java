@@ -340,7 +340,7 @@ public class ComponentServiceImpl implements ComponentService {
      * Khung runner dùng chung để bọc Transaction độc lập và try-catch xử lý riêng cho từng item trong Batch.
      */
     private BatchItemResultDTO executeBatchItem(String code, BatchActionConsumer action) {
-        BatchItemResultDTO result = BatchItemResultDTO.builder().build();
+        BatchItemResultDTO result = BatchItemResultDTO.builder().code(code).build();
         try {
             this.transactionTemplate.executeWithoutResult(status -> action.accept(getByCode(code), result));
         } catch (Exception e) {

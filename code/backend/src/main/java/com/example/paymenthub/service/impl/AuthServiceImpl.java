@@ -7,6 +7,7 @@ import com.example.paymenthub.dto.response.LoginResponse;
 import com.example.paymenthub.entity.User;
 import com.example.paymenthub.repository.UserRepository;
 import com.example.paymenthub.security.JwtProvider;
+import com.example.paymenthub.security.TokenBlacklistService;
 import com.example.paymenthub.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,11 +26,12 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final JwtProvider jwtProvider;
     private final PasswordEncoder passwordEncoder;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    @Value("${app.security.max-failed-attempts:5}")
+    @Value("${app.security.max-failed-attempts}")
     private int maxFailedAttempts;
 
-    @Value("${app.security.lockout-minutes:15}")
+    @Value("${app.security.lockout-minutes}")
     private int lockoutMinutes;
 
     // Dummy BCrypt hash sử dụng để cân bằng thời gian xử lý (chống Timing Attack khi user không tồn tại)
@@ -52,6 +54,13 @@ public class AuthServiceImpl implements AuthService {
             passwordEncoder.matches(password, DUMMY_PASSWORD_HASH);
             log.warn("[AuthService] Đăng nhập thất bại (User không tồn tại): username={}", username);
             throw new UnauthorizedAccessException(AuthErrorCode.INVALID_CREDENTIALS);
+        }
+
+        // Nếu thời gian khóa đã hết hạn, tự động reset lại bộ đếm lần sai
+        if (user.getLockoutUntil() != null && !LocalDateTime.now().isBefore(user.getLockoutUntil())) {
+            user.setFailedLoginAttempts(0);
+            user.setLockoutUntil(null);
+            userRepository.save(user);
         }
 
         // Kiểm tra tài khoản có đang bị khóa hay không
@@ -119,5 +128,15 @@ public class AuthServiceImpl implements AuthService {
                 .fullName(user.getFullName())
                 .role(user.getRole())
                 .build();
+    }
+
+    @Override
+    public void logout(String token) {
+        if (token != null && !token.trim().isEmpty()) {
+            java.util.Date expiry = jwtProvider.getExpirationFromToken(token);
+            long expiryTime = expiry != null ? expiry.getTime() : System.currentTimeMillis() + 86400000L;
+            tokenBlacklistService.blacklistToken(token, expiryTime);
+            log.info("[AuthService] Đã thu hồi Token và đưa vào Blacklist khi Đăng xuất.");
+        }
     }
 }

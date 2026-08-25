@@ -39,7 +39,21 @@ public class AuthController extends BaseController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout() {
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @CookieValue(name = "pmh_jwt_token", required = false) String cookieToken,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
+
+        String token = null;
+        if (cookieToken != null && !cookieToken.trim().isEmpty()) {
+            token = cookieToken;
+        } else if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
+        if (token != null) {
+            authService.logout(token);
+        }
+
         // Xóa Cookie bằng cách đặt Max-Age = 0
         ResponseCookie cookie = ResponseCookie.from("pmh_jwt_token", "")
                 .httpOnly(true)

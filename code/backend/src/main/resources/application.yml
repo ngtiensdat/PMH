@@ -5,6 +5,11 @@ app:
   security:
     max-failed-attempts: 3
     lockout-minutes: 1
+    rate-limit:
+      login-capacity: 5
+      login-duration-minutes: 1
+      api-capacity: 100
+      api-duration-minutes: 1
 
 
 spring:

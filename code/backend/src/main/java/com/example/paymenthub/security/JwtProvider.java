@@ -59,4 +59,17 @@ public class JwtProvider {
         }
         return false;
     }
+
+    public Date getExpirationFromToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return claims.getExpiration();
+        } catch (Exception e) {
+            return new Date(System.currentTimeMillis() + EXPIRATION_TIME_MS);
+        }
+    }
 }

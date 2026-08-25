@@ -34,14 +34,12 @@ com\example\paymenthub\common\exception\CustomBusinessException.class
 com\example\paymenthub\common\enums\ActiveStatus.class
 com\example\paymenthub\mapper\ComponentMapper.class
 com\example\paymenthub\common\enums\DisplayStatus.class
-com\example\paymenthub\service\impl\AuthServiceImpl.class
 com\example\paymenthub\repository\specification\GroupCategorySpecification.class
 com\example\paymenthub\entity\ProcessingComponent$ProcessingComponentBuilderImpl.class
 com\example\paymenthub\dto\request\GroupCategoryDTO.class
 com\example\paymenthub\dto\response\LoginResponse.class
 com\example\paymenthub\entity\GroupCategory$GroupCategoryBuilderImpl.class
 com\example\paymenthub\entity\GroupCategory.class
-com\example\paymenthub\config\SecurityConfig.class
 com\example\paymenthub\dto\request\ComponentDTO$ComponentDTOBuilder.class
 com\example\paymenthub\dto\response\GroupCategoryResponseDTO.class
 com\example\paymenthub\common\base\BaseController.class
