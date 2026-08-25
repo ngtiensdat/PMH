@@ -338,15 +338,15 @@ export class CategoryDialogComponent implements OnInit {
     switch (this.mode) {
       case FormMode.ADD:
       case 'add':
-        return 'Thêm mới tham số cấu phần xử lý';
+        return 'Thêm mới tham số danh mục theo nhóm';
       case FormMode.COPY:
       case 'copy':
-        return 'Thêm mới tham số cấu phần xử lý';
+        return 'Thêm mới tham số danh mục theo nhóm';
       case FormMode.EDIT:
       case 'edit':
-        return 'Sửa tham số cấu phần xử lý';
+        return 'Sửa tham số danh mục theo nhóm';
       default:
-        return 'Thêm mới tham số cấu phần xử lý';
+        return 'Thêm mới tham số danh mục theo nhóm';
     }
   }
 
