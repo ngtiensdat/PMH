@@ -54,10 +54,10 @@ export class ComponentListComponent implements OnInit {
   private cdr = inject(ChangeDetectorRef);
 
   searchForm: FormGroup = inject(FormBuilder).group({
-    componentCode: [''],
-    componentName: [''],
-    status: [''],
-    isActive: ['']
+    componentCode: [[]],
+    componentName: [[]],
+    status: [[]],
+    isActive: [[]]
   });
 
   components = signal<ProcessingComponentResponse[]>([]);
@@ -80,30 +80,30 @@ export class ComponentListComponent implements OnInit {
 
   statusMap = STATUS_MAP;
 
-  readonly statusCodes = ['', '1', '3', '4', '5', '7'];
-  readonly activeCodes = ['', '1', '0'];
+  readonly statusCodes = ['1', '3', '4', '5', '7'];
+  readonly activeCodes = ['1', '0'];
 
-  stringifyStatus = (val: string): string => {
+  readonly stringifyStatus = (val: string): string => {
+    if (!val) return '';
     const labels = this.languageService.labels();
     const map: Record<string, string> = {
-      '': labels.common.all || 'Tất cả',
       '1': labels.common.status.new,
       '3': labels.common.status.pending,
       '4': labels.common.status.approved,
       '5': labels.common.status.rejected,
       '7': labels.common.status.canceled
     };
-    return map[val] || val;
+    return map[String(val)] || String(val);
   };
 
-  stringifyActive = (val: string): string => {
+  readonly stringifyActive = (val: string): string => {
+    if (val === null || val === undefined || val === '') return '';
     const labels = this.languageService.labels();
     const map: Record<string, string> = {
-      '': labels.common.all || 'Tất cả',
       '1': labels.common.active,
       '0': labels.common.inactive
     };
-    return map[val] || val;
+    return map[String(val)] || String(val);
   };
 
   getColumnLabel(id: string): string {
@@ -123,11 +123,11 @@ export class ComponentListComponent implements OnInit {
   }
 
   get componentCodeItems(): string[] {
-    return [this.languageService.labels().common.selectValue, ...this.componentCodesList.map(o => o.value)];
+    return Array.from(new Set(this.componentCodesList.map(o => o.value).filter(Boolean)));
   }
 
   get componentNameItems(): string[] {
-    return [this.languageService.labels().common.selectValue, ...this.componentNamesList.map(o => o.value)];
+    return Array.from(new Set(this.componentNamesList.map(o => o.value).filter(Boolean)));
   }
 
   columns = [
@@ -294,10 +294,10 @@ export class ComponentListComponent implements OnInit {
   }
 
   private loadFilterOptions() {
-    this.componentService.getActiveList().subscribe({
+    this.componentService.search({}, 0, 1000).subscribe({
       next: (res) => {
         console.log('[ComponentListComponent] loadFilterOptions success, res:', res);
-        const list = res.data || [];
+        const list = res.data?.content || [];
         this.componentCodesList = list.map(c => ({ value: c.componentCode, label: c.componentCode }));
         this.componentNamesList = list.map(c => ({ value: c.componentName, label: c.componentName }));
       },
@@ -323,11 +323,40 @@ export class ComponentListComponent implements OnInit {
 
     const rawFilters = this.searchForm.value;
     const selectPlaceholder = this.languageService.labels().common.selectValue;
+
+    let codeVal = '';
+    if (Array.isArray(rawFilters.componentCode)) {
+      codeVal = rawFilters.componentCode.join(', ');
+    } else if (rawFilters.componentCode && rawFilters.componentCode !== selectPlaceholder) {
+      codeVal = String(rawFilters.componentCode);
+    }
+
+    let nameVal = '';
+    if (Array.isArray(rawFilters.componentName)) {
+      nameVal = rawFilters.componentName.join(', ');
+    } else if (rawFilters.componentName && rawFilters.componentName !== selectPlaceholder) {
+      nameVal = String(rawFilters.componentName);
+    }
+
+    let statusList: number[] = [];
+    if (Array.isArray(rawFilters.status)) {
+      statusList = rawFilters.status.map((s: any) => Number(s)).filter((n: number) => !isNaN(n));
+    } else if (rawFilters.status && rawFilters.status !== selectPlaceholder) {
+      statusList = [Number(rawFilters.status)];
+    }
+
+    let activeList: number[] = [];
+    if (Array.isArray(rawFilters.isActive)) {
+      activeList = rawFilters.isActive.map((a: any) => Number(a)).filter((n: number) => !isNaN(n));
+    } else if (rawFilters.isActive && rawFilters.isActive !== selectPlaceholder) {
+      activeList = [Number(rawFilters.isActive)];
+    }
+
     const filters = {
-      componentCode: rawFilters.componentCode === selectPlaceholder ? '' : rawFilters.componentCode,
-      componentName: rawFilters.componentName === selectPlaceholder ? '' : rawFilters.componentName,
-      status: rawFilters.status ? [Number(rawFilters.status)] : [],
-      isActive: rawFilters.isActive ? [Number(rawFilters.isActive)] : []
+      componentCode: codeVal,
+      componentName: nameVal,
+      status: statusList,
+      isActive: activeList
     };
     const sortParam = `${this.sortField()},${this.sortDirection()}`;
 
@@ -357,10 +386,10 @@ export class ComponentListComponent implements OnInit {
 
   onReset() {
     this.searchForm.reset({
-      componentCode: '',
-      componentName: '',
-      status: '',
-      isActive: ''
+      componentCode: [],
+      componentName: [],
+      status: [],
+      isActive: []
     });
     this.page.set(0);
     this.loadData();

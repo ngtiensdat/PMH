@@ -18,31 +18,30 @@
   <!-- BỘ LỌC TÌM KIẾM (Inline Row) -->
   <div class="search-section glass-panel" [formGroup]="searchForm">
     <div class="search-grid-inline">
-      <tui-textfield tuiChevron>
+      <tui-textfield multi>
         <label tuiLabel>{{ languageService.labels().components.code }}</label>
-        <input tuiSelect formControlName="componentCode" />
-        <tui-data-list-wrapper *tuiDropdown [items]="componentCodeItems" />
+        <select tuiMultiSelect formControlName="componentCode" [items]="componentCodeItems"></select>
       </tui-textfield>
 
-      <tui-textfield tuiChevron>
+      <tui-textfield multi>
         <label tuiLabel>{{ languageService.labels().components.name }}</label>
-        <input tuiSelect formControlName="componentName" />
-        <tui-data-list-wrapper *tuiDropdown [items]="componentNameItems" />
+        <select tuiMultiSelect formControlName="componentName" [items]="componentNameItems"></select>
       </tui-textfield>
 
-      <tui-textfield tuiChevron [stringify]="stringifyStatus">
+      <tui-textfield multi [stringify]="stringifyStatus">
         <label tuiLabel>{{ languageService.labels().components.paramStatus }}</label>
-        <input tuiSelect formControlName="status" />
-        <tui-data-list-wrapper *tuiDropdown [items]="statusCodes" />
+        <select tuiMultiSelect formControlName="status" [items]="statusCodes"></select>
       </tui-textfield>
 
-      <tui-textfield tuiChevron [stringify]="stringifyActive">
+      <tui-textfield multi [stringify]="stringifyActive">
         <label tuiLabel>{{ languageService.labels().components.activeStatus }}</label>
-        <input tuiSelect formControlName="isActive" />
-        <tui-data-list-wrapper *tuiDropdown [items]="activeCodes" />
+        <select tuiMultiSelect formControlName="isActive" [items]="activeCodes"></select>
       </tui-textfield>
 
       <div class="search-button-container">
+        <button tuiButton appearance="secondary" type="button" (click)="onReset()" class="clear-btn-secondary">
+          {{ languageService.labels().common.clearFilter }}
+        </button>
         <button tuiButton type="button" (click)="onSearch()" class="search-btn-primary" iconStart="@tui.search">
           {{ languageService.labels().common.search }}
         </button>
