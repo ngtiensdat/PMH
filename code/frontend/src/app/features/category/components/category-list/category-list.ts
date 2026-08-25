@@ -56,8 +56,8 @@ export class CategoryListComponent implements OnInit {
     paramType: [''],
     paramValue: [''],
     paramName: [''],
-    status: [''],
-    isActive: ['']
+    status: [[]],
+    isActive: [[]]
   });
 
   categories = signal<GroupCategoryResponse[]>([]);
@@ -82,30 +82,30 @@ export class CategoryListComponent implements OnInit {
     console.log('[CategoryListComponent] Constructor - viewMode:', this.viewMode());
   }
 
-  readonly statusCodes = ['', '1', '3', '4', '5', '7'];
-  readonly activeCodes = ['', '1', '0'];
+  readonly statusCodes = ['1', '3', '4', '5', '7'];
+  readonly activeCodes = ['1', '0'];
 
-  stringifyStatus = (val: string): string => {
+  readonly stringifyStatus = (val: string): string => {
+    if (!val) return '';
     const labels = this.languageService.labels();
     const map: Record<string, string> = {
-      '': labels.common.all || 'Tất cả',
       '1': labels.common.status.new,
       '3': labels.common.status.pending,
       '4': labels.common.status.approved,
       '5': labels.common.status.rejected,
       '7': labels.common.status.canceled
     };
-    return map[val] || val;
+    return map[String(val)] || String(val);
   };
 
-  stringifyActive = (val: string): string => {
+  readonly stringifyActive = (val: string): string => {
+    if (val === null || val === undefined || val === '') return '';
     const labels = this.languageService.labels();
     const map: Record<string, string> = {
-      '': labels.common.all || 'Tất cả',
       '1': labels.common.active,
       '0': labels.common.inactive
     };
-    return map[val] || val;
+    return map[String(val)] || String(val);
   };
 
   getColumnLabel(id: string): string {
@@ -333,12 +333,27 @@ export class CategoryListComponent implements OnInit {
     }
 
     const rawFilters = this.searchForm.value;
+
+    let statusList: number[] = [];
+    if (Array.isArray(rawFilters.status)) {
+      statusList = rawFilters.status.map((s: any) => Number(s)).filter((n: number) => !isNaN(n));
+    } else if (rawFilters.status) {
+      statusList = [Number(rawFilters.status)];
+    }
+
+    let activeList: number[] = [];
+    if (Array.isArray(rawFilters.isActive)) {
+      activeList = rawFilters.isActive.map((a: any) => Number(a)).filter((n: number) => !isNaN(n));
+    } else if (rawFilters.isActive) {
+      activeList = [Number(rawFilters.isActive)];
+    }
+
     const filters = {
       paramType: rawFilters.paramType,
       paramValue: rawFilters.paramValue,
       paramName: rawFilters.paramName,
-      status: rawFilters.status ? [Number(rawFilters.status)] : [],
-      isActive: rawFilters.isActive ? [Number(rawFilters.isActive)] : []
+      status: statusList,
+      isActive: activeList
     };
     const sortParam = `${this.sortField()},${this.sortDirection()}`;
 
@@ -403,8 +418,8 @@ export class CategoryListComponent implements OnInit {
       paramType: '',
       paramValue: '',
       paramName: '',
-      status: '',
-      isActive: ''
+      status: [],
+      isActive: []
     });
     this.page.set(0);
     this.loadData();

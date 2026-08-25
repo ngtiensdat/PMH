@@ -174,7 +174,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
             entity.setUpdatedBy(username);
             entity.setStatus(ParamStatus.CANCELED.getCode());
             saved = repository.save(entity);
-            action = "Lưu sửa nháp (Hủy duyệt)";
+            action = AuditAction.UPDATE.getActionName();
             statusAfter = ParamStatus.CANCELED.getCode();
         } else {
             updateEntityFields(entity, dto, username);
@@ -190,7 +190,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 MODULE, String.valueOf(id),
                 action, username,
                 oldJson, newJson,
-                String.format("%s tham số ID=%d bởi %s", action, id, username),
+                String.format("Cập nhật tham số ID=%d: %s / %s bởi %s", id, saved.getParamName(), saved.getParamValue(), username),
                 statusBefore, statusAfter);
 
         return saved;
@@ -222,7 +222,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 MODULE, String.valueOf(id),
                 AuditAction.DELETE.getActionName(), username,
                 oldJson, null,
-                String.format("Xóa tham số chưa duyệt: %s / %s / %s", entity.getParamName(), entity.getParamValue(), entity.getParamType()),
+                String.format("Xóa tham số ID=%d: %s / %s bởi %s", id, entity.getParamName(), entity.getParamValue(), username),
                 entity.getStatus(), null);
     }
 
@@ -418,7 +418,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 MODULE, String.valueOf(entity.getId()),
                 AuditAction.APPROVE.getActionName(), approver,
                 null, null,
-                String.format("Phê duyệt tham số ID=%d. SP: %s", entity.getId(), spResult.getMessage()),
+                String.format("Phê duyệt tham số ID=%d: %s / %s bởi %s", entity.getId(), entity.getParamName(), entity.getParamValue(), approver),
                 statusBefore, ParamStatus.APPROVED.getCode());
     }
 
@@ -441,8 +441,8 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 AuditAction.REJECT.getActionName(), approver,
                 null, null,
                 reason != null && !reason.trim().isEmpty()
-                        ? String.format("Từ chối duyệt tham số ID=%d. Lý do: %s. SP: %s", entity.getId(), reason, spResult.getMessage())
-                        : String.format("Từ chối duyệt tham số ID=%d. SP: %s", entity.getId(), spResult.getMessage()),
+                        ? String.format("Từ chối duyệt tham số ID=%d: %s / %s bởi %s. Lý do: %s", entity.getId(), entity.getParamName(), entity.getParamValue(), approver, reason.trim())
+                        : String.format("Từ chối duyệt tham số ID=%d: %s / %s bởi %s", entity.getId(), entity.getParamName(), entity.getParamValue(), approver),
                 statusBefore, ParamStatus.REJECTED.getCode());
     }
 

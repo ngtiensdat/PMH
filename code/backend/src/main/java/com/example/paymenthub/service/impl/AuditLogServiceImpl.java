@@ -57,6 +57,9 @@ public class AuditLogServiceImpl implements AuditLogService {
                 if (ipAddress != null && ipAddress.contains(",")) {
                     ipAddress = ipAddress.split(",")[0].trim();
                 }
+                if ("0:0:0:0:0:0:0:1".equals(ipAddress) || "::1".equals(ipAddress)) {
+                    ipAddress = "127.0.0.1";
+                }
                 return ipAddress;
             }
         } catch (Exception e) {

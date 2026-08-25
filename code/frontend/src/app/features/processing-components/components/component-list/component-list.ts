@@ -344,7 +344,6 @@ export class ComponentListComponent implements OnInit {
     } else if (rawFilters.status && rawFilters.status !== selectPlaceholder) {
       statusList = [Number(rawFilters.status)];
     }
-
     let activeList: number[] = [];
     if (Array.isArray(rawFilters.isActive)) {
       activeList = rawFilters.isActive.map((a: any) => Number(a)).filter((n: number) => !isNaN(n));

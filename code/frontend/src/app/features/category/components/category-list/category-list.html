@@ -44,23 +44,18 @@
       </tui-textfield>
 
       <!-- Trạng thái duyệt -->
-      <tui-textfield tuiChevron [stringify]="stringifyStatus">
+      <tui-textfield multi [stringify]="stringifyStatus">
         <label tuiLabel>{{ languageService.labels().category.paramStatus }}</label>
-        <input tuiSelect formControlName="status" />
-        <tui-data-list-wrapper *tuiDropdown [items]="statusCodes" />
+        <select tuiMultiSelect formControlName="status" [items]="statusCodes"></select>
       </tui-textfield>
-    </div>
 
-    <div class="category-search-row2">
       <!-- Trạng thái hoạt động -->
-      <div style="width: 23.5%; min-width: 200px;">
-        <tui-textfield tuiChevron [stringify]="stringifyActive">
-          <label tuiLabel>{{ languageService.labels().category.activeStatus }}</label>
-          <input tuiSelect formControlName="isActive" />
-          <tui-data-list-wrapper *tuiDropdown [items]="activeCodes" />
-        </tui-textfield>
-      </div>
+      <tui-textfield multi [stringify]="stringifyActive">
+        <label tuiLabel>{{ languageService.labels().category.activeStatus }}</label>
+        <select tuiMultiSelect formControlName="isActive" [items]="activeCodes"></select>
+      </tui-textfield>
 
+      <!-- Nút thao tác -->
       <div class="search-actions-row2">
         <button tuiButton appearance="secondary" type="button" (click)="onReset()" class="clear-btn-secondary">
           {{ languageService.labels().common.clearFilter }}
@@ -69,7 +64,6 @@
           {{ languageService.labels().common.search }}
         </button>
       </div>
-
     </div>
   </div>
 

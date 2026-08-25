@@ -176,7 +176,7 @@ public class ComponentServiceImpl implements ComponentService {
             entity.setUpdatedBy(username);
             entity.setStatus(ParamStatus.CANCELED.getCode());
             saved = repository.save(entity);
-            action = "Lưu sửa nháp (Hủy duyệt)";
+            action = AuditAction.UPDATE.getActionName();
             statusAfter = ParamStatus.CANCELED.getCode();
         } else {
             updateEntityFromDto(entity, dto, username);
@@ -192,7 +192,7 @@ public class ComponentServiceImpl implements ComponentService {
                 MODULE, code,
                 action, username,
                 oldJson, newJson,
-                String.format("%s cấu phần Code=%s bởi %s", action, code, username),
+                String.format("Cập nhật cấu phần Code=%s - %s bởi %s", code, saved.getComponentName(), username),
                 statusBefore, statusAfter);
 
         return saved;
@@ -375,7 +375,7 @@ public class ComponentServiceImpl implements ComponentService {
                 MODULE, entity.getComponentCode(),
                 AuditAction.APPROVE.getActionName(), approver,
                 null, null,
-                String.format("Phê duyệt cấu phần Code=%s. SP: %s", entity.getComponentCode(), spResult.getMessage()),
+                String.format("Phê duyệt cấu phần Code=%s - %s bởi %s", entity.getComponentCode(), entity.getComponentName(), approver),
                 statusBefore, ParamStatus.APPROVED.getCode());
     }
 
@@ -398,8 +398,8 @@ public class ComponentServiceImpl implements ComponentService {
                 AuditAction.REJECT.getActionName(), approver,
                 null, null,
                 reason != null && !reason.trim().isEmpty()
-                        ? String.format("Từ chối duyệt cấu phần Code=%s. Lý do: %s. SP: %s", entity.getComponentCode(), reason, spResult.getMessage())
-                        : String.format("Từ chối duyệt cấu phần Code=%s. SP: %s", entity.getComponentCode(), spResult.getMessage()),
+                        ? String.format("Từ chối duyệt cấu phần Code=%s - %s bởi %s. Lý do: %s", entity.getComponentCode(), entity.getComponentName(), approver, reason.trim())
+                        : String.format("Từ chối duyệt cấu phần Code=%s - %s bởi %s", entity.getComponentCode(), entity.getComponentName(), approver),
                 statusBefore, ParamStatus.REJECTED.getCode());
     }
 
