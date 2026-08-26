@@ -3,6 +3,9 @@ package com.example.paymenthub.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Entity
 @Table(name = "PMH_ROLES")
 @Getter
@@ -25,4 +28,13 @@ public class Role {
 
     @Column(name = "DESCRIPTION", length = 255)
     private String description;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "PMH_ROLE_PERMISSIONS",
+        joinColumns = @JoinColumn(name = "ROLE_ID"),
+        inverseJoinColumns = @JoinColumn(name = "PERMISSION_ID")
+    )
+    @Builder.Default
+    private Set<Permission> permissions = new HashSet<>();
 }

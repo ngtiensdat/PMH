@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -16,7 +17,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -35,13 +37,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (jwt != null && !tokenBlacklistService.isBlacklisted(jwt) && jwtProvider.validateToken(jwt)) {
                 String username = jwtProvider.getUsernameFromToken(jwt);
                 String role = jwtProvider.getRoleFromToken(jwt);
+                List<String> permissions = jwtProvider.getPermissionsFromToken(jwt);
 
-                // Đảm bảo tên role có tiền tố ROLE_ cho Spring Security
-                String authorityRole = role.startsWith("ROLE_") ? role : "ROLE_" + role;
-                SimpleGrantedAuthority authority = new SimpleGrantedAuthority(authorityRole);
+                List<GrantedAuthority> authorities = new ArrayList<>();
+
+                // 1. Nạp vai trò (ROLE_MAKER, ROLE_CHECKER...)
+                if (StringUtils.hasText(role)) {
+                    String authorityRole = role.startsWith("ROLE_") ? role : "ROLE_" + role;
+                    authorities.add(new SimpleGrantedAuthority(authorityRole));
+                }
+
+                // 2. Nạp tất cả các Chức năng nhỏ (CATEGORY_CREATE, CATEGORY_VIEW...)
+                if (permissions != null) {
+                    for (String perm : permissions) {
+                        if (StringUtils.hasText(perm)) {
+                            authorities.add(new SimpleGrantedAuthority(perm));
+                        }
+                    }
+                }
 
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        username, null, Collections.singletonList(authority));
+                        username, null, authorities);
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);

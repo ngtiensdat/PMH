@@ -33,7 +33,7 @@ public class ComponentController extends BaseController {
     private final ComponentService service;
 
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('MAKER', 'CHECKER')")
+    @PreAuthorize("hasAuthority('COMPONENT_VIEW')")
     public ResponseEntity<ApiResponse<Page<ComponentResponseDTO>>> search(
             @Valid @ModelAttribute ComponentSearchCriteria criteria,
             @PageableDefault(page = 0, size = 10, sort = "updatedDate", direction = Sort.Direction.DESC) Pageable pageable
@@ -47,14 +47,14 @@ public class ComponentController extends BaseController {
     }
 
     @GetMapping("/{code}")
-    @PreAuthorize("hasAnyRole('MAKER', 'CHECKER')")
+    @PreAuthorize("hasAuthority('COMPONENT_VIEW')")
     public ResponseEntity<ApiResponse<ComponentResponseDTO>> getByCode(@PathVariable String code) {
         ProcessingComponent entity = service.getByCode(code);
         return ok(ComponentResponseDTO.fromEntity(entity), "Lấy chi tiết cấu phần thành công");
     }
 
     @GetMapping("/active-list")
-    @PreAuthorize("hasAnyRole('MAKER', 'CHECKER')")
+    @PreAuthorize("hasAuthority('COMPONENT_VIEW')")
     public ResponseEntity<ApiResponse<List<ComponentResponseDTO>>> getActiveList(
             @RequestParam(value = "status", required = false) Integer status
     ) {
@@ -66,7 +66,7 @@ public class ComponentController extends BaseController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('MAKER')")
+    @PreAuthorize("hasAuthority('COMPONENT_CREATE')")
     public ResponseEntity<ApiResponse<ComponentResponseDTO>> create(@Valid @RequestBody ComponentDTO dto) {
         String username = SecurityUtils.getCurrentUsername();
         ProcessingComponent created = service.create(dto, username);
@@ -75,7 +75,7 @@ public class ComponentController extends BaseController {
     }
 
     @PutMapping("/{code}")
-    @PreAuthorize("hasRole('MAKER')")
+    @PreAuthorize("hasAuthority('COMPONENT_UPDATE')")
     public ResponseEntity<ApiResponse<ComponentResponseDTO>> update(
             @PathVariable String code,
             @Valid @RequestBody ComponentDTO dto
@@ -86,7 +86,7 @@ public class ComponentController extends BaseController {
     }
 
     @DeleteMapping("/{code}")
-    @PreAuthorize("hasRole('MAKER')")
+    @PreAuthorize("hasAuthority('COMPONENT_DELETE')")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable String code) {
         String username = SecurityUtils.getCurrentUsername();
         service.delete(code, username);
@@ -94,7 +94,7 @@ public class ComponentController extends BaseController {
     }
 
     @PostMapping("/{code}/send-approval")
-    @PreAuthorize("hasRole('MAKER')")
+    @PreAuthorize("hasAuthority('COMPONENT_SEND')")
     public ResponseEntity<ApiResponse<ComponentResponseDTO>> sendApproval(@PathVariable String code) {
         String username = SecurityUtils.getCurrentUsername();
         ProcessingComponent updated = service.sendForApproval(code, username);
@@ -102,7 +102,7 @@ public class ComponentController extends BaseController {
     }
 
     @PostMapping("/{code}/cancel-approval")
-    @PreAuthorize("hasRole('MAKER')")
+    @PreAuthorize("hasAuthority('COMPONENT_CANCEL')")
     public ResponseEntity<ApiResponse<ComponentResponseDTO>> cancelApproval(@PathVariable String code) {
         String username = SecurityUtils.getCurrentUsername();
         ProcessingComponent updated = service.cancelApproval(code, username);
@@ -110,20 +110,20 @@ public class ComponentController extends BaseController {
     }
 
     @GetMapping("/export")
-    @PreAuthorize("hasAnyRole('MAKER', 'CHECKER')")
+    @PreAuthorize("hasAuthority('COMPONENT_VIEW')")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> exportData() {
         return ok(service.getRawDataForExport(), "Xuất dữ liệu thành công");
     }
 
     @PostMapping("/batch-approve")
-    @PreAuthorize("hasRole('CHECKER')")
+    @PreAuthorize("hasAuthority('COMPONENT_APPROVE')")
     public ResponseEntity<ApiResponse<List<BatchItemResultDTO>>> batchApprove(@RequestBody List<String> codes) {
         String username = SecurityUtils.getCurrentUsername();
         return ok(service.batchApprove(codes, username), "Phê duyệt hàng loạt thành công");
     }
 
     @PostMapping("/batch-reject")
-    @PreAuthorize("hasRole('CHECKER')")
+    @PreAuthorize("hasAuthority('COMPONENT_REJECT')")
     public ResponseEntity<ApiResponse<List<BatchItemResultDTO>>> batchReject(
             @RequestBody List<String> codes,
             @RequestParam(required = false) String reason

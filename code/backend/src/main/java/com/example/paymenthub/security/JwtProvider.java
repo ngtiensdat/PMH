@@ -7,28 +7,31 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 @Component
 @Slf4j
 public class JwtProvider {
 
-    // Key bảo mật 256-bit chuẩn HMAC-SHA cho JWT
     private static final String SECRET_STRING = "PaymentHubEnterpriseSecretKeyForJWTAuthenticationAndAuthorizationSystem2026";
     
-    // Cấu hình thời hạn hiệu lực Token theo đúng yêu cầu
     public static final long ACCESS_TOKEN_EXPIRATION_MS = 900000L;    // 15 phút
     public static final long REFRESH_TOKEN_EXPIRATION_MS = 36000000L; // 10 tiếng
 
     private final SecretKey key = Keys.hmacShaKeyFor(SECRET_STRING.getBytes(StandardCharsets.UTF_8));
 
-    public String generateAccessToken(String username, String role) {
+    public String generateAccessToken(String username, String role, List<String> permissions) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + ACCESS_TOKEN_EXPIRATION_MS);
+
+        String permString = permissions != null ? String.join(",", permissions) : "";
 
         return Jwts.builder()
                 .subject(username)
                 .claim("role", role)
+                .claim("permissions", permString)
                 .claim("type", "ACCESS")
                 .issuedAt(now)
                 .expiration(expiryDate)
@@ -50,7 +53,7 @@ public class JwtProvider {
     }
 
     public String generateToken(String username, String role) {
-        return generateAccessToken(username, role);
+        return generateAccessToken(username, role, List.of());
     }
 
     public String getUsernameFromToken(String token) {
@@ -69,6 +72,23 @@ public class JwtProvider {
                 .parseSignedClaims(token)
                 .getPayload();
         return claims.get("role", String.class);
+    }
+
+    public List<String> getPermissionsFromToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            String permString = claims.get("permissions", String.class);
+            if (permString != null && !permString.trim().isEmpty()) {
+                return Arrays.asList(permString.split(","));
+            }
+        } catch (Exception e) {
+            log.error("[JWT] Không thể đọc permissions từ Token: {}", e.getMessage());
+        }
+        return List.of();
     }
 
     public boolean validateToken(String token) {

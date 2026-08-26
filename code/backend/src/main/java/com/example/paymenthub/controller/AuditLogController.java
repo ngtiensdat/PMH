@@ -23,7 +23,7 @@ public class AuditLogController extends BaseController {
      * Lấy lịch sử thao tác cho một Tham số danh mục theo nhóm.
      */
     @GetMapping("/group-category/{id}")
-    @PreAuthorize("hasAnyRole('MAKER', 'CHECKER')")
+    @PreAuthorize("hasAuthority('AUDIT_VIEW')")
     public ResponseEntity<ApiResponse<Page<AuditLogDTO>>> getGroupCategoryHistory(
             @PathVariable Long id,
             @PageableDefault(page = 0, size = 5) Pageable pageable
@@ -36,7 +36,7 @@ public class AuditLogController extends BaseController {
      * Lấy lịch sử thao tác cho một Cấu phần xử lý.
      */
     @GetMapping("/component/{code}")
-    @PreAuthorize("hasAnyRole('MAKER', 'CHECKER')")
+    @PreAuthorize("hasAuthority('AUDIT_VIEW')")
     public ResponseEntity<ApiResponse<Page<AuditLogDTO>>> getComponentHistory(
             @PathVariable String code,
             @PageableDefault(page = 0, size = 5) Pageable pageable

@@ -4,6 +4,7 @@ import com.example.paymenthub.common.enums.AuthErrorCode;
 import com.example.paymenthub.common.exception.UnauthorizedAccessException;
 import com.example.paymenthub.dto.request.LoginRequest;
 import com.example.paymenthub.dto.response.LoginResponse;
+import com.example.paymenthub.entity.Permission;
 import com.example.paymenthub.entity.RefreshToken;
 import com.example.paymenthub.entity.User;
 import com.example.paymenthub.repository.RefreshTokenRepository;
@@ -98,22 +99,24 @@ public class AuthServiceImpl implements AuthService {
                 ? user.getRoles().stream().map(r -> r.getRoleCode().replace("ROLE_", "")).distinct().toList()
                 : List.of(user.getRole());
 
-        String accessToken = jwtProvider.generateAccessToken(user.getUsername(), user.getRole());
+        List<String> permissionCodes = extractPermissions(user);
+
+        String accessToken = jwtProvider.generateAccessToken(user.getUsername(), user.getRole(), permissionCodes);
         String refreshTokenStr = jwtProvider.generateRefreshToken(user.getUsername());
 
-        // Thu hồi các Refresh Token cũ của user và lưu Refresh Token mới (Refresh Token Rotation)
         refreshTokenRepository.revokeAllByUsername(user.getUsername());
 
         RefreshToken refreshTokenEntity = RefreshToken.builder()
                 .username(user.getUsername())
                 .tokenHash(refreshTokenStr)
-                .expiryDate(LocalDateTime.now().plusHours(10)) // Refresh Token sống 10 tiếng
+                .expiryDate(LocalDateTime.now().plusHours(10))
                 .revoked(false)
                 .createdDate(LocalDateTime.now())
                 .build();
         refreshTokenRepository.save(refreshTokenEntity);
 
-        log.info("[AuthService] Đăng nhập thành công: username={}, role={}, roles={}", user.getUsername(), user.getRole(), roleCodes);
+        log.info("[AuthService] Đăng nhập thành công: username={}, role={}, roles={}, permissions={}", 
+                user.getUsername(), user.getRole(), roleCodes, permissionCodes);
 
         return LoginResponse.builder()
                 .token(accessToken)
@@ -122,6 +125,7 @@ public class AuthServiceImpl implements AuthService {
                 .fullName(user.getFullName())
                 .role(user.getRole())
                 .roles(roleCodes)
+                .permissions(permissionCodes)
                 .build();
     }
 
@@ -147,11 +151,11 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedAccessException(AuthErrorCode.ACCOUNT_LOCKED);
         }
 
-        // Xoay vòng Refresh Token (Rotation): Thu hồi Token cũ và phát Refresh Token 10h mới
         storedToken.setRevoked(true);
         refreshTokenRepository.save(storedToken);
 
-        String newAccessToken = jwtProvider.generateAccessToken(user.getUsername(), user.getRole());
+        List<String> permissionCodes = extractPermissions(user);
+        String newAccessToken = jwtProvider.generateAccessToken(user.getUsername(), user.getRole(), permissionCodes);
         String newRefreshTokenStr = jwtProvider.generateRefreshToken(user.getUsername());
 
         RefreshToken newRefreshTokenEntity = RefreshToken.builder()
@@ -174,6 +178,7 @@ public class AuthServiceImpl implements AuthService {
                 .fullName(user.getFullName())
                 .role(user.getRole())
                 .roles(roleCodes)
+                .permissions(permissionCodes)
                 .build();
     }
 
@@ -195,6 +200,8 @@ public class AuthServiceImpl implements AuthService {
                 ? user.getRoles().stream().map(r -> r.getRoleCode().replace("ROLE_", "")).distinct().toList()
                 : List.of(user.getRole());
 
+        List<String> permissionCodes = extractPermissions(user);
+
         return LoginResponse.builder()
                 .token(null)
                 .refreshToken(null)
@@ -202,6 +209,7 @@ public class AuthServiceImpl implements AuthService {
                 .fullName(user.getFullName())
                 .role(user.getRole())
                 .roles(roleCodes)
+                .permissions(permissionCodes)
                 .build();
     }
 
@@ -228,5 +236,17 @@ public class AuthServiceImpl implements AuthService {
                 refreshTokenRepository.save(rt);
             });
         }
+    }
+
+    private List<String> extractPermissions(User user) {
+        if (user.getRoles() == null || user.getRoles().isEmpty()) {
+            return List.of();
+        }
+        return user.getRoles().stream()
+                .filter(r -> r.getPermissions() != null)
+                .flatMap(r -> r.getPermissions().stream())
+                .map(Permission::getPermissionCode)
+                .distinct()
+                .toList();
     }
 }

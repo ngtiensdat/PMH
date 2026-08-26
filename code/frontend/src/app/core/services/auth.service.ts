@@ -11,6 +11,7 @@ export interface UserResponse {
   fullName: string;
   role: string;
   roles?: string[];
+  permissions?: string[];
 }
 
 export interface ApiResponse<T> {
@@ -38,8 +39,19 @@ export class AuthService {
   userRoles = computed(() => this.currentUser()?.roles || (this.currentUser()?.role ? [this.currentUser()!.role] : []));
   userRole = computed(() => this.activeRole() || this.currentUser()?.role || '');
 
-  isMaker = computed(() => (this.activeRole() || '').toUpperCase() === 'MAKER');
-  isChecker = computed(() => (this.activeRole() || '').toUpperCase() === 'CHECKER');
+  userPermissions = computed(() => this.currentUser()?.permissions || []);
+
+  isMaker = computed(() => {
+    const role = (this.activeRole() || '').toUpperCase();
+    if (role === 'MAKER') return true;
+    return this.hasPermission('CATEGORY_CREATE') || this.hasPermission('COMPONENT_CREATE');
+  });
+
+  isChecker = computed(() => {
+    const role = (this.activeRole() || '').toUpperCase();
+    if (role === 'CHECKER') return true;
+    return this.hasPermission('CATEGORY_APPROVE') || this.hasPermission('COMPONENT_APPROVE');
+  });
 
   constructor() {
     const user = this.currentUser();
@@ -47,6 +59,10 @@ export class AuthService {
       this.languageService.updateUserProfile(user.fullName, this.activeRole(), user.username);
     }
     this.checkAuthStatus();
+  }
+
+  hasPermission(permCode: string): boolean {
+    return this.userPermissions().includes(permCode);
   }
 
   setActiveRole(role: string): void {

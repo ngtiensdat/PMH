@@ -35,7 +35,7 @@ public class GroupCategoryController extends BaseController {
      * Tìm kiếm động phân trang bằng JPA Specification
      */
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('MAKER', 'CHECKER')")
+    @PreAuthorize("hasAuthority('CATEGORY_VIEW')")
     public ResponseEntity<ApiResponse<Page<GroupCategoryResponseDTO>>> search(
             @Valid @ModelAttribute GroupCategorySearchCriteria criteria,
             @PageableDefault(page = 0, size = 10, sort = "updatedDate", direction = Sort.Direction.DESC) Pageable pageable
@@ -52,17 +52,17 @@ public class GroupCategoryController extends BaseController {
      * Lấy thông tin chi tiết
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('MAKER', 'CHECKER')")
+    @PreAuthorize("hasAuthority('CATEGORY_VIEW')")
     public ResponseEntity<ApiResponse<GroupCategoryResponseDTO>> getById(@PathVariable Long id) {
         GroupCategory entity = service.getById(id);
         return ok(GroupCategoryResponseDTO.fromEntity(entity), "Lấy chi tiết tham số thành công");
     }
 
     /**
-     * Thêm mới (Quyền MAKER)
+     * Thêm mới
      */
     @PostMapping
-    @PreAuthorize("hasRole('MAKER')")
+    @PreAuthorize("hasAuthority('CATEGORY_CREATE')")
     public ResponseEntity<ApiResponse<GroupCategoryResponseDTO>> create(@Valid @RequestBody GroupCategoryDTO dto) {
         String username = SecurityUtils.getCurrentUsername();
         GroupCategory created = service.create(dto, username);
@@ -71,10 +71,10 @@ public class GroupCategoryController extends BaseController {
     }
 
     /**
-     * Chỉnh sửa (Quyền MAKER)
+     * Chỉnh sửa
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('MAKER')")
+    @PreAuthorize("hasAuthority('CATEGORY_UPDATE')")
     public ResponseEntity<ApiResponse<GroupCategoryResponseDTO>> update(
             @PathVariable Long id,
             @Valid @RequestBody GroupCategoryDTO dto
@@ -85,10 +85,10 @@ public class GroupCategoryController extends BaseController {
     }
 
     /**
-     * Xóa (Quyền MAKER) - Trả về ApiResponse đồng nhất với Frontend Angular
+     * Xóa
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('MAKER')")
+    @PreAuthorize("hasAuthority('CATEGORY_DELETE')")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         String username = SecurityUtils.getCurrentUsername();
         service.delete(id, username);
@@ -96,10 +96,10 @@ public class GroupCategoryController extends BaseController {
     }
 
     /**
-     * Gửi duyệt (Quyền MAKER)
+     * Gửi duyệt
      */
     @PostMapping("/{id}/send-approval")
-    @PreAuthorize("hasRole('MAKER')")
+    @PreAuthorize("hasAuthority('CATEGORY_SEND')")
     public ResponseEntity<ApiResponse<GroupCategoryResponseDTO>> sendApproval(@PathVariable Long id) {
         String username = SecurityUtils.getCurrentUsername();
         GroupCategory updated = service.sendForApproval(id, username);
@@ -107,10 +107,10 @@ public class GroupCategoryController extends BaseController {
     }
 
     /**
-     * Hủy duyệt (Quyền MAKER)
+     * Hủy duyệt
      */
     @PostMapping("/{id}/cancel-approval")
-    @PreAuthorize("hasRole('MAKER')")
+    @PreAuthorize("hasAuthority('CATEGORY_CANCEL')")
     public ResponseEntity<ApiResponse<GroupCategoryResponseDTO>> cancelApproval(@PathVariable Long id) {
         String username = SecurityUtils.getCurrentUsername();
         GroupCategory updated = service.cancelApproval(id, username);
@@ -121,7 +121,7 @@ public class GroupCategoryController extends BaseController {
      * Truy vấn JOIN nhiều bảng sử dụng Native Query
      */
     @GetMapping("/complex-list")
-    @PreAuthorize("hasAnyRole('MAKER', 'CHECKER')")
+    @PreAuthorize("hasAuthority('CATEGORY_VIEW')")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getComplexList() {
         return ok(service.getJoinedList(), "Lấy danh sách liên kết thành công");
     }
@@ -130,16 +130,16 @@ public class GroupCategoryController extends BaseController {
      * Xuất dữ liệu Excel
      */
     @GetMapping("/export")
-    @PreAuthorize("hasAnyRole('MAKER', 'CHECKER')")
+    @PreAuthorize("hasAuthority('CATEGORY_VIEW')")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> exportData() {
         return ok(service.getRawDataForExport(), "Xuất dữ liệu thành công");
     }
 
     /**
-     * Duyệt hàng loạt (Quyền CHECKER)
+     * Duyệt hàng loạt
      */
     @PostMapping("/batch-approve")
-    @PreAuthorize("hasRole('CHECKER')")
+    @PreAuthorize("hasAuthority('CATEGORY_APPROVE')")
     public ResponseEntity<ApiResponse<List<BatchItemResultDTO>>> batchApprove(@RequestBody List<Long> ids) {
         String username = SecurityUtils.getCurrentUsername();
         List<BatchItemResultDTO> result = service.batchApprove(ids, username);
@@ -147,10 +147,10 @@ public class GroupCategoryController extends BaseController {
     }
 
     /**
-     * Từ chối duyệt hàng loạt (Quyền CHECKER)
+     * Từ chối duyệt hàng loạt
      */
     @PostMapping("/batch-reject")
-    @PreAuthorize("hasRole('CHECKER')")
+    @PreAuthorize("hasAuthority('CATEGORY_REJECT')")
     public ResponseEntity<ApiResponse<List<BatchItemResultDTO>>> batchReject(
             @RequestBody List<Long> ids,
             @RequestParam(required = false) String reason
