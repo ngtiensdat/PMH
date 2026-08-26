@@ -4,13 +4,13 @@ import com.example.paymenthub.common.base.ApiResponse;
 import com.example.paymenthub.common.base.BaseController;
 import com.example.paymenthub.dto.request.LoginRequest;
 import com.example.paymenthub.dto.response.LoginResponse;
+import com.example.paymenthub.security.SecurityUtils;
 import com.example.paymenthub.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import com.example.paymenthub.security.SecurityUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,35 +18,59 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController extends BaseController {
 
-    private static final String COOKIE_NAME = "pmh_jwt_token";
-    private static final long TOKEN_MAX_AGE_SECONDS = 86400L; // 24 giờ
+    private static final String ACCESS_COOKIE_NAME = "pmh_jwt_token";
+    private static final String REFRESH_COOKIE_NAME = "pmh_refresh_token";
+    
+    private static final long ACCESS_MAX_AGE_SECONDS = 900L;     // 15 phút
+    private static final long REFRESH_MAX_AGE_SECONDS = 36000L;  // 10 tiếng
 
     private final AuthService authService;
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
-        ResponseCookie cookie = createJwtCookie(response.getToken(), TOKEN_MAX_AGE_SECONDS);
+        
+        ResponseCookie accessCookie = createCookie(ACCESS_COOKIE_NAME, response.getToken(), ACCESS_MAX_AGE_SECONDS, "/");
+        ResponseCookie refreshCookie = createCookie(REFRESH_COOKIE_NAME, response.getRefreshToken(), REFRESH_MAX_AGE_SECONDS, "/api/auth");
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
                 .body(ApiResponse.success(response, "Đăng nhập thành công!"));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<LoginResponse>> refreshToken(
+            @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String cookieRefreshToken,
+            @RequestBody(required = false) RefreshTokenRequest requestBody) {
+        
+        String refreshTokenStr = cookieRefreshToken != null ? cookieRefreshToken : (requestBody != null ? requestBody.getRefreshToken() : null);
+        LoginResponse response = authService.refreshToken(refreshTokenStr);
+
+        ResponseCookie accessCookie = createCookie(ACCESS_COOKIE_NAME, response.getToken(), ACCESS_MAX_AGE_SECONDS, "/");
+        ResponseCookie refreshCookie = createCookie(REFRESH_COOKIE_NAME, response.getRefreshToken(), REFRESH_MAX_AGE_SECONDS, "/api/auth");
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body(ApiResponse.success(response, "Gia hạn phiên làm việc thành công!"));
     }
 
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(
-            @CookieValue(name = COOKIE_NAME, required = false) String cookieToken,
+            @CookieValue(name = ACCESS_COOKIE_NAME, required = false) String accessCookieToken,
+            @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshCookieToken,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
 
-        String token = resolveToken(cookieToken, authHeader);
-        if (token != null) {
-            authService.logout(token);
-        }
+        String accessToken = resolveToken(accessCookieToken, authHeader);
+        authService.logout(accessToken, refreshCookieToken);
 
-        ResponseCookie cookie = createJwtCookie("", 0);
+        ResponseCookie clearAccessCookie = createCookie(ACCESS_COOKIE_NAME, "", 0, "/");
+        ResponseCookie clearRefreshCookie = createCookie(REFRESH_COOKIE_NAME, "", 0, "/api/auth");
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .header(HttpHeaders.SET_COOKIE, clearAccessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, clearRefreshCookie.toString())
                 .body(ApiResponse.success(null, "Đăng xuất thành công!"));
     }
 
@@ -57,24 +81,23 @@ public class AuthController extends BaseController {
         return ok(response, "Lấy thông tin tài khoản thành công!");
     }
 
-    // ─── Private Helper Methods ──────────────────────────────────────────────
+    // ─── Inner Helper DTO ──────────────────────────────────────────────
+    @lombok.Data
+    public static class RefreshTokenRequest {
+        private String refreshToken;
+    }
 
-    /**
-     * Tạo HttpOnly Cookie bọc JWT Token dùng chung cho Login và Logout
-     */
-    private ResponseCookie createJwtCookie(String value, long maxAgeSeconds) {
-        return ResponseCookie.from(COOKIE_NAME, value != null ? value : "")
+    // ─── Private Helper Methods ──────────────────────────────────────────────
+    private ResponseCookie createCookie(String name, String value, long maxAgeSeconds, String path) {
+        return ResponseCookie.from(name, value != null ? value : "")
                 .httpOnly(true)
                 .secure(false) // Đặt true khi chạy HTTPS trên môi trường Production
-                .path("/")
+                .path(path)
                 .maxAge(maxAgeSeconds)
                 .sameSite("Lax")
                 .build();
     }
 
-    /**
-     * Đọc Token từ Cookie hoặc Authorization Header
-     */
     private String resolveToken(String cookieToken, String authHeader) {
         if (cookieToken != null && !cookieToken.trim().isEmpty()) {
             return cookieToken;

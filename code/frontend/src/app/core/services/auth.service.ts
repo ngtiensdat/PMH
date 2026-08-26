@@ -27,7 +27,6 @@ export class AuthService {
   private router = inject(Router);
   private languageService = inject(LanguageService);
 
-  private readonly TOKEN_KEY = 'pmh_jwt_token';
   private readonly USER_KEY = 'pmh_user_info';
   private readonly ACTIVE_ROLE_KEY = 'pmh_active_role';
 
@@ -68,8 +67,10 @@ export class AuthService {
         }
       },
       error: (err) => {
-        if (err.status === 401 || err.status === 403) {
-          this.clearSession();
+        if (err.status === 401) {
+          this.refreshToken().subscribe({
+            error: () => this.clearSession()
+          });
         }
       }
     });
@@ -77,6 +78,16 @@ export class AuthService {
 
   login(credentials: { username: string; password: string }): Observable<ApiResponse<UserResponse>> {
     return this.http.post<ApiResponse<UserResponse>>(`${environment.apiBase}/api/auth/login`, credentials, { withCredentials: true }).pipe(
+      tap(res => {
+        if (res.success && res.data) {
+          this.setSession(res.data);
+        }
+      })
+    );
+  }
+
+  refreshToken(): Observable<ApiResponse<UserResponse>> {
+    return this.http.post<ApiResponse<UserResponse>>(`${environment.apiBase}/api/auth/refresh`, {}, { withCredentials: true }).pipe(
       tap(res => {
         if (res.success && res.data) {
           this.setSession(res.data);
@@ -93,7 +104,7 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return null; // Token is stored safely in HttpOnly cookie
+    return null; // Cookie HttpOnly tự động được trình duyệt đính kèm an toàn
   }
 
   private setSession(userData: UserResponse) {

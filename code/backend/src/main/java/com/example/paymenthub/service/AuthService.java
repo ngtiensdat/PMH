@@ -6,5 +6,7 @@ import com.example.paymenthub.dto.response.LoginResponse;
 public interface AuthService {
     LoginResponse login(LoginRequest request);
     LoginResponse getCurrentUser(String username);
+    LoginResponse refreshToken(String refreshTokenStr);
     void logout(String token);
+    void logout(String accessTokenStr, String refreshTokenStr);
 }

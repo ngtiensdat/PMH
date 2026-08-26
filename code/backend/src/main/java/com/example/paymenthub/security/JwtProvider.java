@@ -15,21 +15,42 @@ public class JwtProvider {
 
     // Key bảo mật 256-bit chuẩn HMAC-SHA cho JWT
     private static final String SECRET_STRING = "PaymentHubEnterpriseSecretKeyForJWTAuthenticationAndAuthorizationSystem2026";
-    private static final long EXPIRATION_TIME_MS = 86400000L; // 24 giờ
+    
+    // Cấu hình thời hạn hiệu lực Token theo đúng yêu cầu
+    public static final long ACCESS_TOKEN_EXPIRATION_MS = 900000L;    // 15 phút
+    public static final long REFRESH_TOKEN_EXPIRATION_MS = 36000000L; // 10 tiếng
 
     private final SecretKey key = Keys.hmacShaKeyFor(SECRET_STRING.getBytes(StandardCharsets.UTF_8));
 
-    public String generateToken(String username, String role) {
+    public String generateAccessToken(String username, String role) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + EXPIRATION_TIME_MS);
+        Date expiryDate = new Date(now.getTime() + ACCESS_TOKEN_EXPIRATION_MS);
 
         return Jwts.builder()
                 .subject(username)
                 .claim("role", role)
+                .claim("type", "ACCESS")
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(key)
                 .compact();
+    }
+
+    public String generateRefreshToken(String username) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + REFRESH_TOKEN_EXPIRATION_MS);
+
+        return Jwts.builder()
+                .subject(username)
+                .claim("type", "REFRESH")
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(key)
+                .compact();
+    }
+
+    public String generateToken(String username, String role) {
+        return generateAccessToken(username, role);
     }
 
     public String getUsernameFromToken(String token) {
@@ -69,7 +90,7 @@ public class JwtProvider {
                     .getPayload();
             return claims.getExpiration();
         } catch (Exception e) {
-            return new Date(System.currentTimeMillis() + EXPIRATION_TIME_MS);
+            return new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRATION_MS);
         }
     }
 }
