@@ -317,6 +317,13 @@ export class ComponentDialogComponent implements OnInit {
   }
 
   goBack() {
+    const currentState = this.componentService.getListState();
+    if (currentState) {
+      this.componentService.setListState({
+        ...currentState,
+        page: 0
+      });
+    }
     this.router.navigate(['/components']);
   }
 

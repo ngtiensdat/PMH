@@ -10,6 +10,7 @@ export interface UserResponse {
   username: string;
   fullName: string;
   role: string;
+  roles?: string[];
 }
 
 export interface ApiResponse<T> {
@@ -28,17 +29,33 @@ export class AuthService {
 
   private readonly TOKEN_KEY = 'pmh_jwt_token';
   private readonly USER_KEY = 'pmh_user_info';
+  private readonly ACTIVE_ROLE_KEY = 'pmh_active_role';
 
   currentUser = signal<UserResponse | null>(this.getStoredUser());
   isLoggedIn = computed(() => !!this.currentUser());
-  userRole = computed(() => this.currentUser()?.role || '');
+
+  activeRole = signal<string>(this.getStoredActiveRole());
+  hasMultipleRoles = computed(() => (this.currentUser()?.roles?.length ?? 0) > 1);
+  userRoles = computed(() => this.currentUser()?.roles || (this.currentUser()?.role ? [this.currentUser()!.role] : []));
+  userRole = computed(() => this.activeRole() || this.currentUser()?.role || '');
+
+  isMaker = computed(() => (this.activeRole() || '').toUpperCase() === 'MAKER');
+  isChecker = computed(() => (this.activeRole() || '').toUpperCase() === 'CHECKER');
 
   constructor() {
     const user = this.currentUser();
     if (user) {
-      this.languageService.updateUserProfile(user.fullName, user.role, user.username);
+      this.languageService.updateUserProfile(user.fullName, this.activeRole(), user.username);
     }
     this.checkAuthStatus();
+  }
+
+  setActiveRole(role: string): void {
+    const user = this.currentUser();
+    if (!user) return;
+    localStorage.setItem(this.ACTIVE_ROLE_KEY, role);
+    this.activeRole.set(role);
+    this.languageService.updateUserProfile(user.fullName, role, user.username);
   }
 
   checkAuthStatus(): void {
@@ -82,7 +99,16 @@ export class AuthService {
   private setSession(userData: UserResponse) {
     localStorage.setItem(this.USER_KEY, JSON.stringify(userData));
     this.currentUser.set(userData);
-    this.languageService.updateUserProfile(userData.fullName, userData.role, userData.username);
+
+    const roles = userData.roles && userData.roles.length > 0 ? userData.roles : [userData.role];
+    let initialRole = localStorage.getItem(this.ACTIVE_ROLE_KEY);
+    if (!initialRole || !roles.includes(initialRole)) {
+      initialRole = roles[0] || userData.role || 'MAKER';
+      localStorage.setItem(this.ACTIVE_ROLE_KEY, initialRole);
+    }
+
+    this.activeRole.set(initialRole);
+    this.languageService.updateUserProfile(userData.fullName, initialRole, userData.username);
   }
 
   private clearSessionAndRedirect() {
@@ -92,7 +118,9 @@ export class AuthService {
 
   private clearSession() {
     localStorage.removeItem(this.USER_KEY);
+    localStorage.removeItem(this.ACTIVE_ROLE_KEY);
     this.currentUser.set(null);
+    this.activeRole.set('MAKER');
     this.languageService.userCode.set('make');
   }
 
@@ -104,5 +132,16 @@ export class AuthService {
     } catch (e) {
       return null;
     }
+  }
+
+  private getStoredActiveRole(): string {
+    const user = this.getStoredUser();
+    if (!user) return 'MAKER';
+    const storedRole = localStorage.getItem(this.ACTIVE_ROLE_KEY);
+    const roles = user.roles && user.roles.length > 0 ? user.roles : [user.role];
+    if (storedRole && roles.includes(storedRole)) {
+      return storedRole;
+    }
+    return roles[0] || user.role || 'MAKER';
   }
 }

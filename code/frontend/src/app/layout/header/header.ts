@@ -19,9 +19,24 @@ export class HeaderComponent {
 
   protected readonly notificationCount = signal(0);
   protected isLangDropdownOpen = signal(false);
+  protected isRoleDropdownOpen = signal(false);
 
   toggleLangDropdown() {
     this.isLangDropdownOpen.update(v => !v);
+    this.isRoleDropdownOpen.set(false);
+  }
+
+  toggleRoleDropdown() {
+    if (this.authService.hasMultipleRoles()) {
+      this.isRoleDropdownOpen.update(v => !v);
+      this.isLangDropdownOpen.set(false);
+    }
+  }
+
+  switchRole(role: string) {
+    this.authService.setActiveRole(role);
+    this.isRoleDropdownOpen.set(false);
+    this.notificationService.info(`Đã chuyển sang vai trò: ${role === 'MAKER' ? 'Chuyên viên (Maker)' : 'Kiểm soát viên (Checker)'}`);
   }
 
   selectLanguage(lang: 'VIE' | 'EN') {

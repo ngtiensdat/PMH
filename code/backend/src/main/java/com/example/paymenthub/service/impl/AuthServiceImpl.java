@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -97,14 +98,19 @@ public class AuthServiceImpl implements AuthService {
             userRepository.save(user);
         }
 
+        List<String> roleCodes = user.getRoles() != null && !user.getRoles().isEmpty()
+                ? user.getRoles().stream().map(r -> r.getRoleCode().replace("ROLE_", "")).distinct().toList()
+                : List.of(user.getRole());
+
         String token = jwtProvider.generateToken(user.getUsername(), user.getRole());
-        log.info("[AuthService] Đăng nhập thành công: username={}, role={}", user.getUsername(), user.getRole());
+        log.info("[AuthService] Đăng nhập thành công: username={}, role={}, roles={}", user.getUsername(), user.getRole(), roleCodes);
 
         return LoginResponse.builder()
                 .token(token)
                 .username(user.getUsername())
                 .fullName(user.getFullName())
                 .role(user.getRole())
+                .roles(roleCodes)
                 .build();
     }
 
@@ -122,11 +128,16 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedAccessException(AuthErrorCode.ACCOUNT_LOCKED);
         }
 
+        List<String> roleCodes = user.getRoles() != null && !user.getRoles().isEmpty()
+                ? user.getRoles().stream().map(r -> r.getRoleCode().replace("ROLE_", "")).distinct().toList()
+                : List.of(user.getRole());
+
         return LoginResponse.builder()
                 .token(null)
                 .username(user.getUsername())
                 .fullName(user.getFullName())
                 .role(user.getRole())
+                .roles(roleCodes)
                 .build();
     }
 

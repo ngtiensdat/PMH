@@ -269,21 +269,29 @@ export class CategoryListComponent implements OnInit {
     } else {
       const list = [...this.joinedCategories()];
       list.sort((a: GroupCategoryResponse, b: GroupCategoryResponse) => {
-        let valA = a[newField as keyof GroupCategoryResponse];
-        let valB = b[newField as keyof GroupCategoryResponse];
-        if (valA === undefined || valA === null) valA = '';
-        if (valB === undefined || valB === null) valB = '';
+        let valA = (a as any)[newField];
+        let valB = (b as any)[newField];
+
+        if (newField === 'updatedDate') {
+          valA = valA || a.createdDate || '';
+          valB = valB || b.createdDate || '';
+        }
+
+        const hasA = valA !== undefined && valA !== null && valA !== '';
+        const hasB = valB !== undefined && valB !== null && valB !== '';
+
+        if (!hasA && !hasB) return 0;
+        if (!hasA) return 1;
+        if (!hasB) return -1;
 
         if (valA === valB) return 0;
 
         if (typeof valA === 'string' || typeof valB === 'string') {
-          return newDir === 'asc'
-            ? String(valA).localeCompare(String(valB))
-            : String(valB).localeCompare(String(valA));
+          const strA = String(valA);
+          const strB = String(valB);
+          return newDir === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA);
         } else {
-          return newDir === 'asc'
-            ? (valA > valB ? 1 : -1)
-            : (valB > valA ? 1 : -1);
+          return newDir === 'asc' ? (valA > valB ? 1 : -1) : (valB > valA ? 1 : -1);
         }
       });
       this.joinedCategories.set(list);

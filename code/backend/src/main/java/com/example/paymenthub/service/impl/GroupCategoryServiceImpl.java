@@ -314,10 +314,15 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                        COALESCE(c.COMPONENT_NAME, 'Chưa xác định') as componentName,
                        gc.STATUS as status,
                        gc.IS_ACTIVE as isActive,
-                       gc.EFFECTIVE_DATE as effectiveDate
+                       gc.EFFECTIVE_DATE as effectiveDate,
+                       gc.END_EFFECTIVE_DATE as endEffectiveDate,
+                       gc.CREATED_BY as createdBy,
+                       gc.CREATED_DATE as createdDate,
+                       gc.UPDATED_BY as updatedBy,
+                       gc.UPDATED_DATE as updatedDate
                 FROM PMH_GROUP_CATEGORY gc
                 LEFT JOIN PMH_COMPONENTS c ON gc.COMPONENT_CODE = c.COMPONENT_CODE
-                ORDER BY gc.UPDATED_DATE DESC
+                ORDER BY COALESCE(gc.UPDATED_DATE, gc.CREATED_DATE) DESC, gc.ID DESC
                 """;
 
         List<Tuple> tuples = entityManager.createNativeQuery(sql, Tuple.class)

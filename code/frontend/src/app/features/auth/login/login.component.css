@@ -80,7 +80,7 @@
 
 .quick-login-buttons {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
 }
 
@@ -117,6 +117,15 @@
 .chip-account.checker .role-badge {
   background-color: #fef3c7;
   color: #b45309;
+  font-size: 0.68rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.chip-account.admin .role-badge {
+  background-color: #a50d29;
+  color: #ffffff;
   font-size: 0.68rem;
   padding: 0.1rem 0.3rem;
   border-radius: 4px;

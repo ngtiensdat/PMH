@@ -19,15 +19,13 @@ export class LanguageService {
   userCode = signal<string>(localStorage.getItem('app_usercode') || 'make');
 
   isMaker = computed(() => {
-    const role = this.userRole();
-    const code = (this.userCode() || '').toUpperCase();
-    return role === 'MAKER' || code === 'MAKE' || code === 'USER01';
+    const role = (this.userRole() || '').toUpperCase();
+    return role === 'MAKER';
   });
 
   isChecker = computed(() => {
-    const role = this.userRole();
-    const code = (this.userCode() || '').toUpperCase();
-    return role === 'CHECKER' || code === 'CHECK' || code === 'APPROVER' || code === 'ADMIN';
+    const role = (this.userRole() || '').toUpperCase();
+    return role === 'CHECKER';
   });
 
   avatarText = computed(() => {

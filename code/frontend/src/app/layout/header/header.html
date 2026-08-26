@@ -33,15 +33,37 @@
 
     <!-- User Profile -->
     <div *ngIf="authService.currentUser()" class="user-profile-wrapper">
-      <div class="user-profile">
+      <div class="user-profile" [class.clickable]="authService.hasMultipleRoles()" (click)="toggleRoleDropdown()">
         <div class="user-avatar">
           <span class="avatar-placeholder">{{ authService.currentUser()?.username?.substring(0, 2) }}</span>
         </div>
         <div class="user-info">
-          <span class="user-name">{{ authService.currentUser()?.fullName }}</span>
-          <span class="user-role-label">{{ authService.currentUser()?.role === 'MAKER' ? 'Chuyên viên (Maker)' : 'Kiểm soát viên (Checker)' }}</span>
+          <span class="user-name">
+            {{ authService.currentUser()?.fullName }}
+            <span *ngIf="authService.hasMultipleRoles()" class="arrow-down">∨</span>
+          </span>
+          <span class="user-role-label">
+            {{ authService.activeRole() === 'MAKER' ? 'Chuyên viên (Maker)' : 'Kiểm soát viên (Checker)' }}
+          </span>
         </div>
       </div>
+
+      <!-- Role Switcher Popover -->
+      @if (isRoleDropdownOpen() && authService.hasMultipleRoles()) {
+      <div class="role-popover">
+        <div class="role-popover-header">Chọn vai trò đang làm việc:</div>
+        <div class="role-item" [class.active]="authService.activeRole() === 'MAKER'" (click)="switchRole('MAKER')">
+          <span class="role-icon"></span>
+          <span>Chuyên viên (Maker)</span>
+          <span *ngIf="authService.activeRole() === 'MAKER'" class="check-mark">✓</span>
+        </div>
+        <div class="role-item" [class.active]="authService.activeRole() === 'CHECKER'" (click)="switchRole('CHECKER')">
+          <span class="role-icon"></span>
+          <span>Kiểm soát viên (Checker)</span>
+          <span *ngIf="authService.activeRole() === 'CHECKER'" class="check-mark">✓</span>
+        </div>
+      </div>
+      }
     </div>
   </div>
 </header>

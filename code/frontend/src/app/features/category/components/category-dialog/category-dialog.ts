@@ -331,6 +331,13 @@ export class CategoryDialogComponent implements OnInit {
   }
 
   goBack() {
+    const currentState = this.categoryService.getListState();
+    if (currentState) {
+      this.categoryService.setListState({
+        ...currentState,
+        page: 0
+      });
+    }
     this.router.navigate(['/categories']);
   }
 

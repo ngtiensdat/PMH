@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Entity
 @Table(name = "PMH_APP_USERS", indexes = {
     @Index(name = "idx_app_user_username", columnList = "USERNAME", unique = true)
@@ -29,8 +32,22 @@ public class User {
     @Column(name = "FULL_NAME", length = 100)
     private String fullName;
 
-    @Column(name = "ROLE", nullable = false, length = 50)
-    private String role; // MAKER, CHECKER, ADMIN...
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "PMH_USER_ROLES",
+        joinColumns = @JoinColumn(name = "USER_ID"),
+        inverseJoinColumns = @JoinColumn(name = "ROLE_ID")
+    )
+    @Builder.Default
+    private Set<Role> roles = new HashSet<>();
+
+    public String getRole() {
+        if (roles == null || roles.isEmpty()) {
+            return "MAKER";
+        }
+        Role firstRole = roles.iterator().next();
+        return firstRole.getRoleCode().replace("ROLE_", "");
+    }
 
     @Builder.Default
     @Column(name = "FAILED_LOGIN_ATTEMPTS", nullable = false)
