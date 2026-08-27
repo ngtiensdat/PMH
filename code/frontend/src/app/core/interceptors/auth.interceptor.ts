@@ -12,26 +12,22 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(requestToPass).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Nếu gặp lỗi 401 Unauthorized ở API thường (không phải login hay refresh)
+      // 1. Nếu gặp lỗi 401 Unauthorized ở API thường (Phiên làm việc hết hạn)
       if (error.status === 401 && !req.url.includes('/api/auth/login') && !req.url.includes('/api/auth/refresh')) {
-        // Tự động gọi ngầm /api/auth/refresh để lấy Access Token mới
+        // Tự động gia hạn Access Token ngầm
         return authService.refreshToken().pipe(
           switchMap(() => {
-            // Gia hạn thành công -> Phát lại request cũ ngầm dưới nền
             return next(req.clone({ withCredentials: true }));
           }),
           catchError(refreshErr => {
-            // Gia hạn thất bại (Refresh Token 10h cũng đã hết hạn) -> Đăng xuất về trang /login
+            // Gia hạn thất bại -> Đăng xuất về màn /login
             authService.logout();
             return throwError(() => refreshErr);
           })
         );
       }
 
-      if ((error.status === 401 || error.status === 403) && !req.url.includes('/api/auth/')) {
-        authService.logout();
-      }
-
+      // 2. Với các lỗi khác (bao gồm 403 Forbidden): Giữ nguyên phiên đăng nhập, để Component tự hiển thị 1 thông báo lỗi duy nhất
       return throwError(() => error);
     })
   );

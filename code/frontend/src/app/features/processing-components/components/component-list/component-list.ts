@@ -370,7 +370,7 @@ export class ComponentListComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (err: HttpErrorResponse) => {
-        if (err.status !== 401 && err.status !== 403 && this.authService.isLoggedIn()) {
+        if (err.status !== 401 && this.authService.isLoggedIn()) {
           const prefix = this.languageService.labels().messages?.errorPrefix?.loadData || 'Lỗi tải dữ liệu: ';
           this.notificationService.error(prefix + (err.error?.message || err.message));
         }

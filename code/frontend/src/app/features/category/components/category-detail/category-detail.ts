@@ -75,7 +75,7 @@ export class CategoryDetailComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (err: HttpErrorResponse) => {
-        if (err.status !== 401 && err.status !== 403) {
+        if (err.status !== 401) {
           const prefix = this.languageService.labels().messages?.errorPrefix?.loadDetail || 'Không thể nạp dữ liệu chi tiết tham số: ';
           this.notificationService.error(prefix + (err.error?.message || err.message));
         }
