@@ -41,7 +41,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String jwt = parseJwt(request);
             if (jwt != null && !tokenBlacklistService.isBlacklisted(jwt) && jwtProvider.validateToken(jwt)) {
                 String tokenType = jwtProvider.getTypeFromToken(jwt);
-                if ("ACCESS".equals(tokenType)) {
+                if (com.example.paymenthub.common.enums.TokenType.ACCESS.getTypeName().equals(tokenType)) {
                     String username = jwtProvider.getUsernameFromToken(jwt);
                     String role = jwtProvider.getRoleFromToken(jwt);
                     List<String> permissions = jwtProvider.getPermissionsFromToken(jwt);
@@ -82,7 +82,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private String parseJwt(HttpServletRequest request) {
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
-                if ("pmh_jwt_token".equals(cookie.getName()) && StringUtils.hasText(cookie.getValue())) {
+                if (com.example.paymenthub.common.enums.TokenType.ACCESS.getCookieName().equals(cookie.getName()) && StringUtils.hasText(cookie.getValue())) {
                     return cookie.getValue();
                 }
             }

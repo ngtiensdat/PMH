@@ -57,18 +57,18 @@
 
     <!-- Nút hành động ở dưới cùng bên phải -->
     <div class="form-footer-actions">
-      <!-- Maker actions: Mới (1), Từ chối (5), Hủy duyệt (7) -->
-      <ng-container *ngIf="(component.status === ParamStatus.NEW || component.status === ParamStatus.REJECTED || component.status === ParamStatus.CANCELED) && languageService.isMaker()">
-        <button *ngIf="component.isDisplay === DisplayStatus.INITIAL" tuiButton appearance="secondary" type="button" (click)="onDeleteRecord()" style="margin-right: 0.75rem; --tui-primary: #ef4444; --tui-primary-hover: #dc2626;">
+      <!-- Maker/Editor actions: Mới (1), Từ chối (5), Hủy duyệt (7) -->
+      <ng-container *ngIf="(component.status === ParamStatus.NEW || component.status === ParamStatus.REJECTED || component.status === ParamStatus.CANCELED) && (authService.hasPermission('COMPONENT_SEND') || authService.hasPermission('COMPONENT_UPDATE'))">
+        <button *ngIf="component.isDisplay === DisplayStatus.INITIAL && authService.hasPermission('COMPONENT_DELETE')" tuiButton appearance="secondary" type="button" (click)="onDeleteRecord()" style="margin-right: 0.75rem; --tui-primary: #ef4444; --tui-primary-hover: #dc2626;">
           {{ languageService.labels().common.delete }}
         </button>
-        <button *ngIf="component.isDisplay === DisplayStatus.INITIAL || (component.newData && component.newData !== '')" tuiButton type="button" (click)="onSendApprovalRecord()">
+        <button *ngIf="(component.isDisplay === DisplayStatus.INITIAL || (component.newData && component.newData !== '')) && authService.hasPermission('COMPONENT_SEND')" tuiButton type="button" (click)="onSendApprovalRecord()">
           {{ languageService.labels().common.sendApproval }}
         </button>
       </ng-container>
 
       <!-- Checker actions: Chờ duyệt (3) -->
-      <ng-container *ngIf="component.status === ParamStatus.PENDING && languageService.isChecker()">
+      <ng-container *ngIf="component.status === ParamStatus.PENDING && (authService.hasPermission('COMPONENT_APPROVE') || authService.hasPermission('COMPONENT_REJECT'))">
         <button tuiButton appearance="secondary" type="button" (click)="onRejectRecord()" style="margin-right: 0.75rem; --tui-primary: #ef4444; --tui-primary-hover: #dc2626;">
           {{ languageService.labels().common.reject }}
         </button>

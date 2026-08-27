@@ -6,6 +6,7 @@ import { NotificationService } from '../../../../shared/components/notification/
 import { ParamStatus, ActiveStatus, DisplayStatus } from '../../../../shared/enums/status.enum';
 import { GroupCategoryResponse } from '../../../../shared/models/group-category.model';
 import { LanguageService } from '../../../../core/services/language.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComparisonCardComponent } from '../../../../shared/components/comparison-card/comparison-card';
@@ -27,6 +28,7 @@ export class CategoryDetailComponent implements OnInit {
   private categoryService = inject(CategoryService);
   private notificationService = inject(NotificationService);
   public languageService = inject(LanguageService);
+  public authService = inject(AuthService);
 
   category: GroupCategoryResponse | null = null;
   id: number | null = null;

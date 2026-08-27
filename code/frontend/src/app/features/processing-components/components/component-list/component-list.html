@@ -8,7 +8,7 @@
     </div>
     <div class="title-action-row">
       <h1 class="page-title">{{ languageService.labels().components.title }}</h1>
-      <button *ngIf="languageService.isMaker()" tuiButton type="button" class="btn-primary-pmh"
+      <button *ngIf="authService.hasPermission('COMPONENT_CREATE')" tuiButton type="button" class="btn-primary-pmh"
         (click)="openAddDialog()">
         + {{ languageService.labels().common.addNew }}
       </button>
@@ -57,12 +57,12 @@
         <span class="grid-count-badge">{{ totalElements() }}</span>
       </div>
       <div class="grid-actions">
-        <button *ngIf="languageService.isChecker()" tuiButton appearance="secondary" type="button"
+        <button *ngIf="authService.hasPermission('COMPONENT_APPROVE')" tuiButton appearance="secondary" type="button"
           (click)="onBatchApprove()" [disabled]="selectedCodes().length === 0" class="btn-approve-secondary"
           iconStart="@tui.check">
           {{ languageService.labels().common.batchApprove }}
         </button>
-        <button *ngIf="languageService.isChecker()" tuiButton appearance="secondary" type="button"
+        <button *ngIf="authService.hasPermission('COMPONENT_REJECT')" tuiButton appearance="secondary" type="button"
           (click)="onBatchReject()" [disabled]="selectedCodes().length === 0" class="btn-reject-secondary"
           iconStart="@tui.x">
           {{ languageService.labels().common.batchReject }}
@@ -233,19 +233,19 @@
                         <tui-icon icon="@tui.eye" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
 
-                      <!-- Slot 2: Edit or Cancel Approval (Maker only) -->
-                      <button *ngIf="languageService.isMaker()"
+                      <!-- Slot 2: Edit or Cancel Approval -->
+                      <button *ngIf="authService.hasPermission('COMPONENT_UPDATE')"
                         (click)="item.status === ParamStatus.APPROVED ? onCancelApproval(item.componentCode) : openEditDialog(item)"
                         class="action-btn" [disabled]="isLoading()" [class.edit]="item.status !== ParamStatus.APPROVED"
                         [class.cancel-approve]="item.status === ParamStatus.APPROVED"
-                        [class.invisible]="item.status === ParamStatus.PENDING"
+                        [class.invisible]="item.status === ParamStatus.PENDING || (item.status === ParamStatus.APPROVED && !authService.hasPermission('COMPONENT_CANCEL'))"
                         [title]="item.status === ParamStatus.APPROVED ? 'Hủy duyệt' : languageService.labels().common.edit">
                         <tui-icon [icon]="item.status === ParamStatus.APPROVED ? '@tui.ban' : '@tui.pencil'"
                           style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
 
-                      <!-- Slot 3: Copy (Maker only) -->
-                      <button *ngIf="languageService.isMaker()" (click)="openCopyDialog(item)" class="action-btn copy"
+                      <!-- Slot 3: Copy -->
+                      <button *ngIf="authService.hasPermission('COMPONENT_CREATE')" (click)="openCopyDialog(item)" class="action-btn copy"
                         [disabled]="isLoading()" [title]="languageService.labels().common.copy">
                         <tui-icon icon="@tui.copy" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
@@ -256,16 +256,16 @@
                         <tui-icon icon="@tui.history" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
 
-                      <!-- Slot 5: Delete (Maker only, invisible when isDisplay !== 1 or status is PENDING) -->
-                      <button *ngIf="languageService.isMaker()" (click)="onDelete(item.componentCode)"
+                      <!-- Slot 5: Delete -->
+                      <button *ngIf="authService.hasPermission('COMPONENT_DELETE')" (click)="onDelete(item.componentCode)"
                         class="action-btn delete" [disabled]="isLoading()"
                         [title]="languageService.labels().common.delete"
                         [class.invisible]="item.isDisplay !== 1 || item.status === ParamStatus.PENDING">
                         <tui-icon icon="@tui.trash" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
 
-                      <!-- Slot 6: Send Approval (Maker only, invisible when not in submittable status or when once-approved with no newData) -->
-                      <button *ngIf="languageService.isMaker()" (click)="onSendApproval(item.componentCode)"
+                      <!-- Slot 6: Send Approval -->
+                      <button *ngIf="authService.hasPermission('COMPONENT_SEND')" (click)="onSendApproval(item.componentCode)"
                         class="action-btn approve" [disabled]="isLoading()"
                         [title]="languageService.labels().common.sendApproval"
                         [class.invisible]="(item.status !== 1 && item.status !== 5 && item.status !== 7) || (item.isDisplay === 2 && (!item.newData || item.newData === ''))">

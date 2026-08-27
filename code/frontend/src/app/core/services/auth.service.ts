@@ -41,18 +41,6 @@ export class AuthService {
 
   userPermissions = computed(() => this.currentUser()?.permissions || []);
 
-  isMaker = computed(() => {
-    const role = (this.activeRole() || '').toUpperCase();
-    if (role === 'MAKER') return true;
-    return this.hasPermission('CATEGORY_CREATE') || this.hasPermission('COMPONENT_CREATE');
-  });
-
-  isChecker = computed(() => {
-    const role = (this.activeRole() || '').toUpperCase();
-    if (role === 'CHECKER') return true;
-    return this.hasPermission('CATEGORY_APPROVE') || this.hasPermission('COMPONENT_APPROVE');
-  });
-
   constructor() {
     const user = this.currentUser();
     if (user) {

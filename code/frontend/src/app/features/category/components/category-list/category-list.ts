@@ -142,7 +142,8 @@ export class CategoryListComponent implements OnInit {
   ];
 
   get displayColumns() {
-    if (this.languageService.isMaker()) {
+    const canApprove = this.authService.hasPermission('CATEGORY_APPROVE') || this.authService.hasPermission('CATEGORY_REJECT');
+    if (!canApprove) {
       return this.columns.filter(c => c.id !== 'checkbox');
     }
     return this.columns;

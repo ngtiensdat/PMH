@@ -109,7 +109,7 @@ public class AuthServiceImpl implements AuthService {
         RefreshToken refreshTokenEntity = RefreshToken.builder()
                 .username(user.getUsername())
                 .tokenHash(refreshTokenStr)
-                .expiryDate(LocalDateTime.now().plusHours(10))
+                .expiryDate(LocalDateTime.now().plusSeconds(com.example.paymenthub.common.enums.TokenType.REFRESH.getMaxAgeSeconds()))
                 .revoked(false)
                 .createdDate(LocalDateTime.now())
                 .build();
@@ -136,6 +136,11 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedAccessException(AuthErrorCode.INVALID_SESSION);
         }
 
+        String tokenType = jwtProvider.getTypeFromToken(refreshTokenStr);
+        if (!com.example.paymenthub.common.enums.TokenType.REFRESH.getTypeName().equals(tokenType)) {
+            throw new UnauthorizedAccessException(AuthErrorCode.INVALID_SESSION);
+        }
+
         RefreshToken storedToken = refreshTokenRepository.findByTokenHash(refreshTokenStr)
                 .orElseThrow(() -> new UnauthorizedAccessException(AuthErrorCode.INVALID_SESSION));
 
@@ -143,16 +148,15 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedAccessException(AuthErrorCode.INVALID_SESSION);
         }
 
-        String username = storedToken.getUsername();
-        User user = userRepository.findByUsernameIgnoreCase(username)
+        storedToken.setRevoked(true);
+        refreshTokenRepository.save(storedToken);
+
+        User user = userRepository.findByUsernameIgnoreCase(storedToken.getUsername())
                 .orElseThrow(() -> new UnauthorizedAccessException(AuthErrorCode.USER_NOT_FOUND));
 
         if (user.isLocked()) {
             throw new UnauthorizedAccessException(AuthErrorCode.ACCOUNT_LOCKED);
         }
-
-        storedToken.setRevoked(true);
-        refreshTokenRepository.save(storedToken);
 
         List<String> permissionCodes = extractPermissions(user);
         String newAccessToken = jwtProvider.generateAccessToken(user.getUsername(), user.getRole(), permissionCodes);
@@ -161,7 +165,7 @@ public class AuthServiceImpl implements AuthService {
         RefreshToken newRefreshTokenEntity = RefreshToken.builder()
                 .username(user.getUsername())
                 .tokenHash(newRefreshTokenStr)
-                .expiryDate(LocalDateTime.now().plusHours(10))
+                .expiryDate(LocalDateTime.now().plusSeconds(com.example.paymenthub.common.enums.TokenType.REFRESH.getMaxAgeSeconds()))
                 .revoked(false)
                 .createdDate(LocalDateTime.now())
                 .build();
@@ -218,7 +222,7 @@ public class AuthServiceImpl implements AuthService {
     public void logout(String token) {
         if (token != null && !token.trim().isEmpty()) {
             java.util.Date expiry = jwtProvider.getExpirationFromToken(token);
-            long expiryTime = expiry != null ? expiry.getTime() : System.currentTimeMillis() + JwtProvider.ACCESS_TOKEN_EXPIRATION_MS;
+            long expiryTime = expiry != null ? expiry.getTime() : System.currentTimeMillis() + com.example.paymenthub.common.enums.TokenType.ACCESS.getExpirationMs();
             tokenBlacklistService.blacklistToken(token, expiryTime);
             log.info("[AuthService] Đã thu hồi Access Token và đưa vào Blacklist khi Đăng xuất.");
         }

@@ -1,5 +1,6 @@
 package com.example.paymenthub.security;
 
+import com.example.paymenthub.common.enums.TokenType;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
@@ -16,15 +17,12 @@ import java.util.List;
 public class JwtProvider {
 
     private static final String SECRET_STRING = "PaymentHubEnterpriseSecretKeyForJWTAuthenticationAndAuthorizationSystem2026";
-    
-    public static final long ACCESS_TOKEN_EXPIRATION_MS = 900000L;    // 15 phút
-    public static final long REFRESH_TOKEN_EXPIRATION_MS = 36000000L; // 10 tiếng
 
     private final SecretKey key = Keys.hmacShaKeyFor(SECRET_STRING.getBytes(StandardCharsets.UTF_8));
 
     public String generateAccessToken(String username, String role, List<String> permissions) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + ACCESS_TOKEN_EXPIRATION_MS);
+        Date expiryDate = new Date(now.getTime() + TokenType.ACCESS.getExpirationMs());
 
         String permString = permissions != null ? String.join(",", permissions) : "";
 
@@ -32,7 +30,7 @@ public class JwtProvider {
                 .subject(username)
                 .claim("role", role)
                 .claim("permissions", permString)
-                .claim("type", "ACCESS")
+                .claim("type", TokenType.ACCESS.getTypeName())
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(key)
@@ -41,11 +39,11 @@ public class JwtProvider {
 
     public String generateRefreshToken(String username) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + REFRESH_TOKEN_EXPIRATION_MS);
+        Date expiryDate = new Date(now.getTime() + TokenType.REFRESH.getExpirationMs());
 
         return Jwts.builder()
                 .subject(username)
-                .claim("type", "REFRESH")
+                .claim("type", TokenType.REFRESH.getTypeName())
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(key)
@@ -124,7 +122,7 @@ public class JwtProvider {
                     .getPayload();
             return claims.getExpiration();
         } catch (Exception e) {
-            return new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRATION_MS);
+            return new Date(System.currentTimeMillis() + com.example.paymenthub.common.enums.TokenType.ACCESS.getExpirationMs());
         }
     }
 }

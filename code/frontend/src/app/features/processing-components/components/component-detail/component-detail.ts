@@ -7,6 +7,7 @@ import { NotificationService } from '../../../../shared/components/notification/
 import { ParamStatus, ActiveStatus, DisplayStatus } from '../../../../shared/enums/status.enum';
 import { ProcessingComponentResponse } from '../../../../shared/models/component.model';
 import { LanguageService } from '../../../../core/services/language.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { ComparisonCardComponent } from '../../../../shared/components/comparison-card/comparison-card';
 
 import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
@@ -28,6 +29,7 @@ export class ComponentDetailComponent implements OnInit {
   private componentService = inject(ComponentService);
   private notificationService = inject(NotificationService);
   public languageService = inject(LanguageService);
+  public authService = inject(AuthService);
 
   component: ProcessingComponentResponse | null = null;
   code: string | null = null;

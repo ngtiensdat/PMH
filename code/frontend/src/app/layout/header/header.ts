@@ -33,10 +33,23 @@ export class HeaderComponent {
     }
   }
 
+  getRoleDisplayLabel(roleCode: string): string {
+    if (!roleCode) return '';
+    const cleanCode = roleCode.replace(/^ROLE_/i, '').trim();
+    if (!cleanCode) return roleCode;
+
+    // Tự động chuyển đổi dạng SNAKE_CASE (VD: HISTORY_VIEWER -> History Viewer, ACCOUNTANT -> Accountant)
+    return cleanCode
+      .split('_')
+      .filter(Boolean)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+
   switchRole(role: string) {
     this.authService.setActiveRole(role);
     this.isRoleDropdownOpen.set(false);
-    this.notificationService.info(`Đã chuyển sang vai trò: ${role === 'MAKER' ? 'Chuyên viên (Maker)' : 'Kiểm soát viên (Checker)'}`);
+    this.notificationService.info(`Đã chuyển sang vai trò: ${this.getRoleDisplayLabel(role)}`);
   }
 
   selectLanguage(lang: 'VIE' | 'EN') {
@@ -49,3 +62,4 @@ export class HeaderComponent {
     this.authService.logout();
   }
 }
+

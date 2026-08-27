@@ -18,16 +18,6 @@ export class LanguageService {
   userRole = signal<string>(localStorage.getItem('app_userrole') || '');
   userCode = signal<string>(localStorage.getItem('app_usercode') || 'make');
 
-  isMaker = computed(() => {
-    const role = (this.userRole() || '').toUpperCase();
-    return role === 'MAKER';
-  });
-
-  isChecker = computed(() => {
-    const role = (this.userRole() || '').toUpperCase();
-    return role === 'CHECKER';
-  });
-
   avatarText = computed(() => {
     const name = this.userName() || this.labels().navigation.user.name;
     const parts = name.trim().split(/\s+/);
