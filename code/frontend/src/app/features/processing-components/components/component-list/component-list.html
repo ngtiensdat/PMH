@@ -250,8 +250,8 @@
                         <tui-icon icon="@tui.copy" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
 
-                      <!-- Slot 4: History (Always visible) -->
-                      <button (click)="openHistoryDialog(item)" class="action-btn history" title="Xem lịch sử thao tác"
+                      <!-- Slot 4: History -->
+                      <button *ngIf="authService.hasPermission('AUDIT_VIEW')" (click)="openHistoryDialog(item)" class="action-btn history" title="Xem lịch sử thao tác"
                         [disabled]="isLoading()" style="color: #64748b;">
                         <tui-icon icon="@tui.history" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>

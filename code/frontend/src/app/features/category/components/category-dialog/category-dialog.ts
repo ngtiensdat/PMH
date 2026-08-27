@@ -10,6 +10,7 @@ import { CategorySchema, zodFormValidator, zodFieldValidator } from '../../../..
 import { ParamStatus, ActiveStatus, DisplayStatus, FormMode } from '../../../../shared/enums/status.enum';
 import { GroupCategoryResponse, GroupCategoryRequest } from '../../../../shared/models/group-category.model';
 import { LanguageService } from '../../../../core/services/language.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TUI_INPUT_DATE_TIME_OPTIONS, tuiInputDateTimeOptionsProvider } from '@taiga-ui/kit';
 import { DateTimeTransformer } from '../../../../shared/utils/datetime-transformer';
@@ -46,6 +47,7 @@ export class CategoryDialogComponent implements OnInit {
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
   public languageService = inject(LanguageService);
+  public authService = inject(AuthService);
 
   mode: FormMode | 'add' | 'edit' | 'copy' = FormMode.ADD;
   category: GroupCategoryResponse | null = null;

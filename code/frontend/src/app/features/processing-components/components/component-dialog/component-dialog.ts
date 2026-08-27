@@ -9,6 +9,7 @@ import { ComponentSchema, zodFormValidator, zodFieldValidator } from '../../../.
 import { ParamStatus, ActiveStatus, DisplayStatus, FormMode } from '../../../../shared/enums/status.enum';
 import { ProcessingComponentResponse, ProcessingComponentRequest } from '../../../../shared/models/component.model';
 import { LanguageService } from '../../../../core/services/language.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TUI_INPUT_DATE_TIME_OPTIONS, tuiInputDateTimeOptionsProvider } from '@taiga-ui/kit';
 import { DateTimeTransformer } from '../../../../shared/utils/datetime-transformer';
@@ -44,6 +45,7 @@ export class ComponentDialogComponent implements OnInit {
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
   public languageService = inject(LanguageService);
+  public authService = inject(AuthService);
 
   mode: FormMode | 'add' | 'edit' | 'copy' = FormMode.ADD;
   component: ProcessingComponentResponse | null = null;

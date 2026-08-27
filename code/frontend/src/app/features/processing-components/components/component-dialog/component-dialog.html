@@ -21,12 +21,12 @@
         [title]="languageService.labels().common.cancel">&times;</button>
 
       <!-- Nút Lưu -->
-      <button tuiButton appearance="secondary" type="button" iconStart="@tui.save" (click)="onSubmit(false)">
+      <button *ngIf="authService.hasPermission('COMPONENT_CREATE') || authService.hasPermission('COMPONENT_UPDATE')" tuiButton appearance="secondary" type="button" iconStart="@tui.save" (click)="onSubmit(false)">
         {{ languageService.labels().common.save }}
       </button>
 
       <!-- Nút Lưu và gửi duyệt -->
-      <button tuiButton type="button" iconStart="@tui.send" (click)="onSubmit(true)">
+      <button *ngIf="authService.hasPermission('COMPONENT_SEND')" tuiButton type="button" iconStart="@tui.send" (click)="onSubmit(true)">
         {{ languageService.labels().common.save }} & {{ languageService.labels().common.sendApproval }}
       </button>
     </div>
