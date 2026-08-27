@@ -119,7 +119,13 @@ public class ComponentController extends BaseController {
     @PreAuthorize("hasAuthority('COMPONENT_APPROVE')")
     public ResponseEntity<ApiResponse<List<BatchItemResultDTO>>> batchApprove(@RequestBody List<String> codes) {
         String username = SecurityUtils.getCurrentUsername();
-        return ok(service.batchApprove(codes, username), "Phê duyệt hàng loạt thành công");
+        List<BatchItemResultDTO> result = service.batchApprove(codes, username);
+        long successCount = result.stream().filter(r -> "SUCCESS".equalsIgnoreCase(r.getStatus())).count();
+        if (successCount == 0 && !result.isEmpty()) {
+            String firstErr = result.get(0).getErrorMessage() != null ? result.get(0).getErrorMessage() : "Phê duyệt thất bại";
+            return ResponseEntity.badRequest().body(ApiResponse.error(firstErr));
+        }
+        return ok(result, "Phê duyệt hàng loạt hoàn tất");
     }
 
     @PostMapping("/batch-reject")
@@ -129,6 +135,12 @@ public class ComponentController extends BaseController {
             @RequestParam(required = false) String reason
     ) {
         String username = SecurityUtils.getCurrentUsername();
-        return ok(service.batchReject(codes, reason, username), "Từ chối/Hủy duyệt hàng loạt thành công");
+        List<BatchItemResultDTO> result = service.batchReject(codes, reason, username);
+        long successCount = result.stream().filter(r -> "SUCCESS".equalsIgnoreCase(r.getStatus())).count();
+        if (successCount == 0 && !result.isEmpty()) {
+            String firstErr = result.get(0).getErrorMessage() != null ? result.get(0).getErrorMessage() : "Từ chối thất bại";
+            return ResponseEntity.badRequest().body(ApiResponse.error(firstErr));
+        }
+        return ok(result, "Từ chối/Hủy duyệt hàng loạt hoàn tất");
     }
 }

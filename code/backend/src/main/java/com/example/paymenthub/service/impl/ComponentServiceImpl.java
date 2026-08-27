@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.paymenthub.common.exception.ResourceNotFoundException;
 import com.example.paymenthub.common.exception.BusinessRuleException;
 import com.example.paymenthub.common.exception.MakerCheckerConflictException;
+import org.springframework.util.StringUtils;
 import com.example.paymenthub.common.exception.InvalidStateTransitionException;
 import com.example.paymenthub.dto.response.BatchItemResultDTO;
 import com.example.paymenthub.common.util.DateUtils;
@@ -416,8 +417,8 @@ public class ComponentServiceImpl implements ComponentService {
         if (!entity.isPending()) {
             throw new InvalidStateTransitionException(invalidStatusError);
         }
-        if (approver.equalsIgnoreCase(entity.getCreatedBy())
-                || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
+        String pendingMaker = StringUtils.hasText(entity.getUpdatedBy()) ? entity.getUpdatedBy() : entity.getCreatedBy();
+        if (StringUtils.hasText(pendingMaker) && approver != null && approver.equalsIgnoreCase(pendingMaker)) {
             throw new MakerCheckerConflictException(BusinessErrorCode.MAKER_CHECKER_SAME_USER);
         }
     }

@@ -466,6 +466,13 @@ export class ComponentListComponent implements OnInit {
       this.notificationService.warning(warnMsg);
       return;
     }
+    const selectedItems = this.components().filter(item => codes.includes(item.componentCode));
+    const unselectableItems = selectedItems.filter(item => !this.isSelectable(item));
+    if (unselectableItems.length > 0 && unselectableItems.length === selectedItems.length) {
+      const msg = this.languageService.labels().messages?.warning?.selfApproveDenied || 'Bạn là người tạo/sửa các cấu phần này nên không được phép tự phê duyệt!';
+      this.notificationService.error(msg);
+      return;
+    }
     this.confirmTitle = 'Phê duyệt';
     this.confirmMessage = codes.length === 1 ? 'Bạn có chắc chắn phê duyệt bản ghi này?' : `Bạn có chắc chắn muốn duyệt hàng loạt ${codes.length} cấu phần đã chọn?`;
     this.confirmAction = 'batchApprove';
@@ -477,6 +484,13 @@ export class ComponentListComponent implements OnInit {
     if (codes.length === 0) {
       const warnMsg = this.languageService.labels().messages?.warning?.selectAtLeastOneComponentToReject || 'Vui lòng chọn ít nhất một cấu phần để từ chối!';
       this.notificationService.warning(warnMsg);
+      return;
+    }
+    const selectedItems = this.components().filter(item => codes.includes(item.componentCode));
+    const unselectableItems = selectedItems.filter(item => !this.isSelectable(item));
+    if (unselectableItems.length > 0 && unselectableItems.length === selectedItems.length) {
+      const msg = this.languageService.labels().messages?.warning?.selfApproveDenied || 'Bạn là người tạo/sửa các cấu phần này nên không được phép tự từ chối!';
+      this.notificationService.error(msg);
       return;
     }
     this.rejectTargetCodes = codes;
@@ -498,8 +512,19 @@ export class ComponentListComponent implements OnInit {
 
     this.componentService.batchReject(codes, reason).subscribe({
       next: (res) => {
-        const successCount = (res.data || []).filter((r: BatchItemResult) => r.status === 'SUCCESS').length;
-        this.notificationService.success(`Đã từ chối thành công ${successCount}/${codes.length} cấu phần! Lý do: ${reason}`);
+        const results: BatchItemResult[] = res.data || [];
+        const successItems = results.filter((r: BatchItemResult) => r.status === 'SUCCESS');
+        const failedItems = results.filter((r: BatchItemResult) => r.status === 'FAILED');
+
+        if (failedItems.length > 0 && successItems.length === 0) {
+          const firstErrMsg = failedItems[0].errorMessage || 'Không thể từ chối do vi phạm quy tắc Maker-Checker!';
+          this.notificationService.error(`Từ chối thất bại: ${firstErrMsg}`);
+        } else if (failedItems.length > 0 && successItems.length > 0) {
+          const firstErrMsg = failedItems[0].errorMessage || 'Vi phạm quy tắc Maker-Checker!';
+          this.notificationService.warning(`Đã từ chối thành công ${successItems.length}/${codes.length} cấu phần. Bỏ qua ${failedItems.length} cấu phần: ${firstErrMsg}`);
+        } else {
+          this.notificationService.success(`Đã từ chối thành công ${successItems.length}/${codes.length} cấu phần! Lý do: ${reason}`);
+        }
         this.loadData();
       },
       error: (err: any) => {
@@ -612,8 +637,19 @@ export class ComponentListComponent implements OnInit {
       const codes = this.selectedCodes();
       this.componentService.batchApprove(codes).subscribe({
         next: (res) => {
-          const successCount = (res.data || []).filter((r: BatchItemResult) => r.status === 'SUCCESS').length;
-          this.notificationService.success(`Đã duyệt thành công ${successCount}/${codes.length} cấu phần!`);
+          const results: BatchItemResult[] = res.data || [];
+          const successItems = results.filter((r: BatchItemResult) => r.status === 'SUCCESS');
+          const failedItems = results.filter((r: BatchItemResult) => r.status === 'FAILED');
+
+          if (failedItems.length > 0 && successItems.length === 0) {
+            const firstErrMsg = failedItems[0].errorMessage || 'Không thể phê duyệt do vi phạm quy tắc Maker-Checker!';
+            this.notificationService.error(`Phê duyệt thất bại: ${firstErrMsg}`);
+          } else if (failedItems.length > 0 && successItems.length > 0) {
+            const firstErrMsg = failedItems[0].errorMessage || 'Vi phạm quy tắc Maker-Checker!';
+            this.notificationService.warning(`Đã duyệt thành công ${successItems.length}/${codes.length} cấu phần. Bỏ qua ${failedItems.length} cấu phần: ${firstErrMsg}`);
+          } else {
+            this.notificationService.success(`Đã duyệt thành công ${successItems.length}/${codes.length} cấu phần!`);
+          }
           this.loadData();
         },
         error: (err: any) => {
@@ -661,28 +697,47 @@ export class ComponentListComponent implements OnInit {
   get statusOptions() { return APPROVAL_STATUS_OPTIONS; }
   get activeOptions() { return IS_ACTIVE_OPTIONS; }
 
+  isSelectable(item: any): boolean {
+    const status = item.status ?? item.STATUS;
+    if (status !== ParamStatus.PENDING) {
+      return false;
+    }
+    const currentUsername = this.authService.currentUser()?.username || '';
+    if (currentUsername) {
+      const pendingMaker = item.updatedBy || item.UPDATED_BY || item.createdBy || item.CREATED_BY || '';
+      if (pendingMaker && pendingMaker.toString().toLowerCase() === currentUsername.toLowerCase()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   toggleSelectAll(event: Event) {
     const checked = (event.target as HTMLInputElement).checked;
     if (checked) {
-      const codes = this.components().map(c => c.componentCode);
+      const codes = this.components().filter(item => this.isSelectable(item)).map(c => c.componentCode);
       this.selectedCodes.set(codes);
     } else {
       this.selectedCodes.set([]);
     }
   }
 
-  toggleItemSelection(code: string, event: Event) {
+  toggleItemSelection(item: ProcessingComponentResponse, event: Event) {
     const checked = (event.target as HTMLInputElement).checked;
+    if (!this.isSelectable(item)) {
+      (event.target as HTMLInputElement).checked = false;
+      return;
+    }
     if (checked) {
-      this.selectedCodes.update(codes => [...codes, code]);
+      this.selectedCodes.update(codes => codes.includes(item.componentCode) ? codes : [...codes, item.componentCode]);
     } else {
-      this.selectedCodes.update(codes => codes.filter(x => x !== code));
+      this.selectedCodes.update(codes => codes.filter(x => x !== item.componentCode));
     }
   }
 
   isAllSelected(): boolean {
-    const components = this.components();
-    if (components.length === 0) return false;
-    return this.selectedCodes().length === components.length;
+    const selectableItems = this.components().filter(item => this.isSelectable(item));
+    if (selectableItems.length === 0) return false;
+    return selectableItems.every(item => this.selectedCodes().includes(item.componentCode));
   }
 }

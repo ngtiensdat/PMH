@@ -143,7 +143,12 @@ public class GroupCategoryController extends BaseController {
     public ResponseEntity<ApiResponse<List<BatchItemResultDTO>>> batchApprove(@RequestBody List<Long> ids) {
         String username = SecurityUtils.getCurrentUsername();
         List<BatchItemResultDTO> result = service.batchApprove(ids, username);
-        return ok(result, "Phê duyệt hàng loạt thành công");
+        long successCount = result.stream().filter(r -> "SUCCESS".equalsIgnoreCase(r.getStatus())).count();
+        if (successCount == 0 && !result.isEmpty()) {
+            String firstErr = result.get(0).getErrorMessage() != null ? result.get(0).getErrorMessage() : "Phê duyệt thất bại";
+            return ResponseEntity.badRequest().body(ApiResponse.error(firstErr));
+        }
+        return ok(result, "Phê duyệt hàng loạt hoàn tất");
     }
 
     /**
@@ -157,6 +162,11 @@ public class GroupCategoryController extends BaseController {
     ) {
         String username = SecurityUtils.getCurrentUsername();
         List<BatchItemResultDTO> result = service.batchReject(ids, reason, username);
-        return ok(result, "Từ chối/Hủy duyệt hàng loạt thành công");
+        long successCount = result.stream().filter(r -> "SUCCESS".equalsIgnoreCase(r.getStatus())).count();
+        if (successCount == 0 && !result.isEmpty()) {
+            String firstErr = result.get(0).getErrorMessage() != null ? result.get(0).getErrorMessage() : "Từ chối thất bại";
+            return ResponseEntity.badRequest().body(ApiResponse.error(firstErr));
+        }
+        return ok(result, "Từ chối/Hủy duyệt hàng loạt hoàn tất");
     }
 }

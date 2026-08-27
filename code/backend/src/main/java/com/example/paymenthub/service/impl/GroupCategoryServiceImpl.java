@@ -29,9 +29,11 @@ import com.example.paymenthub.common.exception.ResourceNotFoundException;
 import com.example.paymenthub.common.exception.BusinessRuleException;
 import com.example.paymenthub.common.exception.MakerCheckerConflictException;
 import com.example.paymenthub.common.exception.InvalidStateTransitionException;
-import com.example.paymenthub.dto.response.BatchItemResultDTO;
 import com.example.paymenthub.common.util.DateUtils;
 import com.example.paymenthub.security.SecurityUtils;
+import com.example.paymenthub.dto.response.BatchItemResultDTO;
+// import com.example.paymenthub.dto.response.GroupCategoryResponseDTO;
+import org.springframework.util.StringUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -74,10 +76,13 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
 
     // ─── Helper: compute active status from effective dates ─────────────────
     public static int computeActiveStatus(LocalDateTime effectiveDate, LocalDateTime endEffectiveDate) {
-        if (effectiveDate == null) return ActiveStatus.INACTIVE.getCode();
+        if (effectiveDate == null)
+            return ActiveStatus.INACTIVE.getCode();
         LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(effectiveDate)) return ActiveStatus.INACTIVE.getCode();
-        if (endEffectiveDate != null && now.isAfter(endEffectiveDate)) return ActiveStatus.INACTIVE.getCode();
+        if (now.isBefore(effectiveDate))
+            return ActiveStatus.INACTIVE.getCode();
+        if (endEffectiveDate != null && now.isAfter(endEffectiveDate))
+            return ActiveStatus.INACTIVE.getCode();
         return ActiveStatus.ACTIVE.getCode();
     }
 
@@ -114,7 +119,8 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
     @Override
     @Transactional
     public GroupCategory create(GroupCategoryDTO dto, String username) {
-        log.info("[GroupCategory] Creating. user={}, paramType={}, paramValue={}", username, dto.getParamType(), dto.getParamValue());
+        log.info("[GroupCategory] Creating. user={}, paramType={}, paramValue={}", username, dto.getParamType(),
+                dto.getParamValue());
 
         DateUtils.validateEffectiveDates(dto.getEffectiveDate(), dto.getEndEffectiveDate());
 
@@ -132,7 +138,8 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 MODULE, String.valueOf(saved.getId()),
                 AuditAction.CREATE.getActionName(), username,
                 null, toJson(saved),
-                String.format("Tạo mới tham số: %s / %s / %s", saved.getParamName(), saved.getParamValue(), saved.getParamType()),
+                String.format("Tạo mới tham số: %s / %s / %s", saved.getParamName(), saved.getParamValue(),
+                        saved.getParamType()),
                 null, ParamStatus.NEW.getCode());
 
         return saved;
@@ -159,7 +166,8 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         if (repository.existsOverlapping(
                 dto.getParamName(), dto.getParamType(),
                 dto.getEffectiveDate(), dto.getEndEffectiveDate(), id)) {
-            throw new BusinessRuleException("Đã tồn tại cấu hình khác có cùng Tên và Nhóm bị chồng lấn thời gian hiệu lực!");
+            throw new BusinessRuleException(
+                    "Đã tồn tại cấu hình khác có cùng Tên và Nhóm bị chồng lấn thời gian hiệu lực!");
         }
 
         GroupCategory saved;
@@ -190,7 +198,8 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 MODULE, String.valueOf(id),
                 action, username,
                 oldJson, newJson,
-                String.format("Cập nhật tham số ID=%d: %s / %s bởi %s", id, saved.getParamName(), saved.getParamValue(), username),
+                String.format("Cập nhật tham số ID=%d: %s / %s bởi %s", id, saved.getParamName(), saved.getParamValue(),
+                        username),
                 statusBefore, statusAfter);
 
         return saved;
@@ -222,7 +231,8 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 MODULE, String.valueOf(id),
                 AuditAction.DELETE.getActionName(), username,
                 oldJson, null,
-                String.format("Xóa tham số ID=%d: %s / %s bởi %s", id, entity.getParamName(), entity.getParamValue(), username),
+                String.format("Xóa tham số ID=%d: %s / %s bởi %s", id, entity.getParamName(), entity.getParamValue(),
+                        username),
                 entity.getStatus(), null);
     }
 
@@ -250,7 +260,8 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         if (repository.existsOverlapping(
                 entity.getParamName(), entity.getParamType(),
                 entity.getEffectiveDate(), entity.getEndEffectiveDate(), entity.getId())) {
-            throw new BusinessRuleException("Đã tồn tại cấu hình khác có cùng Tên và Nhóm bị chồng lấn thời gian hiệu lực!");
+            throw new BusinessRuleException(
+                    "Đã tồn tại cấu hình khác có cùng Tên và Nhóm bị chồng lấn thời gian hiệu lực!");
         }
 
         int statusBefore = entity.getStatus();
@@ -263,7 +274,8 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 MODULE, String.valueOf(id),
                 AuditAction.SEND_APPROVAL.getActionName(), username,
                 null, null,
-                String.format("Gửi duyệt tham số ID=%d bởi %s: %s / %s", id, username, entity.getParamName(), entity.getParamValue()),
+                String.format("Gửi duyệt tham số ID=%d bởi %s: %s / %s", id, username, entity.getParamName(),
+                        entity.getParamValue()),
                 statusBefore, ParamStatus.PENDING.getCode());
 
         return saved;
@@ -292,7 +304,8 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 MODULE, String.valueOf(id),
                 AuditAction.CANCEL_APPROVAL.getActionName(), username,
                 null, null,
-                String.format("Hủy duyệt tham số ID=%d: %s / %s bởi %s", id, entity.getParamName(), entity.getParamValue(), username),
+                String.format("Hủy duyệt tham số ID=%d: %s / %s bởi %s", id, entity.getParamName(),
+                        entity.getParamValue(), username),
                 statusBefore, ParamStatus.CANCELED.getCode());
 
         return saved;
@@ -339,9 +352,11 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
     @Override
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getRawDataForExport() {
-        List<GroupCategory> activeList = repository.findByIsActiveOrderByParamTypeAscParamNameAsc(ActiveStatus.ACTIVE.getCode());
+        List<GroupCategory> activeList = repository
+                .findByIsActiveOrderByParamTypeAscParamNameAsc(ActiveStatus.ACTIVE.getCode());
         return activeList.stream()
-                .map(entity -> objectMapper.convertValue(entity, new TypeReference<Map<String, Object>>() {}))
+                .map(entity -> objectMapper.convertValue(entity, new TypeReference<Map<String, Object>>() {
+                }))
                 .toList();
     }
 
@@ -369,7 +384,8 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
     public List<BatchItemResultDTO> batchReject(List<Long> ids, String reason, String approver) {
         log.info("[GroupCategory] Batch reject started. count={}, approver={}", ids.size(), approver);
         List<BatchItemResultDTO> results = ids.stream()
-                .map(id -> executeBatchItem(id, (entity, result) -> rejectCategoryAction(entity, reason, approver, result)))
+                .map(id -> executeBatchItem(id,
+                        (entity, result) -> rejectCategoryAction(entity, reason, approver, result)))
                 .toList();
 
         long successCount = results.stream().filter(r -> BATCH_SUCCESS.equalsIgnoreCase(r.getStatus())).count();
@@ -385,7 +401,8 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
     }
 
     /**
-     * Khung runner dùng chung để bọc Transaction độc lập và try-catch xử lý riêng cho từng item trong Batch.
+     * Khung runner dùng chung để bọc Transaction độc lập và try-catch xử lý riêng
+     * cho từng item trong Batch.
      */
     private BatchItemResultDTO executeBatchItem(Long id, BatchActionConsumer action) {
         BatchItemResultDTO result = BatchItemResultDTO.builder().id(id).build();
@@ -412,7 +429,8 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
             applyNewDataChanges(entity);
         }
 
-        StoredProcedureResult spResult = executeCategoryStoredProcedure("PROC_APPROVE_GROUP_CATEGORY", entity.getId(), approver);
+        StoredProcedureResult spResult = executeCategoryStoredProcedure("PROC_APPROVE_GROUP_CATEGORY", entity.getId(),
+                approver);
         if (!spResult.isSuccess()) {
             throw new BusinessRuleException(spResult.getMessage());
         }
@@ -423,7 +441,8 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 MODULE, String.valueOf(entity.getId()),
                 AuditAction.APPROVE.getActionName(), approver,
                 null, null,
-                String.format("Phê duyệt tham số ID=%d: %s / %s bởi %s", entity.getId(), entity.getParamName(), entity.getParamValue(), approver),
+                String.format("Phê duyệt tham số ID=%d: %s / %s bởi %s", entity.getId(), entity.getParamName(),
+                        entity.getParamValue(), approver),
                 statusBefore, ParamStatus.APPROVED.getCode());
     }
 
@@ -434,7 +453,8 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         validateMakerChecker(entity, approver, BusinessErrorCode.INVALID_REJECT_STATUS);
 
         int statusBefore = entity.getStatus();
-        StoredProcedureResult spResult = executeCategoryStoredProcedure("PROC_REJECT_GROUP_CATEGORY", entity.getId(), approver);
+        StoredProcedureResult spResult = executeCategoryStoredProcedure("PROC_REJECT_GROUP_CATEGORY", entity.getId(),
+                approver);
         if (!spResult.isSuccess()) {
             throw new BusinessRuleException(spResult.getMessage());
         }
@@ -446,8 +466,10 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 AuditAction.REJECT.getActionName(), approver,
                 null, null,
                 reason != null && !reason.trim().isEmpty()
-                        ? String.format("Từ chối duyệt tham số ID=%d: %s / %s bởi %s. Lý do: %s", entity.getId(), entity.getParamName(), entity.getParamValue(), approver, reason.trim())
-                        : String.format("Từ chối duyệt tham số ID=%d: %s / %s bởi %s", entity.getId(), entity.getParamName(), entity.getParamValue(), approver),
+                        ? String.format("Từ chối duyệt tham số ID=%d: %s / %s bởi %s. Lý do: %s", entity.getId(),
+                                entity.getParamName(), entity.getParamValue(), approver, reason.trim())
+                        : String.format("Từ chối duyệt tham số ID=%d: %s / %s bởi %s", entity.getId(),
+                                entity.getParamName(), entity.getParamValue(), approver),
                 statusBefore, ParamStatus.REJECTED.getCode());
     }
 
@@ -464,8 +486,9 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         if (!entity.isPending()) {
             throw new InvalidStateTransitionException(invalidStatusError);
         }
-        if (approver.equalsIgnoreCase(entity.getCreatedBy())
-                || approver.equalsIgnoreCase(entity.getUpdatedBy())) {
+        String pendingMaker = StringUtils.hasText(entity.getUpdatedBy()) ? entity.getUpdatedBy()
+                : entity.getCreatedBy();
+        if (StringUtils.hasText(pendingMaker) && approver != null && approver.equalsIgnoreCase(pendingMaker)) {
             throw new MakerCheckerConflictException(BusinessErrorCode.MAKER_CHECKER_SAME_USER);
         }
     }
@@ -486,12 +509,17 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
     private void applyNewDataChanges(GroupCategory entity) {
         try {
             GroupCategoryDTO changes = objectMapper.readValue(entity.getNewData(), GroupCategoryDTO.class);
-            if (changes.getParamName() != null) entity.setParamName(changes.getParamName());
-            if (changes.getParamValue() != null) entity.setParamValue(changes.getParamValue());
-            if (changes.getParamType() != null) entity.setParamType(changes.getParamType());
+            if (changes.getParamName() != null)
+                entity.setParamName(changes.getParamName());
+            if (changes.getParamValue() != null)
+                entity.setParamValue(changes.getParamValue());
+            if (changes.getParamType() != null)
+                entity.setParamType(changes.getParamType());
             entity.setDescription(changes.getDescription());
-            if (changes.getComponentCode() != null) entity.setComponentCode(changes.getComponentCode());
-            if (changes.getEffectiveDate() != null) entity.setEffectiveDate(changes.getEffectiveDate());
+            if (changes.getComponentCode() != null)
+                entity.setComponentCode(changes.getComponentCode());
+            if (changes.getEffectiveDate() != null)
+                entity.setEffectiveDate(changes.getEffectiveDate());
             entity.setEndEffectiveDate(changes.getEndEffectiveDate());
             entity.setIsActive(computeActiveStatus(entity.getEffectiveDate(), entity.getEndEffectiveDate()));
             entity.setNewData(null);

@@ -108,14 +108,14 @@
               [attr.draggable]="!col.isFixed ? 'true' : null" (dragstart)="onDragStart(col.id, $event)"
               (dragover)="onDragOver($event, col.id)" (dragleave)="onDragLeave()" (drop)="onDrop(col.id)"
               [class.draggable-col]="!col.isFixed" [class.drag-over]="dragOverColumnIndex === colIdx"
-              [class.col-sticky-actions]="col.id === 'actions' && isLastColumn(col.id)"
-              (click)="toggleSort(col.id)"
+              [class.col-sticky-actions]="col.id === 'actions' && isLastColumn(col.id)" (click)="toggleSort(col.id)"
               style="padding: 0.75rem 1rem; position: relative; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;">
               <!-- Cell content by column ID -->
               <ng-container [ngSwitch]="col.id">
                 <!-- Checkbox -->
                 <ng-container *ngSwitchCase="'checkbox'">
-                  <div style="text-align: center; display: flex; justify-content: center; align-items: center;" (click)="$event.stopPropagation()">
+                  <div style="text-align: center; display: flex; justify-content: center; align-items: center;"
+                    (click)="$event.stopPropagation()">
                     <input tuiCheckbox type="checkbox" [ngModel]="isAllSelected()" (change)="toggleSelectAll($event)" />
                   </div>
                 </ng-container>
@@ -135,7 +135,8 @@
                   <div class="sort-header" [class.sort-active]="sortField() === col.id">
                     <span>{{ getColumnLabel(col.id) }}</span>
                     <span class="sort-icon-wrapper" *ngIf="sortField() === col.id">
-                      <tui-icon [icon]="sortDirection() === 'asc' ? '@tui.chevron-up' : '@tui.chevron-down'" style="--tui-icon-size: 14px;"></tui-icon>
+                      <tui-icon [icon]="sortDirection() === 'asc' ? '@tui.chevron-up' : '@tui.chevron-down'"
+                        style="--tui-icon-size: 14px;"></tui-icon>
                     </span>
                     <span class="sort-icon-wrapper inactive" *ngIf="sortField() !== col.id">
                       <tui-icon icon="@tui.chevrons-up-down" style="--tui-icon-size: 14px; opacity: 0.35;"></tui-icon>
@@ -145,12 +146,14 @@
               </ng-container>
 
               <!-- Resize handle -->
-              <div class="resize-handle" (mousedown)="onResizeStart($event, col)" (click)="$event.stopPropagation()"></div>
+              <div class="resize-handle" (mousedown)="onResizeStart($event, col)" (click)="$event.stopPropagation()">
+              </div>
             </th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let item of (viewMode() === 'jpa' ? categories() : joinedCategories()); let i = index; trackBy: trackById"
+          <tr
+            *ngFor="let item of (viewMode() === 'jpa' ? categories() : joinedCategories()); let i = index; trackBy: trackById"
             (dblclick)="onViewDetail(item)"
             style="border-bottom: 1px solid #f1f5f9; transition: background-color 0.15s; cursor: pointer;">
 
@@ -164,7 +167,7 @@
                   <ng-container *ngSwitchCase="'checkbox'">
                     <div style="text-align: center;" (click)="$event.stopPropagation()">
                       <input tuiCheckbox type="checkbox" [ngModel]="selectedIds().includes(item.id)"
-                        (change)="toggleItemSelection(item.id, $event)" />
+                        [disabled]="!isSelectable(item) || isLoading()" (change)="toggleItemSelection(item, $event)" />
                     </div>
                   </ng-container>
 
@@ -241,9 +244,11 @@
 
                   <!-- Active Status -->
                   <ng-container *ngSwitchCase="'isActive'">
-                    <span class="dot-badge" [class.active]="item.isActive === ActiveStatus.ACTIVE" [class.inactive]="item.isActive === ActiveStatus.INACTIVE">
+                    <span class="dot-badge" [class.active]="item.isActive === ActiveStatus.ACTIVE"
+                      [class.inactive]="item.isActive === ActiveStatus.INACTIVE">
                       <span class="dot"></span>
-                      <span class="label">{{ item.isActive === ActiveStatus.ACTIVE ? languageService.labels().common.active :
+                      <span class="label">{{ item.isActive === ActiveStatus.ACTIVE ?
+                        languageService.labels().common.active :
                         languageService.labels().common.inactive }}</span>
                     </span>
                   </ng-container>
@@ -270,8 +275,8 @@
                       </button>
 
                       <!-- Slot 3: Copy (Maker only) -->
-                      <button *ngIf="languageService.isMaker()" (click)="openCopyDialog(item)"
-                        class="action-btn copy" [disabled]="isLoading()" [title]="languageService.labels().common.copy">
+                      <button *ngIf="languageService.isMaker()" (click)="openCopyDialog(item)" class="action-btn copy"
+                        [disabled]="isLoading()" [title]="languageService.labels().common.copy">
                         <tui-icon icon="@tui.copy" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
 
@@ -282,9 +287,9 @@
                       </button>
 
                       <!-- Slot 5: Delete (Maker only, invisible when isDisplay !== 1 or status is PENDING) -->
-                      <button *ngIf="languageService.isMaker()" (click)="onDelete(item.id)"
-                        class="action-btn delete" [disabled]="isLoading()"
-                        [title]="languageService.labels().common.delete" [class.invisible]="item.isDisplay !== 1 || item.status === ParamStatus.PENDING">
+                      <button *ngIf="languageService.isMaker()" (click)="onDelete(item.id)" class="action-btn delete"
+                        [disabled]="isLoading()" [title]="languageService.labels().common.delete"
+                        [class.invisible]="item.isDisplay !== 1 || item.status === ParamStatus.PENDING">
                         <tui-icon icon="@tui.trash" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
 

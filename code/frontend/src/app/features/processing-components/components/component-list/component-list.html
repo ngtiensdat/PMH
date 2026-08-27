@@ -90,14 +90,14 @@
               [attr.draggable]="!col.isFixed ? 'true' : null" (dragstart)="onDragStart(col.id, $event)"
               (dragover)="onDragOver($event, col.id)" (dragleave)="onDragLeave()" (drop)="onDrop(col.id)"
               [class.draggable-col]="!col.isFixed" [class.drag-over]="dragOverColumnIndex === colIdx"
-              [class.col-sticky-actions]="col.id === 'actions' && isLastColumn(col.id)"
-              (click)="toggleSort(col.id)"
+              [class.col-sticky-actions]="col.id === 'actions' && isLastColumn(col.id)" (click)="toggleSort(col.id)"
               style="padding: 0.75rem 1rem; position: relative; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;">
               <!-- Cell content by column ID -->
               <ng-container [ngSwitch]="col.id">
                 <!-- Checkbox -->
                 <ng-container *ngSwitchCase="'checkbox'">
-                  <div style="text-align: center; display: flex; justify-content: center; align-items: center;" (click)="$event.stopPropagation()">
+                  <div style="text-align: center; display: flex; justify-content: center; align-items: center;"
+                    (click)="$event.stopPropagation()">
                     <input tuiCheckbox type="checkbox" [ngModel]="isAllSelected()" (change)="toggleSelectAll($event)" />
                   </div>
                 </ng-container>
@@ -117,7 +117,8 @@
                   <div class="sort-header" [class.sort-active]="sortField() === col.id">
                     <span>{{ getColumnLabel(col.id) }}</span>
                     <span class="sort-icon-wrapper" *ngIf="sortField() === col.id">
-                      <tui-icon [icon]="sortDirection() === 'asc' ? '@tui.chevron-up' : '@tui.chevron-down'" style="--tui-icon-size: 14px;"></tui-icon>
+                      <tui-icon [icon]="sortDirection() === 'asc' ? '@tui.chevron-up' : '@tui.chevron-down'"
+                        style="--tui-icon-size: 14px;"></tui-icon>
                     </span>
                     <span class="sort-icon-wrapper inactive" *ngIf="sortField() !== col.id">
                       <tui-icon icon="@tui.chevrons-up-down" style="--tui-icon-size: 14px; opacity: 0.35;"></tui-icon>
@@ -127,7 +128,8 @@
               </ng-container>
 
               <!-- Resize handle -->
-              <div class="resize-handle" (mousedown)="onResizeStart($event, col)" (click)="$event.stopPropagation()"></div>
+              <div class="resize-handle" (mousedown)="onResizeStart($event, col)" (click)="$event.stopPropagation()">
+              </div>
             </th>
           </tr>
         </thead>
@@ -145,7 +147,7 @@
                   <ng-container *ngSwitchCase="'checkbox'">
                     <div style="text-align: center;" (click)="$event.stopPropagation()">
                       <input tuiCheckbox type="checkbox" [ngModel]="selectedCodes().includes(item.componentCode)"
-                        (change)="toggleItemSelection(item.componentCode, $event)" />
+                        [disabled]="!isSelectable(item) || isLoading()" (change)="toggleItemSelection(item, $event)" />
                     </div>
                   </ng-container>
 
@@ -212,9 +214,11 @@
 
                   <!-- Active Status -->
                   <ng-container *ngSwitchCase="'isActive'">
-                    <span class="dot-badge" [class.active]="item.isActive === ActiveStatus.ACTIVE" [class.inactive]="item.isActive !== ActiveStatus.ACTIVE">
+                    <span class="dot-badge" [class.active]="item.isActive === ActiveStatus.ACTIVE"
+                      [class.inactive]="item.isActive !== ActiveStatus.ACTIVE">
                       <span class="dot"></span>
-                      <span class="label">{{ item.isActive === ActiveStatus.ACTIVE ? languageService.labels().common.active :
+                      <span class="label">{{ item.isActive === ActiveStatus.ACTIVE ?
+                        languageService.labels().common.active :
                         languageService.labels().common.inactive }}</span>
                     </span>
                   </ng-container>
@@ -241,8 +245,8 @@
                       </button>
 
                       <!-- Slot 3: Copy (Maker only) -->
-                      <button *ngIf="languageService.isMaker()" (click)="openCopyDialog(item)"
-                        class="action-btn copy" [disabled]="isLoading()" [title]="languageService.labels().common.copy">
+                      <button *ngIf="languageService.isMaker()" (click)="openCopyDialog(item)" class="action-btn copy"
+                        [disabled]="isLoading()" [title]="languageService.labels().common.copy">
                         <tui-icon icon="@tui.copy" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
 
@@ -255,13 +259,14 @@
                       <!-- Slot 5: Delete (Maker only, invisible when isDisplay !== 1 or status is PENDING) -->
                       <button *ngIf="languageService.isMaker()" (click)="onDelete(item.componentCode)"
                         class="action-btn delete" [disabled]="isLoading()"
-                        [title]="languageService.labels().common.delete" [class.invisible]="item.isDisplay !== 1 || item.status === ParamStatus.PENDING">
+                        [title]="languageService.labels().common.delete"
+                        [class.invisible]="item.isDisplay !== 1 || item.status === ParamStatus.PENDING">
                         <tui-icon icon="@tui.trash" style="--tui-icon-size: 14px;"></tui-icon>
                       </button>
 
                       <!-- Slot 6: Send Approval (Maker only, invisible when not in submittable status or when once-approved with no newData) -->
-                      <button *ngIf="languageService.isMaker()"
-                        (click)="onSendApproval(item.componentCode)" class="action-btn approve" [disabled]="isLoading()"
+                      <button *ngIf="languageService.isMaker()" (click)="onSendApproval(item.componentCode)"
+                        class="action-btn approve" [disabled]="isLoading()"
                         [title]="languageService.labels().common.sendApproval"
                         [class.invisible]="(item.status !== 1 && item.status !== 5 && item.status !== 7) || (item.isDisplay === 2 && (!item.newData || item.newData === ''))">
                         <tui-icon icon="@tui.send" style="--tui-icon-size: 14px;"></tui-icon>

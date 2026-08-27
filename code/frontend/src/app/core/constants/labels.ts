@@ -125,7 +125,9 @@ export const APP_LABELS_VN = {
       selectAtLeastOneComponentToReject: 'Vui lòng chọn ít nhất một cấu phần để từ chối!',
       noDataToExport: 'Không có dữ liệu để xuất!',
       noComponentDataToExport: 'Không có dữ liệu cấu phần để xuất!',
-      noFormChange: 'Không có thay đổi nào so với dữ liệu gốc! Không cần gửi duyệt sửa.'
+      noFormChange: 'Không có thay đổi nào so với dữ liệu gốc! Không cần gửi duyệt sửa.',
+      selfApproveDenied: 'Bạn là người tạo/sửa các bản ghi này nên không được phép tự phê duyệt hoặc từ chối!',
+      makerCheckerConflict: 'Không thể thao tác do vi phạm quy tắc Maker-Checker!'
     },
     errorPrefix: {
       loadData: 'Lỗi tải dữ liệu: ',
@@ -313,7 +315,9 @@ export const APP_LABELS_EN = {
       selectAtLeastOneComponentToReject: 'Please select at least one component to reject!',
       noDataToExport: 'No data to export!',
       noComponentDataToExport: 'No component data to export!',
-      noFormChange: 'No changes compared to original data!'
+      noFormChange: 'No changes compared to original data!',
+      selfApproveDenied: 'You created or edited these records and cannot self-approve or self-reject them!',
+      makerCheckerConflict: 'Cannot perform action due to Maker-Checker rule violation!'
     },
     errorPrefix: {
       loadData: 'Error loading data: ',

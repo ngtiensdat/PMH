@@ -505,6 +505,14 @@ export class CategoryListComponent implements OnInit {
       this.notificationService.warning(warnMsg);
       return;
     }
+    const list = this.viewMode() === 'jpa' ? this.categories() : this.joinedCategories();
+    const selectedItems = list.filter(item => ids.includes(item.id));
+    const unselectableItems = selectedItems.filter(item => !this.isSelectable(item));
+    if (unselectableItems.length > 0 && unselectableItems.length === selectedItems.length) {
+      const msg = this.languageService.labels().messages?.warning?.selfApproveDenied || 'Bạn là người tạo/sửa các bản ghi này nên không được phép tự phê duyệt!';
+      this.notificationService.error(msg);
+      return;
+    }
     this.confirmTitle = 'Phê duyệt';
     this.confirmMessage = ids.length === 1 ? 'Bạn có chắc chắn phê duyệt bản ghi này?' : `Bạn có chắc chắn muốn duyệt hàng loạt ${ids.length} bản ghi đã chọn?`;
     this.confirmAction = 'batchApprove';
@@ -516,6 +524,14 @@ export class CategoryListComponent implements OnInit {
     if (ids.length === 0) {
       const warnMsg = this.languageService.labels().messages?.warning?.selectAtLeastOneToReject || 'Vui lòng chọn ít nhất một bản ghi để từ chối!';
       this.notificationService.warning(warnMsg);
+      return;
+    }
+    const list = this.viewMode() === 'jpa' ? this.categories() : this.joinedCategories();
+    const selectedItems = list.filter(item => ids.includes(item.id));
+    const unselectableItems = selectedItems.filter(item => !this.isSelectable(item));
+    if (unselectableItems.length > 0 && unselectableItems.length === selectedItems.length) {
+      const msg = this.languageService.labels().messages?.warning?.selfApproveDenied || 'Bạn là người tạo/sửa các bản ghi này nên không được phép tự từ chối!';
+      this.notificationService.error(msg);
       return;
     }
     this.rejectTargetIds = ids;
@@ -537,8 +553,19 @@ export class CategoryListComponent implements OnInit {
 
     this.categoryService.batchReject(ids, reason).subscribe({
       next: (res) => {
-        const successCount = (res.data || []).filter((r: BatchItemResult) => r.status === 'SUCCESS').length;
-        this.notificationService.success(`Đã từ chối thành công ${successCount}/${ids.length} bản ghi! Lý do: ${reason}`);
+        const results: BatchItemResult[] = res.data || [];
+        const successItems = results.filter((r: BatchItemResult) => r.status === 'SUCCESS');
+        const failedItems = results.filter((r: BatchItemResult) => r.status === 'FAILED');
+
+        if (failedItems.length > 0 && successItems.length === 0) {
+          const firstErrMsg = failedItems[0].errorMessage || 'Không thể từ chối do vi phạm quy tắc Maker-Checker!';
+          this.notificationService.error(`Từ chối thất bại: ${firstErrMsg}`);
+        } else if (failedItems.length > 0 && successItems.length > 0) {
+          const firstErrMsg = failedItems[0].errorMessage || 'Vi phạm quy tắc Maker-Checker!';
+          this.notificationService.warning(`Đã từ chối thành công ${successItems.length}/${ids.length} bản ghi. Bỏ qua ${failedItems.length} bản ghi: ${firstErrMsg}`);
+        } else {
+          this.notificationService.success(`Đã từ chối thành công ${successItems.length}/${ids.length} bản ghi! Lý do: ${reason}`);
+        }
         this.loadData();
       },
       error: (err: HttpErrorResponse) => {
@@ -651,8 +678,19 @@ export class CategoryListComponent implements OnInit {
       const ids = this.selectedIds();
       this.categoryService.batchApprove(ids).subscribe({
         next: (res) => {
-          const successCount = (res.data || []).filter((r: BatchItemResult) => r.status === 'SUCCESS').length;
-          this.notificationService.success(`Đã duyệt thành công ${successCount}/${ids.length} bản ghi!`);
+          const results: BatchItemResult[] = res.data || [];
+          const successItems = results.filter((r: BatchItemResult) => r.status === 'SUCCESS');
+          const failedItems = results.filter((r: BatchItemResult) => r.status === 'FAILED');
+
+          if (failedItems.length > 0 && successItems.length === 0) {
+            const firstErrMsg = failedItems[0].errorMessage || 'Không thể phê duyệt do vi phạm quy tắc Maker-Checker!';
+            this.notificationService.error(`Phê duyệt thất bại: ${firstErrMsg}`);
+          } else if (failedItems.length > 0 && successItems.length > 0) {
+            const firstErrMsg = failedItems[0].errorMessage || 'Vi phạm quy tắc Maker-Checker!';
+            this.notificationService.warning(`Đã duyệt thành công ${successItems.length}/${ids.length} bản ghi. Bỏ qua ${failedItems.length} bản ghi: ${firstErrMsg}`);
+          } else {
+            this.notificationService.success(`Đã duyệt thành công ${successItems.length}/${ids.length} bản ghi!`);
+          }
           this.loadData();
         },
         error: (err: HttpErrorResponse) => {
@@ -700,28 +738,49 @@ export class CategoryListComponent implements OnInit {
   get statusOptions() { return APPROVAL_STATUS_OPTIONS; }
   get activeOptions() { return IS_ACTIVE_OPTIONS; }
 
+  isSelectable(item: any): boolean {
+    const status = item.status ?? item.STATUS;
+    if (status !== ParamStatus.PENDING) {
+      return false;
+    }
+    const currentUsername = this.authService.currentUser()?.username || '';
+    if (currentUsername) {
+      const pendingMaker = item.updatedBy || item.UPDATED_BY || item.createdBy || item.CREATED_BY || '';
+      if (pendingMaker && pendingMaker.toString().toLowerCase() === currentUsername.toLowerCase()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   toggleSelectAll(event: Event) {
     const checked = (event.target as HTMLInputElement).checked;
     if (checked) {
-      const ids = this.categories().map(c => c.id);
+      const list = this.viewMode() === 'jpa' ? this.categories() : this.joinedCategories();
+      const ids = list.filter(item => this.isSelectable(item)).map(c => c.id);
       this.selectedIds.set(ids);
     } else {
       this.selectedIds.set([]);
     }
   }
 
-  toggleItemSelection(id: number, event: Event) {
+  toggleItemSelection(item: GroupCategoryResponse, event: Event) {
     const checked = (event.target as HTMLInputElement).checked;
+    if (!this.isSelectable(item)) {
+      (event.target as HTMLInputElement).checked = false;
+      return;
+    }
     if (checked) {
-      this.selectedIds.update(ids => [...ids, id]);
+      this.selectedIds.update(ids => ids.includes(item.id) ? ids : [...ids, item.id]);
     } else {
-      this.selectedIds.update(ids => ids.filter(x => x !== id));
+      this.selectedIds.update(ids => ids.filter(x => x !== item.id));
     }
   }
 
   isAllSelected(): boolean {
-    const categories = this.categories();
-    if (categories.length === 0) return false;
-    return this.selectedIds().length === categories.length;
+    const list = this.viewMode() === 'jpa' ? this.categories() : this.joinedCategories();
+    const selectableItems = list.filter(item => this.isSelectable(item));
+    if (selectableItems.length === 0) return false;
+    return selectableItems.every(item => this.selectedIds().includes(item.id));
   }
 }

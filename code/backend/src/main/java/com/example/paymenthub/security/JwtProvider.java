@@ -74,6 +74,20 @@ public class JwtProvider {
         return claims.get("role", String.class);
     }
 
+    public String getTypeFromToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return claims.get("type", String.class);
+        } catch (Exception e) {
+            log.error("[JWT] Không thể đọc claim type từ Token: {}", e.getMessage());
+            return null;
+        }
+    }
+
     public List<String> getPermissionsFromToken(String token) {
         try {
             Claims claims = Jwts.parser()
