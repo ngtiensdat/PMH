@@ -214,6 +214,7 @@ export class CategoryDetailComponent implements OnInit {
       },
       error: (err: HttpErrorResponse) => {
         this.notificationService.error((msgs?.errorPrefix?.approveFailed || 'Lỗi khi duyệt: ') + (err.error?.message || err.message));
+        if (this.id) this.loadCategoryData(this.id);
       }
     });
   }
@@ -239,6 +240,7 @@ export class CategoryDetailComponent implements OnInit {
       },
       error: (err: HttpErrorResponse) => {
         this.notificationService.error((msgs?.errorPrefix?.rejectFailed || 'Lỗi khi từ chối: ') + (err.error?.message || err.message));
+        if (this.id) this.loadCategoryData(this.id);
       }
     });
   }

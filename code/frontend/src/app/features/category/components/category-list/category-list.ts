@@ -572,7 +572,7 @@ export class CategoryListComponent implements OnInit {
       error: (err: HttpErrorResponse) => {
         const prefix = this.languageService.labels().messages?.errorPrefix?.reject || 'Lỗi thực hiện từ chối duyệt: ';
         this.notificationService.error(prefix + (err.error?.message || err.message));
-        this.isLoading.set(false);
+        this.loadData();
       }
     });
   }
@@ -650,7 +650,7 @@ export class CategoryListComponent implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.notificationService.error((msgs?.errorPrefix?.delete || 'Không thể xóa: ') + (err.error?.message || err.message));
-          this.isLoading.set(false);
+          this.loadData();
         }
       });
     } else if (action === 'sendApproval' && id !== null) {
@@ -661,7 +661,7 @@ export class CategoryListComponent implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.notificationService.error((msgs?.errorPrefix?.sendApproval || 'Lỗi gửi duyệt: ') + (err.error?.message || err.message));
-          this.isLoading.set(false);
+          this.loadData();
         }
       });
     } else if (action === 'cancelApproval' && id !== null) {
@@ -672,7 +672,7 @@ export class CategoryListComponent implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.notificationService.error((msgs?.errorPrefix?.cancelApproval || 'Lỗi hủy duyệt: ') + (err.error?.message || err.message));
-          this.isLoading.set(false);
+          this.loadData();
         }
       });
     } else if (action === 'batchApprove') {
@@ -696,7 +696,7 @@ export class CategoryListComponent implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.notificationService.error((msgs?.errorPrefix?.batchApprove || 'Lỗi duyệt hàng loạt: ') + (err.error?.message || err.message));
-          this.isLoading.set(false);
+          this.loadData();
         }
       });
     }

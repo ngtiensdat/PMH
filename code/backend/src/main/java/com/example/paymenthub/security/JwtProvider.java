@@ -3,7 +3,9 @@ package com.example.paymenthub.security;
 import com.example.paymenthub.common.enums.TokenType;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -16,9 +18,15 @@ import java.util.List;
 @Slf4j
 public class JwtProvider {
 
-    private static final String SECRET_STRING = "PaymentHubEnterpriseSecretKeyForJWTAuthenticationAndAuthorizationSystem2026";
+    @Value("${app.jwt.secret}")
+    private String secretString;
 
-    private final SecretKey key = Keys.hmacShaKeyFor(SECRET_STRING.getBytes(StandardCharsets.UTF_8));
+    private SecretKey key;
+
+    @PostConstruct
+    public void init() {
+        this.key = Keys.hmacShaKeyFor(secretString.getBytes(StandardCharsets.UTF_8));
+    }
 
     public String generateAccessToken(String username, String role, List<String> permissions) {
         Date now = new Date();
@@ -122,7 +130,8 @@ public class JwtProvider {
                     .getPayload();
             return claims.getExpiration();
         } catch (Exception e) {
-            return new Date(System.currentTimeMillis() + com.example.paymenthub.common.enums.TokenType.ACCESS.getExpirationMs());
+            return new Date(System.currentTimeMillis()
+                    + com.example.paymenthub.common.enums.TokenType.ACCESS.getExpirationMs());
         }
     }
 }

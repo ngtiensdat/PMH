@@ -8,7 +8,9 @@ import com.example.paymenthub.common.enums.ParamStatus;
 import com.example.paymenthub.dto.request.GroupCategoryDTO;
 import com.example.paymenthub.dto.request.GroupCategorySearchCriteria;
 import com.example.paymenthub.entity.GroupCategory;
+import com.example.paymenthub.entity.ProcessingComponent;
 import com.example.paymenthub.mapper.GroupCategoryMapper;
+import com.example.paymenthub.repository.ComponentRepository;
 import com.example.paymenthub.repository.GroupCategoryRepository;
 import com.example.paymenthub.service.GroupCategoryService;
 import com.example.paymenthub.repository.specification.GroupCategorySpecification;
@@ -53,6 +55,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
     private static final String BATCH_FAILED = "FAILED";
 
     private final GroupCategoryRepository repository;
+    private final ComponentRepository componentRepository;
     private final ObjectMapper objectMapper;
     private final AuditLogService auditLogService;
     private final TransactionTemplate transactionTemplate;
@@ -60,18 +63,31 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
     private final GroupCategoryMapper groupCategoryMapper;
 
     public GroupCategoryServiceImpl(GroupCategoryRepository repository,
+            ComponentRepository componentRepository,
             ObjectMapper objectMapper,
             AuditLogService auditLogService,
             PlatformTransactionManager transactionManager,
             EntityManager entityManager,
             GroupCategoryMapper groupCategoryMapper) {
         this.repository = repository;
+        this.componentRepository = componentRepository;
         this.objectMapper = objectMapper;
         this.auditLogService = auditLogService;
         this.entityManager = entityManager;
         this.groupCategoryMapper = groupCategoryMapper;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    }
+
+    private void validateComponentCode(String componentCode) {
+        if (StringUtils.hasText(componentCode)) {
+            ProcessingComponent component = componentRepository.findById(componentCode.trim())
+                    .orElseThrow(() -> new ResourceNotFoundException("Mã Cấu phần xử lý '" + componentCode + "' không tồn tại trong hệ thống!"));
+
+            if (!component.isApproved()) {
+                throw new BusinessRuleException("Cấu phần xử lý '" + componentCode + "' đang ở trạng thái chưa được Phê duyệt (STATUS != 4)! Không thể dùng để tạo/sửa Tham số danh mục.");
+            }
+        }
     }
 
     // ─── Helper: compute active status from effective dates ─────────────────
@@ -122,6 +138,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         log.info("[GroupCategory] Creating. user={}, paramType={}, paramValue={}", username, dto.getParamType(),
                 dto.getParamValue());
 
+        validateComponentCode(dto.getComponentCode());
         DateUtils.validateEffectiveDates(dto.getEffectiveDate(), dto.getEndEffectiveDate());
 
         if (repository.existsOverlapping(
@@ -161,6 +178,7 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
             throw new InvalidStateTransitionException(BusinessErrorCode.PENDING_EDIT_NOT_ALLOWED);
         }
 
+        validateComponentCode(dto.getComponentCode());
         DateUtils.validateEffectiveDates(dto.getEffectiveDate(), dto.getEndEffectiveDate());
 
         if (repository.existsOverlapping(
