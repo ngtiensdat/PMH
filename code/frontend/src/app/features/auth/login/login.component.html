@@ -30,22 +30,5 @@
         <span *ngIf="isLoading()">Đang đăng nhập...</span>
       </button>
     </form>
-
-    <div class="quick-login-section">
-      <div class="quick-login-label">Chọn nhanh tài khoản:</div>
-      <div class="quick-login-buttons">
-        <button type="button" class="chip-account maker" (click)="fillAccount('make')"
-          title="Dùng cho Chuyên viên tạo dữ liệu">
-          <span class="role-badge">Maker</span>
-        </button>
-        <button type="button" class="chip-account checker" (click)="fillAccount('check')"
-          title="Dùng cho Kiểm soát viên phê duyệt">
-          <span class="role-badge">Checker</span>
-        </button>
-        <button type="button" class="chip-account admin" (click)="fillAccount('admin')" title="Dùng cho Admin">
-          <span class="role-badge">Admin</span>
-        </button>
-      </div>
-    </div>
   </div>
 </div>

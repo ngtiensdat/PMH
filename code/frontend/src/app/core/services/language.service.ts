@@ -16,7 +16,7 @@ export class LanguageService {
   // Tên người dùng, vai trò và mã người dùng đọc động từ localStorage
   userName = signal<string>(localStorage.getItem('app_username') || '');
   userRole = signal<string>(localStorage.getItem('app_userrole') || '');
-  userCode = signal<string>(localStorage.getItem('app_usercode') || 'make');
+  userCode = signal<string>(localStorage.getItem('app_usercode') || '');
 
   avatarText = computed(() => {
     const name = this.userName() || this.labels().navigation.user.name;
@@ -33,9 +33,6 @@ export class LanguageService {
     }
     if (!this.userRole()) {
       this.userRole.set(this.labels().navigation.user.role);
-    }
-    if (!localStorage.getItem('app_usercode')) {
-      localStorage.setItem('app_usercode', 'make');
     }
   }
 
@@ -57,5 +54,14 @@ export class LanguageService {
       this.userCode.set(userCode);
       localStorage.setItem('app_usercode', userCode);
     }
+  }
+
+  clearUserProfile(): void {
+    this.userName.set('');
+    this.userRole.set('');
+    this.userCode.set('');
+    localStorage.removeItem('app_username');
+    localStorage.removeItem('app_userrole');
+    localStorage.removeItem('app_usercode');
   }
 }

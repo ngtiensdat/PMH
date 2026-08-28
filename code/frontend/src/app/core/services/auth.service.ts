@@ -115,10 +115,10 @@ export class AuthService {
     localStorage.setItem(this.USER_KEY, JSON.stringify(userData));
     this.currentUser.set(userData);
 
-    const roles = userData.roles && userData.roles.length > 0 ? userData.roles : [userData.role];
+    const roles = userData.roles && userData.roles.length > 0 ? userData.roles : (userData.role ? [userData.role] : []);
     let initialRole = localStorage.getItem(this.ACTIVE_ROLE_KEY);
     if (!initialRole || !roles.includes(initialRole)) {
-      initialRole = roles[0] || userData.role || 'MAKER';
+      initialRole = roles[0] || userData.role || '';
       localStorage.setItem(this.ACTIVE_ROLE_KEY, initialRole);
     }
 
@@ -135,8 +135,8 @@ export class AuthService {
     localStorage.removeItem(this.USER_KEY);
     localStorage.removeItem(this.ACTIVE_ROLE_KEY);
     this.currentUser.set(null);
-    this.activeRole.set('MAKER');
-    this.languageService.userCode.set('make');
+    this.activeRole.set('');
+    this.languageService.clearUserProfile();
   }
 
   private getStoredUser(): UserResponse | null {
@@ -151,12 +151,12 @@ export class AuthService {
 
   private getStoredActiveRole(): string {
     const user = this.getStoredUser();
-    if (!user) return 'MAKER';
+    if (!user) return '';
     const storedRole = localStorage.getItem(this.ACTIVE_ROLE_KEY);
-    const roles = user.roles && user.roles.length > 0 ? user.roles : [user.role];
+    const roles = user.roles && user.roles.length > 0 ? user.roles : (user.role ? [user.role] : []);
     if (storedRole && roles.includes(storedRole)) {
       return storedRole;
     }
-    return roles[0] || user.role || 'MAKER';
+    return roles[0] || user.role || '';
   }
 }

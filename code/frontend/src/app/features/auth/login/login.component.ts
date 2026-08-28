@@ -32,16 +32,9 @@ export class LoginComponent {
   showPassword = signal<boolean>(false);
 
   loginForm = this.fb.group({
-    username: ['make', [Validators.required, zodFieldValidator(LoginSchema, 'username')]],
-    password: ['123', [Validators.required, zodFieldValidator(LoginSchema, 'password')]]
+    username: ['', [Validators.required, zodFieldValidator(LoginSchema, 'username')]],
+    password: ['', [Validators.required, zodFieldValidator(LoginSchema, 'password')]]
   });
-
-  fillAccount(username: string) {
-    this.loginForm.patchValue({
-      username: username,
-      password: '123'
-    });
-  }
 
   onSubmit() {
     if (this.loginForm.invalid) {
