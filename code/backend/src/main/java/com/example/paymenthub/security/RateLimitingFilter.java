@@ -1,6 +1,8 @@
 package com.example.paymenthub.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import jakarta.servlet.FilterChain;
@@ -18,7 +20,6 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @Slf4j
@@ -37,11 +38,19 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private long apiDurationMinutes;
 
     private final ObjectMapper objectMapper;
-    private final Map<String, Bucket> loginBuckets = new ConcurrentHashMap<>();
-    private final Map<String, Bucket> apiBuckets = new ConcurrentHashMap<>();
+    private final Cache<String, Bucket> loginBuckets;
+    private final Cache<String, Bucket> apiBuckets;
 
     public RateLimitingFilter(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
+        this.loginBuckets = Caffeine.newBuilder()
+                .expireAfterAccess(Duration.ofMinutes(15))
+                .maximumSize(10_000)
+                .build();
+        this.apiBuckets = Caffeine.newBuilder()
+                .expireAfterAccess(Duration.ofMinutes(15))
+                .maximumSize(10_000)
+                .build();
     }
 
     @Override
@@ -52,16 +61,16 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String clientIp = getClientIp(request);
 
         if (path.startsWith("/api/auth/login")) {
-            Bucket bucket = loginBuckets.computeIfAbsent(clientIp, ip -> createLoginBucket());
-            if (!bucket.tryConsume(1)) {
+            Bucket bucket = loginBuckets.get(clientIp, ip -> createLoginBucket());
+            if (bucket != null && !bucket.tryConsume(1)) {
                 log.warn("[RateLimiting] IP {} vượt quá giới hạn thử đăng nhập (Rate limit {} req/{} min)",
                         clientIp, loginCapacity, loginDurationMinutes);
                 sendRateLimitError(response, "Bạn đã thử đăng nhập quá nhiều lần. Vui lòng thử lại sau!");
                 return;
             }
         } else if (path.startsWith("/api/")) {
-            Bucket bucket = apiBuckets.computeIfAbsent(clientIp, ip -> createApiBucket());
-            if (!bucket.tryConsume(1)) {
+            Bucket bucket = apiBuckets.get(clientIp, ip -> createApiBucket());
+            if (bucket != null && !bucket.tryConsume(1)) {
                 log.warn("[RateLimiting] IP {} vượt quá giới hạn gọi API (Rate limit {} req/{} min)",
                         clientIp, apiCapacity, apiDurationMinutes);
                 sendRateLimitError(response, "Bạn đã gửi quá nhiều yêu cầu đến hệ thống. Vui lòng thử lại sau!");

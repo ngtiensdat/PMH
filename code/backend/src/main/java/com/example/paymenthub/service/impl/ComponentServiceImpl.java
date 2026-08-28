@@ -74,10 +74,13 @@ public class ComponentServiceImpl implements ComponentService {
 
     // ─── Helper: compute active status from effective dates ─────────────────
     public static int computeActiveStatus(LocalDateTime effectiveDate, LocalDateTime endEffectiveDate) {
-        if (effectiveDate == null) return ActiveStatus.INACTIVE.getCode();
+        if (effectiveDate == null)
+            return ActiveStatus.INACTIVE.getCode();
         LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(effectiveDate)) return ActiveStatus.INACTIVE.getCode();
-        if (endEffectiveDate != null && now.isAfter(endEffectiveDate)) return ActiveStatus.INACTIVE.getCode();
+        if (now.isBefore(effectiveDate))
+            return ActiveStatus.INACTIVE.getCode();
+        if (endEffectiveDate != null && now.isAfter(endEffectiveDate))
+            return ActiveStatus.INACTIVE.getCode();
         return ActiveStatus.ACTIVE.getCode();
     }
 
@@ -112,7 +115,8 @@ public class ComponentServiceImpl implements ComponentService {
     public List<ProcessingComponent> getActiveList(Integer status) {
         List<ProcessingComponent> rawList;
         if (status != null) {
-            rawList = repository.findAllByIsActiveAndStatusOrderByComponentNameAsc(ActiveStatus.ACTIVE.getCode(), status);
+            rawList = repository.findAllByIsActiveAndStatusOrderByComponentNameAsc(ActiveStatus.ACTIVE.getCode(),
+                    status);
         } else {
             rawList = repository.findAllByIsActiveOrderByComponentNameAsc(ActiveStatus.ACTIVE.getCode());
         }
@@ -292,9 +296,11 @@ public class ComponentServiceImpl implements ComponentService {
     @Override
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getRawDataForExport() {
-        List<ProcessingComponent> activeList = repository.findAllByIsActiveOrderByComponentNameAsc(ActiveStatus.ACTIVE.getCode());
+        List<ProcessingComponent> activeList = repository
+                .findAllByIsActiveOrderByComponentNameAsc(ActiveStatus.ACTIVE.getCode());
         return activeList.stream()
-                .map(entity -> objectMapper.convertValue(entity, new TypeReference<Map<String, Object>>() {}))
+                .map(entity -> objectMapper.convertValue(entity, new TypeReference<Map<String, Object>>() {
+                }))
                 .toList();
     }
 
@@ -307,7 +313,8 @@ public class ComponentServiceImpl implements ComponentService {
     public List<BatchItemResultDTO> batchApprove(List<String> codes, String approver) {
         log.info("[Component] Batch approve started. count={}, approver={}", codes.size(), approver);
         List<BatchItemResultDTO> results = codes.stream()
-                .map(code -> executeBatchItem(code, (entity, result) -> approveComponentAction(entity, approver, result)))
+                .map(code -> executeBatchItem(code,
+                        (entity, result) -> approveComponentAction(entity, approver, result)))
                 .toList();
 
         long successCount = results.stream().filter(r -> BATCH_SUCCESS.equalsIgnoreCase(r.getStatus())).count();
@@ -322,7 +329,8 @@ public class ComponentServiceImpl implements ComponentService {
     public List<BatchItemResultDTO> batchReject(List<String> codes, String reason, String approver) {
         log.info("[Component] Batch reject started. count={}, approver={}", codes.size(), approver);
         List<BatchItemResultDTO> results = codes.stream()
-                .map(code -> executeBatchItem(code, (entity, result) -> rejectComponentAction(entity, reason, approver, result)))
+                .map(code -> executeBatchItem(code,
+                        (entity, result) -> rejectComponentAction(entity, reason, approver, result)))
                 .toList();
 
         long successCount = results.stream().filter(r -> BATCH_SUCCESS.equalsIgnoreCase(r.getStatus())).count();
@@ -338,7 +346,8 @@ public class ComponentServiceImpl implements ComponentService {
     }
 
     /**
-     * Khung runner dùng chung để bọc Transaction độc lập và try-catch xử lý riêng cho từng item trong Batch.
+     * Khung runner dùng chung để bọc Transaction độc lập và try-catch xử lý riêng
+     * cho từng item trong Batch.
      */
     private BatchItemResultDTO executeBatchItem(String code, BatchActionConsumer action) {
         BatchItemResultDTO result = BatchItemResultDTO.builder().code(code).build();
@@ -365,10 +374,13 @@ public class ComponentServiceImpl implements ComponentService {
             applyNewDataChanges(entity);
         }
 
-        StoredProcedureResult spResult = executeComponentStoredProcedure("PROC_APPROVE_COMPONENT", entity.getComponentCode(), approver);
+        StoredProcedureResult spResult = executeComponentStoredProcedure("PROC_APPROVE_COMPONENT",
+                entity.getComponentCode(), approver);
         if (!spResult.isSuccess()) {
             throw new BusinessRuleException(spResult.getMessage());
         }
+
+        entityManager.refresh(entity);
 
         result.setStatus(BATCH_SUCCESS);
         result.setErrorMessage(spResult.getMessage());
@@ -376,21 +388,26 @@ public class ComponentServiceImpl implements ComponentService {
                 MODULE, entity.getComponentCode(),
                 AuditAction.APPROVE.getActionName(), approver,
                 null, null,
-                String.format("Phê duyệt cấu phần Code=%s - %s bởi %s", entity.getComponentCode(), entity.getComponentName(), approver),
+                String.format("Phê duyệt cấu phần Code=%s - %s bởi %s", entity.getComponentCode(),
+                        entity.getComponentName(), approver),
                 statusBefore, ParamStatus.APPROVED.getCode());
     }
 
     /**
      * Logic nghiệp vụ chi tiết cho hành động TỪ CHỐI 1 cấu phần
      */
-    private void rejectComponentAction(ProcessingComponent entity, String reason, String approver, BatchItemResultDTO result) {
+    private void rejectComponentAction(ProcessingComponent entity, String reason, String approver,
+            BatchItemResultDTO result) {
         validateMakerChecker(entity, approver, BusinessErrorCode.INVALID_REJECT_STATUS);
 
         int statusBefore = entity.getStatus();
-        StoredProcedureResult spResult = executeComponentStoredProcedure("PROC_REJECT_COMPONENT", entity.getComponentCode(), approver);
+        StoredProcedureResult spResult = executeComponentStoredProcedure("PROC_REJECT_COMPONENT",
+                entity.getComponentCode(), approver);
         if (!spResult.isSuccess()) {
             throw new BusinessRuleException(spResult.getMessage());
         }
+
+        entityManager.refresh(entity);
 
         result.setStatus(BATCH_SUCCESS);
         result.setErrorMessage(spResult.getMessage());
@@ -399,8 +416,10 @@ public class ComponentServiceImpl implements ComponentService {
                 AuditAction.REJECT.getActionName(), approver,
                 null, null,
                 reason != null && !reason.trim().isEmpty()
-                        ? String.format("Từ chối duyệt cấu phần Code=%s - %s bởi %s. Lý do: %s", entity.getComponentCode(), entity.getComponentName(), approver, reason.trim())
-                        : String.format("Từ chối duyệt cấu phần Code=%s - %s bởi %s", entity.getComponentCode(), entity.getComponentName(), approver),
+                        ? String.format("Từ chối duyệt cấu phần Code=%s - %s bởi %s. Lý do: %s",
+                                entity.getComponentCode(), entity.getComponentName(), approver, reason.trim())
+                        : String.format("Từ chối duyệt cấu phần Code=%s - %s bởi %s", entity.getComponentCode(),
+                                entity.getComponentName(), approver),
                 statusBefore, ParamStatus.REJECTED.getCode());
     }
 
@@ -413,11 +432,13 @@ public class ComponentServiceImpl implements ComponentService {
         return username;
     }
 
-    private void validateMakerChecker(ProcessingComponent entity, String approver, BusinessErrorCode invalidStatusError) {
+    private void validateMakerChecker(ProcessingComponent entity, String approver,
+            BusinessErrorCode invalidStatusError) {
         if (!entity.isPending()) {
             throw new InvalidStateTransitionException(invalidStatusError);
         }
-        String pendingMaker = StringUtils.hasText(entity.getUpdatedBy()) ? entity.getUpdatedBy() : entity.getCreatedBy();
+        String pendingMaker = StringUtils.hasText(entity.getUpdatedBy()) ? entity.getUpdatedBy()
+                : entity.getCreatedBy();
         if (StringUtils.hasText(pendingMaker) && approver != null && approver.equalsIgnoreCase(pendingMaker)) {
             throw new MakerCheckerConflictException(BusinessErrorCode.MAKER_CHECKER_SAME_USER);
         }
@@ -439,12 +460,17 @@ public class ComponentServiceImpl implements ComponentService {
     private void applyNewDataChanges(ProcessingComponent entity) {
         try {
             ComponentDTO changes = objectMapper.readValue(entity.getNewData(), ComponentDTO.class);
-            if (changes.getComponentName() != null) entity.setComponentName(changes.getComponentName());
-            if (changes.getMessageType() != null) entity.setMessageType(changes.getMessageType());
-            if (changes.getConnectionMethod() != null) entity.setConnectionMethod(changes.getConnectionMethod());
-            if (changes.getCheckToken() != null) entity.setCheckToken(changes.getCheckToken());
+            if (changes.getComponentName() != null)
+                entity.setComponentName(changes.getComponentName());
+            if (changes.getMessageType() != null)
+                entity.setMessageType(changes.getMessageType());
+            if (changes.getConnectionMethod() != null)
+                entity.setConnectionMethod(changes.getConnectionMethod());
+            if (changes.getCheckToken() != null)
+                entity.setCheckToken(changes.getCheckToken());
             entity.setDescription(changes.getDescription());
-            if (changes.getEffectiveDate() != null) entity.setEffectiveDate(changes.getEffectiveDate());
+            if (changes.getEffectiveDate() != null)
+                entity.setEffectiveDate(changes.getEffectiveDate());
             entity.setEndEffectiveDate(changes.getEndEffectiveDate());
             entity.setIsActive(computeActiveStatus(entity.getEffectiveDate(), entity.getEndEffectiveDate()));
             entity.setNewData(null);

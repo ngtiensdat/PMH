@@ -69,6 +69,12 @@
             <version>8.10.1</version>
         </dependency>
 
+        <!-- Caffeine Cache for In-Memory Eviction & TTL -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
         <!-- Oracle Database Driver -->
         <dependency>
             <groupId>com.oracle.database.jdbc</groupId>

@@ -81,11 +81,19 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
 
     private void validateComponentCode(String componentCode) {
         if (StringUtils.hasText(componentCode)) {
-            ProcessingComponent component = componentRepository.findById(componentCode.trim())
-                    .orElseThrow(() -> new ResourceNotFoundException("Mã Cấu phần xử lý '" + componentCode + "' không tồn tại trong hệ thống!"));
+            String[] codes = componentCode.split(",");
+            for (String rawCode : codes) {
+                String code = rawCode.trim();
+                if (StringUtils.hasText(code)) {
+                    ProcessingComponent component = componentRepository.findById(code)
+                            .orElseThrow(() -> new ResourceNotFoundException(
+                                    "Mã Cấu phần xử lý '" + code + "' không tồn tại trong hệ thống!"));
 
-            if (!component.isApproved()) {
-                throw new BusinessRuleException("Cấu phần xử lý '" + componentCode + "' đang ở trạng thái chưa được Phê duyệt (STATUS != 4)! Không thể dùng để tạo/sửa Tham số danh mục.");
+                    if (!component.isApproved()) {
+                        throw new BusinessRuleException("Cấu phần xử lý '" + code
+                                + "' đang ở trạng thái chưa được Phê duyệt (STATUS != 4)! Không thể dùng để tạo/sửa Tham số danh mục.");
+                    }
+                }
             }
         }
     }
@@ -360,9 +368,31 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
                 .setMaxResults(1000)
                 .getResultList();
 
+        Map<String, String> componentNameCache = componentRepository.findAll().stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        ProcessingComponent::getComponentCode,
+                        ProcessingComponent::getComponentName,
+                        (existing, replacement) -> existing));
+
         return tuples.stream().map(tuple -> {
             Map<String, Object> map = new HashMap<>();
             tuple.getElements().forEach(elem -> map.put(elem.getAlias(), tuple.get(elem)));
+
+            String compCode = (String) map.get("componentCode");
+            if (StringUtils.hasText(compCode)) {
+                String[] codes = compCode.split(",");
+                List<String> names = new java.util.ArrayList<>();
+                for (String c : codes) {
+                    String trimmed = c.trim();
+                    if (!trimmed.isEmpty()) {
+                        String foundName = componentNameCache.get(trimmed);
+                        names.add(foundName != null ? foundName : trimmed);
+                    }
+                }
+                if (!names.isEmpty()) {
+                    map.put("componentName", String.join(", ", names));
+                }
+            }
             return map;
         }).toList();
     }
@@ -453,6 +483,8 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
             throw new BusinessRuleException(spResult.getMessage());
         }
 
+        entityManager.refresh(entity);
+
         result.setStatus(BATCH_SUCCESS);
         result.setErrorMessage(spResult.getMessage());
         auditLogService.log(
@@ -476,6 +508,8 @@ public class GroupCategoryServiceImpl implements GroupCategoryService {
         if (!spResult.isSuccess()) {
             throw new BusinessRuleException(spResult.getMessage());
         }
+
+        entityManager.refresh(entity);
 
         result.setStatus(BATCH_SUCCESS);
         result.setErrorMessage(spResult.getMessage());

@@ -76,10 +76,8 @@ BEGIN
         p_status := 0;
         p_message := 'Không tìm thấy bản ghi hoặc bản ghi không ở trạng thái Chờ duyệt';
     END IF;
-    COMMIT;
 EXCEPTION
     WHEN OTHERS THEN
-        ROLLBACK;
         p_status := -1;
         p_message := SQLERRM;
 END;
@@ -127,13 +125,11 @@ BEGIN
         p_status := 0;
         p_message := 'Không tìm thấy bản ghi hoặc bản ghi không ở trạng thái Chờ duyệt';
     END IF;
-    COMMIT;
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
         p_status := 0;
         p_message := 'Không tìm thấy bản ghi hoặc bản ghi không ở trạng thái Chờ duyệt';
     WHEN OTHERS THEN
-        ROLLBACK;
         p_status := -1;
         p_message := SQLERRM;
 END;
@@ -166,10 +162,8 @@ BEGIN
         p_status := 0;
         p_message := 'Không tìm thấy bản ghi hoặc bản ghi không ở trạng thái Chờ duyệt';
     END IF;
-    COMMIT;
 EXCEPTION
     WHEN OTHERS THEN
-        ROLLBACK;
         p_status := -1;
         p_message := SQLERRM;
 END;
@@ -217,13 +211,11 @@ BEGIN
         p_status := 0;
         p_message := 'Không tìm thấy bản ghi hoặc bản ghi không ở trạng thái Chờ duyệt';
     END IF;
-    COMMIT;
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
         p_status := 0;
         p_message := 'Không tìm thấy bản ghi hoặc bản ghi không ở trạng thái Chờ duyệt';
     WHEN OTHERS THEN
-        ROLLBACK;
         p_status := -1;
         p_message := SQLERRM;
 END;
