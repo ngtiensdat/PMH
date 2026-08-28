@@ -86,7 +86,8 @@ public class DataInitializer implements CommandLineRunner {
                 log.info("[DataInitializer] Đã khởi tạo mới tài khoản 'check'.");
             }
 
-            // Đảm bảo 2 tài khoản test mẫu 'make' và 'check' luôn được mở khóa và reset mật khẩu khi Restart Backend
+            // Đảm bảo 2 tài khoản test mẫu 'make' và 'check' luôn được mở khóa và reset mật
+            // khẩu khi Restart Backend
             userRepository.findByUsernameIgnoreCase("make").ifPresent(user -> {
                 user.setPasswordHash(passwordEncoder.encode("123"));
                 user.setFailedLoginAttempts(0);
