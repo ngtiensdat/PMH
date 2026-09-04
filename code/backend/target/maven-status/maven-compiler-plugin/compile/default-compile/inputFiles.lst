@@ -1,3 +1,4 @@
+E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\base\AbstractMakerCheckerService.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\base\ApiResponse.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\base\BaseController.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\base\BaseEntity.java
@@ -10,6 +11,7 @@ E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\enums\BusinessEr
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\enums\DisplayStatus.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\enums\ModuleType.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\enums\ParamStatus.java
+E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\enums\TokenType.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\exception\BusinessRuleException.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\exception\CustomBusinessException.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\common\exception\ForbiddenAccessException.java
@@ -34,13 +36,17 @@ E:\PMH\code\backend\src\main\java\com\example\paymenthub\dto\request\GroupCatego
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\dto\request\GroupCategorySearchCriteria.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\dto\request\LoginRequest.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\dto\response\AuditLogDTO.java
+E:\PMH\code\backend\src\main\java\com\example\paymenthub\dto\response\BaseResponseDTO.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\dto\response\BatchItemResultDTO.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\dto\response\ComponentResponseDTO.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\dto\response\GroupCategoryResponseDTO.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\dto\response\LoginResponse.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\entity\AuditLog.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\entity\GroupCategory.java
+E:\PMH\code\backend\src\main\java\com\example\paymenthub\entity\Permission.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\entity\ProcessingComponent.java
+E:\PMH\code\backend\src\main\java\com\example\paymenthub\entity\RefreshToken.java
+E:\PMH\code\backend\src\main\java\com\example\paymenthub\entity\Role.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\entity\User.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\mapper\ComponentMapper.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\mapper\GroupCategoryMapper.java
@@ -48,10 +54,13 @@ E:\PMH\code\backend\src\main\java\com\example\paymenthub\PaymentHubApplication.j
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\repository\AuditLogRepository.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\repository\ComponentRepository.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\repository\GroupCategoryRepository.java
+E:\PMH\code\backend\src\main\java\com\example\paymenthub\repository\PermissionRepository.java
+E:\PMH\code\backend\src\main\java\com\example\paymenthub\repository\RefreshTokenRepository.java
+E:\PMH\code\backend\src\main\java\com\example\paymenthub\repository\RoleRepository.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\repository\specification\ComponentSpecification.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\repository\specification\GroupCategorySpecification.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\repository\UserRepository.java
-E:\PMH\code\backend\src\main\java\com\example\paymenthub\scheduler\ActiveStatusScheduler.java
+E:\PMH\code\backend\src\main\java\com\example\paymenthub\scheduler\RefreshTokenCleanupScheduler.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\security\JwtAuthenticationFilter.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\security\JwtProvider.java
 E:\PMH\code\backend\src\main\java\com\example\paymenthub\security\RateLimitingFilter.java

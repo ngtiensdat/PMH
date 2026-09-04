@@ -1,32 +1,22 @@
 package com.example.paymenthub.dto.response;
 
 import com.example.paymenthub.entity.ProcessingComponent;
-import lombok.*;
-import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class ComponentResponseDTO {
+@SuperBuilder
+public class ComponentResponseDTO extends BaseResponseDTO {
     private String componentCode;
     private String componentName;
     private String messageType;
     private String connectionMethod;
     private String checkToken;
     private String description;
-    private Integer status;
-    private Integer isActive;
-    private Integer isDisplay;
-    private String newData;
-    private LocalDateTime effectiveDate;
-    private LocalDateTime endEffectiveDate;
-    private Long version;
-    private String createdBy;
-    private LocalDateTime createdDate;
-    private String updatedBy;
-    private LocalDateTime updatedDate;
 
     public static ComponentResponseDTO fromEntity(ProcessingComponent entity) {
         if (entity == null) return null;
@@ -37,6 +27,7 @@ public class ComponentResponseDTO {
                 .connectionMethod(entity.getConnectionMethod())
                 .checkToken(entity.getCheckToken())
                 .description(entity.getDescription())
+                // base fields
                 .status(entity.getStatus())
                 .isActive(entity.getIsActive())
                 .isDisplay(entity.getIsDisplay())

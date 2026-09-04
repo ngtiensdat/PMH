@@ -78,10 +78,10 @@ public class AuthServiceImpl implements AuthService {
 
             if (attempts >= maxFailedAttempts) {
                 user.setLockoutUntil(LocalDateTime.now().plusMinutes(lockoutMinutes));
-                log.warn("[AuthService] Tài khoản {} bị khóa {} phút do nhập sai mật khẩu {} lần (cấu hình max={})", 
+                log.warn("[AuthService] Tài khoản {} bị khóa {} phút do nhập sai mật khẩu {} lần (cấu hình max={})",
                         username, lockoutMinutes, attempts, maxFailedAttempts);
             } else {
-                log.warn("[AuthService] Đăng nhập thất bại cho username={}. Số lần sai: {}/{} (cấu hình max={})", 
+                log.warn("[AuthService] Đăng nhập thất bại cho username={}. Số lần sai: {}/{} (cấu hình max={})",
                         username, attempts, maxFailedAttempts, maxFailedAttempts);
             }
 
@@ -109,13 +109,14 @@ public class AuthServiceImpl implements AuthService {
         RefreshToken refreshTokenEntity = RefreshToken.builder()
                 .username(user.getUsername())
                 .tokenHash(refreshTokenStr)
-                .expiryDate(LocalDateTime.now().plusSeconds(com.example.paymenthub.common.enums.TokenType.REFRESH.getMaxAgeSeconds()))
+                .expiryDate(LocalDateTime.now()
+                        .plusSeconds(com.example.paymenthub.common.enums.TokenType.REFRESH.getMaxAgeSeconds()))
                 .revoked(false)
                 .createdDate(LocalDateTime.now())
                 .build();
         refreshTokenRepository.save(refreshTokenEntity);
 
-        log.info("[AuthService] Đăng nhập thành công: username={}, role={}, roles={}, permissions={}", 
+        log.info("[AuthService] Đăng nhập thành công: username={}, role={}, roles={}, permissions={}",
                 user.getUsername(), user.getRole(), roleCodes, permissionCodes);
 
         return LoginResponse.builder()
@@ -132,7 +133,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public LoginResponse refreshToken(String refreshTokenStr) {
-        if (refreshTokenStr == null || refreshTokenStr.trim().isEmpty() || !jwtProvider.validateToken(refreshTokenStr)) {
+        if (refreshTokenStr == null || refreshTokenStr.trim().isEmpty()
+                || !jwtProvider.validateToken(refreshTokenStr)) {
             throw new UnauthorizedAccessException(AuthErrorCode.INVALID_SESSION);
         }
 
@@ -165,7 +167,8 @@ public class AuthServiceImpl implements AuthService {
         RefreshToken newRefreshTokenEntity = RefreshToken.builder()
                 .username(user.getUsername())
                 .tokenHash(newRefreshTokenStr)
-                .expiryDate(LocalDateTime.now().plusSeconds(com.example.paymenthub.common.enums.TokenType.REFRESH.getMaxAgeSeconds()))
+                .expiryDate(LocalDateTime.now()
+                        .plusSeconds(com.example.paymenthub.common.enums.TokenType.REFRESH.getMaxAgeSeconds()))
                 .revoked(false)
                 .createdDate(LocalDateTime.now())
                 .build();
@@ -222,7 +225,9 @@ public class AuthServiceImpl implements AuthService {
     public void logout(String token) {
         if (token != null && !token.trim().isEmpty()) {
             java.util.Date expiry = jwtProvider.getExpirationFromToken(token);
-            long expiryTime = expiry != null ? expiry.getTime() : System.currentTimeMillis() + com.example.paymenthub.common.enums.TokenType.ACCESS.getExpirationMs();
+            long expiryTime = expiry != null ? expiry.getTime()
+                    : System.currentTimeMillis()
+                            + com.example.paymenthub.common.enums.TokenType.ACCESS.getExpirationMs();
             tokenBlacklistService.blacklistToken(token, expiryTime);
             log.info("[AuthService] Đã thu hồi Access Token và đưa vào Blacklist khi Đăng xuất.");
         }

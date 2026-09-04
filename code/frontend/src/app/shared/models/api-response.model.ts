@@ -21,3 +21,20 @@ export interface PageResponse<T> {
     totalPages: number;
   };
 }
+
+/** Kết quả từng item trong batch-approve / batch-reject — dùng chung mọi module */
+export interface BatchItemResult {
+  id?: number;
+  code?: string;
+  status: string; // "SUCCESS" | "FAILED"
+  errorMessage?: string;
+}
+
+/** Trạng thái phân trang + filter của list page — dùng chung cho mọi FeatureService */
+export interface ListState {
+  page: number;
+  size: number;
+  filters: Record<string, unknown>;
+  viewMode: 'jpa' | 'native';
+  activeTabIndex: number;
+}

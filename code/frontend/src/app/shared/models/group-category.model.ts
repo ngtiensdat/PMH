@@ -28,17 +28,7 @@ export interface GroupCategoryRequest {
   paramType: string;
   description?: string;
   componentCode: string;
-  status?: number;
-  isActive?: number;
-  isDisplay?: number;
-  newData?: string;
   effectiveDate: string;
   endEffectiveDate?: string;
 }
 
-export interface BatchItemResult {
-  id?: number;
-  code?: string;
-  status: string; // "SUCCESS" | "FAILED"
-  errorMessage?: string;
-}

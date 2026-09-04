@@ -1,0 +1,48 @@
+<ng-template [(tuiDialog)]="isOpen" [tuiDialogOptions]="{label: 'Lịch sử thao tác', size: 'l'}">
+  <div class="dialog-history-container">
+    <div class="history-target-info" style="margin-bottom: 1rem; font-weight: 500;">
+      Đối tượng: <span class="highlight-text" style="color: #2563eb;">{{ targetName }}</span>
+    </div>
+
+    <div *ngIf="historyData.length === 0 && !isLoading" class="empty-history" style="text-align: center; padding: 2rem; color: #64748b;">
+      Chưa có lịch sử thao tác cho bản ghi này.
+    </div>
+
+    <div *ngIf="historyData.length > 0" class="history-list">
+      <div *ngFor="let item of historyData; trackBy: trackByHistoryIndex" class="history-card glass-panel" style="padding: 1rem; margin-bottom: 0.75rem; border-radius: 8px; background: rgba(248, 250, 252, 0.8); border: 1px solid #e2e8f0;">
+        <div class="history-card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <div class="user-info" style="display: flex; align-items: center; gap: 0.5rem;">
+            <div class="avatar" style="width: 32px; height: 32px; border-radius: 50%; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600;">
+              {{ item.user.avatar }}
+            </div>
+            <div>
+              <div style="font-size: 0.875rem; font-weight: 600;">{{ item.user.name }}</div>
+              <div style="font-size: 0.75rem; color: #64748b;">{{ item.user.code }}</div>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <span [class]="'action-pill ' + getActionPillClass(item.action)" style="padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+              {{ item.action }}
+            </span>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">{{ item.date }}</div>
+          </div>
+        </div>
+        <div class="history-card-body" style="font-size: 0.875rem; color: #334155; line-height: 1.4;">
+          {{ item.content }}
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="historyTotalPages > 1" style="display: flex; justify-content: center; margin-top: 1rem;">
+      <tui-pagination
+        [length]="historyTotalPages"
+        [index]="historyPage"
+        (indexChange)="onPageChange($event)"
+      ></tui-pagination>
+    </div>
+  </div>
+
+  <div class="dialog-footer tui-space_top-4" style="display: flex; justify-content: flex-end;">
+    <button tuiButton appearance="secondary" type="button" (click)="onClose()">Đóng</button>
+  </div>
+</ng-template>

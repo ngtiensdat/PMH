@@ -1,7 +1,5 @@
 package com.example.paymenthub.dto.request;
 
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -10,6 +8,12 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+/**
+ * DTO nhận từ client khi tạo / cập nhật Cấu phần xử lý.
+ * Chỉ chứa các fields người dùng có quyền gửi lên.
+ * Các internal state fields (status, isActive, isDisplay, newData, version...)
+ * do Server tự quản lý — không nhận từ client.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -39,24 +43,8 @@ public class ComponentDTO {
     @Size(max = 4000, message = "Mô tả tối đa 4000 ký tự")
     private String description;
 
-    private Integer status;
-
-    @Min(value = 0, message = "Trạng thái hoạt động không hợp lệ")
-    @Max(value = 1, message = "Trạng thái hoạt động không hợp lệ")
-    private Integer isActive;
-
-    private Integer isDisplay;
-    private String newData;
-
     @NotNull(message = "Ngày hiệu lực không được để trống")
     private LocalDateTime effectiveDate;
 
     private LocalDateTime endEffectiveDate;
-
-    private Long version;
-
-    private String createdBy;
-    private LocalDateTime createdDate;
-    private String updatedBy;
-    private LocalDateTime updatedDate;
 }

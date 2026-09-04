@@ -3,19 +3,21 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
-import { ApiResponse, PageResponse } from '../../../shared/models/api-response.model';
+import { ApiResponse, PageResponse, BatchItemResult } from '../../../shared/models/api-response.model';
 import { ProcessingComponentResponse, ProcessingComponentRequest } from '../../../shared/models/component.model';
-import { BatchItemResult } from '../../../shared/models/group-category.model';
 import { AuditLogItem } from '../../../shared/models/audit-log.model';
+import { BaseFeatureService } from '../../../shared/services/base-feature.service';
 
 @Injectable({
   providedIn: 'root'
 })
-export class ComponentService {
+export class ComponentService extends BaseFeatureService {
   private apiUrl = `${environment.apiBase}/api/components`;
   private activeComponentsCache = new Map<string, ApiResponse<ProcessingComponentResponse[]>>();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { super(); }
+
+  // --- DẠNG 1: JPA & JPA SPECIFICATION ---
 
   search(
     filters: { componentCode?: string; componentName?: string; messageType?: string[]; connectionMethod?: string[]; status?: number[]; isActive?: number[] },
@@ -30,19 +32,10 @@ export class ComponentService {
 
     if (filters.componentCode) params = params.set('componentCode', filters.componentCode);
     if (filters.componentName) params = params.set('componentName', filters.componentName);
-    if (filters.messageType) {
-      filters.messageType.forEach((mt: string) => { params = params.append('messageType', mt); });
-    }
-    if (filters.connectionMethod) {
-      filters.connectionMethod.forEach((cm: string) => { params = params.append('connectionMethod', cm); });
-    }
-
-    if (filters.status && filters.status.length > 0) {
-      filters.status.forEach((s: number) => { params = params.append('status', s.toString()); });
-    }
-    if (filters.isActive && filters.isActive.length > 0) {
-      filters.isActive.forEach((a: number) => { params = params.append('isActive', a.toString()); });
-    }
+    if (filters.messageType)      filters.messageType.forEach(mt      => { params = params.append('messageType',      mt); });
+    if (filters.connectionMethod) filters.connectionMethod.forEach(cm => { params = params.append('connectionMethod', cm); });
+    if (filters.status?.length)   filters.status.forEach(s            => { params = params.append('status',   s.toString()); });
+    if (filters.isActive?.length) filters.isActive.forEach(a          => { params = params.append('isActive', a.toString()); });
 
     return this.http.get<ApiResponse<PageResponse<ProcessingComponentResponse>>>(`${this.apiUrl}/search`, { params });
   }
@@ -57,9 +50,7 @@ export class ComponentService {
       return of(this.activeComponentsCache.get(cacheKey)!);
     }
     let params = new HttpParams();
-    if (status !== undefined && status !== null) {
-      params = params.set('status', status.toString());
-    }
+    if (status !== undefined && status !== null) params = params.set('status', status.toString());
     return this.http.get<ApiResponse<ProcessingComponentResponse[]>>(`${this.apiUrl}/active-list`, { params }).pipe(
       tap(res => this.activeComponentsCache.set(cacheKey, res))
     );
@@ -85,9 +76,13 @@ export class ComponentService {
     return this.http.post<ApiResponse<ProcessingComponentResponse>>(`${this.apiUrl}/${code}/cancel-approval`, {});
   }
 
+  // --- DẠNG 2: NATIVE QUERY ---
+
   exportExcel(): Observable<ApiResponse<Record<string, unknown>[]>> {
     return this.http.get<ApiResponse<Record<string, unknown>[]>>(`${this.apiUrl}/export`);
   }
+
+  // --- DẠNG 3: STORED PROCEDURE ---
 
   batchApprove(codes: string[]): Observable<ApiResponse<BatchItemResult[]>> {
     return this.http.post<ApiResponse<BatchItemResult[]>>(`${this.apiUrl}/batch-approve`, codes);
@@ -100,30 +95,9 @@ export class ComponentService {
   }
 
   getHistory(code: string, page: number = 0, size: number = 5): Observable<ApiResponse<PageResponse<AuditLogItem>>> {
-    let params = new HttpParams()
+    const params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());
     return this.http.get<ApiResponse<PageResponse<AuditLogItem>>>(`${environment.apiBase}/api/audit-log/component/${code}`, { params });
-  }
-
-  // Cache state for list pagination and filters
-  private listState: {
-    page: number;
-    size: number;
-    filters: any;
-    viewMode: 'jpa' | 'native';
-    activeTabIndex: number;
-  } | null = null;
-
-  setListState(state: any) {
-    this.listState = state;
-  }
-
-  getListState() {
-    return this.listState;
-  }
-
-  clearListState() {
-    this.listState = null;
   }
 }

@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/components")
@@ -61,7 +60,7 @@ public class ComponentController extends BaseController {
         List<ProcessingComponent> list = service.getActiveList(status);
         List<ComponentResponseDTO> dtoList = list.stream()
                 .map(ComponentResponseDTO::fromEntity)
-                .collect(Collectors.toList());
+                .toList();
         return ok(dtoList, "Lấy danh sách cấu phần đang hoạt động thành công");
     }
 
@@ -118,14 +117,8 @@ public class ComponentController extends BaseController {
     @PostMapping("/batch-approve")
     @PreAuthorize("hasAuthority('COMPONENT_APPROVE')")
     public ResponseEntity<ApiResponse<List<BatchItemResultDTO>>> batchApprove(@RequestBody List<String> codes) {
-        String username = SecurityUtils.getCurrentUsername();
-        List<BatchItemResultDTO> result = service.batchApprove(codes, username);
-        long successCount = result.stream().filter(r -> "SUCCESS".equalsIgnoreCase(r.getStatus())).count();
-        if (successCount == 0 && !result.isEmpty()) {
-            String firstErr = result.get(0).getErrorMessage() != null ? result.get(0).getErrorMessage() : "Phê duyệt thất bại";
-            return ResponseEntity.badRequest().body(ApiResponse.error(firstErr));
-        }
-        return ok(result, "Phê duyệt hàng loạt hoàn tất");
+        return handleBatchResult(service.batchApprove(codes, SecurityUtils.getCurrentUsername()),
+                "Phê duyệt hàng loạt hoàn tất", "Phê duyệt thất bại");
     }
 
     @PostMapping("/batch-reject")
@@ -134,13 +127,7 @@ public class ComponentController extends BaseController {
             @RequestBody List<String> codes,
             @RequestParam(required = false) String reason
     ) {
-        String username = SecurityUtils.getCurrentUsername();
-        List<BatchItemResultDTO> result = service.batchReject(codes, reason, username);
-        long successCount = result.stream().filter(r -> "SUCCESS".equalsIgnoreCase(r.getStatus())).count();
-        if (successCount == 0 && !result.isEmpty()) {
-            String firstErr = result.get(0).getErrorMessage() != null ? result.get(0).getErrorMessage() : "Từ chối thất bại";
-            return ResponseEntity.badRequest().body(ApiResponse.error(firstErr));
-        }
-        return ok(result, "Từ chối/Hủy duyệt hàng loạt hoàn tất");
+        return handleBatchResult(service.batchReject(codes, reason, SecurityUtils.getCurrentUsername()),
+                "Từ chối/Hủy duyệt hàng loạt hoàn tất", "Từ chối thất bại");
     }
 }

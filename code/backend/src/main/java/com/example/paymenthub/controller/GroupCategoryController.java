@@ -141,14 +141,8 @@ public class GroupCategoryController extends BaseController {
     @PostMapping("/batch-approve")
     @PreAuthorize("hasAuthority('CATEGORY_APPROVE')")
     public ResponseEntity<ApiResponse<List<BatchItemResultDTO>>> batchApprove(@RequestBody List<Long> ids) {
-        String username = SecurityUtils.getCurrentUsername();
-        List<BatchItemResultDTO> result = service.batchApprove(ids, username);
-        long successCount = result.stream().filter(r -> "SUCCESS".equalsIgnoreCase(r.getStatus())).count();
-        if (successCount == 0 && !result.isEmpty()) {
-            String firstErr = result.get(0).getErrorMessage() != null ? result.get(0).getErrorMessage() : "Phê duyệt thất bại";
-            return ResponseEntity.badRequest().body(ApiResponse.error(firstErr));
-        }
-        return ok(result, "Phê duyệt hàng loạt hoàn tất");
+        return handleBatchResult(service.batchApprove(ids, SecurityUtils.getCurrentUsername()),
+                "Phê duyệt hàng loạt hoàn tất", "Phê duyệt thất bại");
     }
 
     /**
@@ -160,13 +154,7 @@ public class GroupCategoryController extends BaseController {
             @RequestBody List<Long> ids,
             @RequestParam(required = false) String reason
     ) {
-        String username = SecurityUtils.getCurrentUsername();
-        List<BatchItemResultDTO> result = service.batchReject(ids, reason, username);
-        long successCount = result.stream().filter(r -> "SUCCESS".equalsIgnoreCase(r.getStatus())).count();
-        if (successCount == 0 && !result.isEmpty()) {
-            String firstErr = result.get(0).getErrorMessage() != null ? result.get(0).getErrorMessage() : "Từ chối thất bại";
-            return ResponseEntity.badRequest().body(ApiResponse.error(firstErr));
-        }
-        return ok(result, "Từ chối/Hủy duyệt hàng loạt hoàn tất");
+        return handleBatchResult(service.batchReject(ids, reason, SecurityUtils.getCurrentUsername()),
+                "Từ chối/Hủy duyệt hàng loạt hoàn tất", "Từ chối thất bại");
     }
 }

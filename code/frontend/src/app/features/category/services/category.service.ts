@@ -2,17 +2,18 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { ApiResponse, PageResponse } from '../../../shared/models/api-response.model';
-import { GroupCategoryResponse, GroupCategoryRequest, BatchItemResult } from '../../../shared/models/group-category.model';
+import { ApiResponse, PageResponse, BatchItemResult } from '../../../shared/models/api-response.model';
+import { GroupCategoryResponse, GroupCategoryRequest } from '../../../shared/models/group-category.model';
 import { AuditLogItem } from '../../../shared/models/audit-log.model';
+import { BaseFeatureService } from '../../../shared/services/base-feature.service';
 
 @Injectable({
   providedIn: 'root'
 })
-export class CategoryService {
+export class CategoryService extends BaseFeatureService {
   private apiUrl = `${environment.apiBase}/api/group-category`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { super(); }
 
   // --- DẠNG 1: JPA & JPA SPECIFICATION ---
 
@@ -27,16 +28,12 @@ export class CategoryService {
       .set('size', size.toString())
       .set('sort', sort);
 
-    if (filters.paramType) params = params.set('paramType', filters.paramType);
+    if (filters.paramType)  params = params.set('paramType',  filters.paramType);
     if (filters.paramValue) params = params.set('paramValue', filters.paramValue);
-    if (filters.paramName) params = params.set('paramName', filters.paramName);
+    if (filters.paramName)  params = params.set('paramName',  filters.paramName);
 
-    if (filters.status && filters.status.length > 0) {
-      filters.status.forEach((s: number) => { params = params.append('status', s.toString()); });
-    }
-    if (filters.isActive && filters.isActive.length > 0) {
-      filters.isActive.forEach((a: number) => { params = params.append('isActive', a.toString()); });
-    }
+    if (filters.status?.length)   filters.status.forEach(s  => { params = params.append('status',   s.toString()); });
+    if (filters.isActive?.length) filters.isActive.forEach(a => { params = params.append('isActive', a.toString()); });
 
     return this.http.get<ApiResponse<PageResponse<GroupCategoryResponse>>>(`${this.apiUrl}/search`, { params });
   }
@@ -88,30 +85,9 @@ export class CategoryService {
   }
 
   getHistory(id: number, page: number = 0, size: number = 5): Observable<ApiResponse<PageResponse<AuditLogItem>>> {
-    let params = new HttpParams()
+    const params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());
     return this.http.get<ApiResponse<PageResponse<AuditLogItem>>>(`${environment.apiBase}/api/audit-log/group-category/${id}`, { params });
-  }
-
-  // Cache state for list pagination and filters
-  private listState: {
-    page: number;
-    size: number;
-    filters: any;
-    viewMode: 'jpa' | 'native';
-    activeTabIndex: number;
-  } | null = null;
-
-  setListState(state: any) {
-    this.listState = state;
-  }
-
-  getListState() {
-    return this.listState;
-  }
-
-  clearListState() {
-    this.listState = null;
   }
 }

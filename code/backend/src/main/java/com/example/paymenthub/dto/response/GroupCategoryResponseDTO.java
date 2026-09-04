@@ -1,32 +1,23 @@
 package com.example.paymenthub.dto.response;
 
 import com.example.paymenthub.entity.GroupCategory;
-import lombok.*;
-import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class GroupCategoryResponseDTO {
-    private Long id;
+@SuperBuilder
+public class GroupCategoryResponseDTO extends BaseResponseDTO {
+    private Long   id;
     private String paramName;
     private String paramValue;
     private String paramType;
     private String description;
     private String componentCode;
-    private Integer status;
-    private Integer isActive;
-    private Integer isDisplay;
-    private String newData;
-    private LocalDateTime effectiveDate;
-    private LocalDateTime endEffectiveDate;
-    private Long version;
-    private String createdBy;
-    private LocalDateTime createdDate;
-    private String updatedBy;
-    private LocalDateTime updatedDate;
+    private String componentName; // Từ JOIN (nếu có)
 
     public static GroupCategoryResponseDTO fromEntity(GroupCategory entity) {
         if (entity == null) return null;
@@ -37,6 +28,7 @@ public class GroupCategoryResponseDTO {
                 .paramType(entity.getParamType())
                 .description(entity.getDescription())
                 .componentCode(entity.getComponentCode())
+                // base fields
                 .status(entity.getStatus())
                 .isActive(entity.getIsActive())
                 .isDisplay(entity.getIsDisplay())

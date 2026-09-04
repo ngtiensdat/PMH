@@ -48,6 +48,17 @@ export function formatDateDisplay(dateStr: string | null | undefined): string {
 }
 
 /**
+ * Format Date hoặc ISO string sang định dạng dd/MM/yyyy HH:mm:ss để hiển thị.
+ */
+export function formatDateTimeDisplay(val: string | number | Date | null | undefined): string {
+  if (val === undefined || val === null || val === '') return '-';
+  const d = new Date(val as string | number | Date);
+  if (isNaN(d.getTime())) return String(val);
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+/**
  * Convert date string sang ISO string để gửi lên API.
  */
 export function formatToISO(dateStr: string): string {

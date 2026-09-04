@@ -1,5 +1,6 @@
 package com.example.paymenthub.common.util;
 
+import com.example.paymenthub.common.enums.ActiveStatus;
 import com.example.paymenthub.common.enums.BusinessErrorCode;
 import com.example.paymenthub.common.exception.BusinessRuleException;
 
@@ -19,4 +20,17 @@ public class DateUtils {
             throw new BusinessRuleException(BusinessErrorCode.INVALID_DATE_RANGE);
         }
     }
+
+    /**
+     * Tính trạng thái hoạt động từ ngày hiệu lực.
+     * Dùng bởi cả Mapper (khi tạo entity) và Service (khi cập nhật thủ công).
+     */
+    public static int computeActiveStatus(LocalDateTime effectiveDate, LocalDateTime endEffectiveDate) {
+        if (effectiveDate == null) return ActiveStatus.INACTIVE.getCode();
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(effectiveDate)) return ActiveStatus.INACTIVE.getCode();
+        if (endEffectiveDate != null && now.isAfter(endEffectiveDate)) return ActiveStatus.INACTIVE.getCode();
+        return ActiveStatus.ACTIVE.getCode();
+    }
 }
+

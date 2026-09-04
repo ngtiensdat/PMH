@@ -7,8 +7,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-08-28T14:56:54+0700",
-    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.46.100.v20260624-0231, environment: Java 21.0.11 (Eclipse Adoptium)"
+    date = "2026-09-04T14:02:10+0700",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.46.100.v20260826-1225, environment: Java 21.0.12.1 (Eclipse Adoptium)"
 )
 @Component
 public class GroupCategoryMapperImpl implements GroupCategoryMapper {
@@ -22,10 +22,8 @@ public class GroupCategoryMapperImpl implements GroupCategoryMapper {
         GroupCategory.GroupCategoryBuilder<?, ?> groupCategory = GroupCategory.builder();
 
         if ( dto != null ) {
-            groupCategory.createdDate( dto.getCreatedDate() );
             groupCategory.effectiveDate( dto.getEffectiveDate() );
             groupCategory.endEffectiveDate( dto.getEndEffectiveDate() );
-            groupCategory.updatedDate( dto.getUpdatedDate() );
             groupCategory.componentCode( dto.getComponentCode() );
             groupCategory.description( dto.getDescription() );
             groupCategory.paramName( dto.getParamName() );
@@ -38,7 +36,7 @@ public class GroupCategoryMapperImpl implements GroupCategoryMapper {
         }
         groupCategory.status( com.example.paymenthub.common.enums.ParamStatus.NEW.getCode() );
         groupCategory.isDisplay( com.example.paymenthub.common.enums.DisplayStatus.INITIAL.getCode() );
-        groupCategory.isActive( com.example.paymenthub.service.impl.GroupCategoryServiceImpl.computeActiveStatus(dto.getEffectiveDate(), dto.getEndEffectiveDate()) );
+        groupCategory.isActive( com.example.paymenthub.common.util.DateUtils.computeActiveStatus(dto.getEffectiveDate(), dto.getEndEffectiveDate()) );
 
         return groupCategory.build();
     }

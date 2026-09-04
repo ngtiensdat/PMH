@@ -1,0 +1,12 @@
+<ng-template [(tuiDialog)]="isOpen" [tuiDialogOptions]="{label: 'Từ chối phê duyệt', size: 's'}">
+  <div class="reject-dialog-content">
+    <p style="margin-bottom: 0.75rem;">
+      {{ targetCount > 1 ? 'Nhập lý do từ chối ' + targetCount + ' bản ghi đã chọn:' : 'Nhập lý do từ chối bản ghi:' }}
+    </p>
+    <tui-textarea [(ngModel)]="reason" placeholder="Nhập lý do từ chối (không bắt buộc)..."></tui-textarea>
+  </div>
+  <div class="dialog-footer tui-space_top-4" style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+    <button tuiButton appearance="secondary" type="button" (click)="onCancel()">Hủy</button>
+    <button tuiButton type="button" (click)="onConfirm()">Xác nhận từ chối</button>
+  </div>
+</ng-template>

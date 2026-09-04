@@ -1,0 +1,7 @@
+<ng-template [(tuiDialog)]="isOpen" [tuiDialogOptions]="{label: title, size: 's'}">
+  <p>{{ message }}</p>
+  <div class="dialog-footer tui-space_top-4" style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+    <button tuiButton appearance="secondary" type="button" (click)="onCancel()">Hủy</button>
+    <button tuiButton type="button" (click)="onConfirm()">Đồng ý</button>
+  </div>
+</ng-template>
