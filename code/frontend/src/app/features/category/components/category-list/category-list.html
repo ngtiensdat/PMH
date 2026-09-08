@@ -334,7 +334,7 @@
 </app-reject-reason-dialog>
 
 <app-audit-history-dialog
-  [isOpen]="isHistoryOpen"
+  [(isOpen)]="isHistoryOpen"
   [targetId]="historyTargetId"
   [targetName]="historyTargetName"
   [fetchFn]="getHistoryFn"

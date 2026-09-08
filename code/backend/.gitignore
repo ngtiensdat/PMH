@@ -1,0 +1,15 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### IDE ###
+.idea
+.classpath
+.project
+.settings
+*.iml
+
+### Sensitive Environment Files ###
+.env
+*.env.local

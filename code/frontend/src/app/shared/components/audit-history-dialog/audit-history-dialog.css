@@ -1,7 +1,150 @@
-.history-card {
-  transition: all 0.2s ease;
+.dialog-history-container {
+  padding: 0.25rem;
 }
-.history-card:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+
+.history-target-info {
+  margin-bottom: 1rem;
+  font-weight: 500;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.highlight-text {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem;
+}
+
+.empty-history {
+  text-align: center;
+  padding: 3rem;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.85rem;
+}
+
+.audit-table th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.audit-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  color: #334155;
+}
+
+.audit-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.audit-table tbody tr:hover {
+  background-color: #f0fdfa; /* Light mint/teal hover matching design screenshot */
+}
+
+/* User cell */
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.user-cell .avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.85rem;
+  line-height: 1.2;
+}
+
+.user-code {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.15rem;
+}
+
+/* Date cell */
+.date-cell {
+  white-space: nowrap;
+  font-family: inherit;
+  color: #475569;
+  font-weight: 500;
+}
+
+/* Action cell */
+.action-cell {
+  white-space: nowrap;
+  font-weight: 550;
+  color: #1e293b;
+}
+
+.action-pill {
+  display: inline-block;
+  font-weight: 550;
+}
+
+/* IP cell */
+.ip-cell {
+  white-space: nowrap;
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Content cell */
+.content-cell {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #475569;
+}
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.25rem;
 }

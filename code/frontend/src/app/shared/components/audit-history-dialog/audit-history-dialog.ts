@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, injec
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
 import { ACTION_PILL_MAP } from '../../constants/status.constants';
+import { PaginationConfig } from '../../enums/status.enum';
 import { NotificationService } from '../notification/notification.service';
 import { LanguageService } from '../../../core/services/language.service';
 import { SharedTaigaModule } from '../../shared-taiga.module';
@@ -28,20 +29,29 @@ export interface MappedHistoryItem {
 })
 export class AuditHistoryDialogComponent implements OnChanges {
   @Input() isOpen = false;
+  @Output() isOpenChange = new EventEmitter<boolean>();
   @Input() targetId: number | string | null = null;
   @Input() targetName = '';
   @Input() fetchFn?: (id: any, page: number, size: number) => Observable<any>;
 
   @Output() close = new EventEmitter<void>();
 
+  onDialogChange(open: boolean) {
+    this.isOpen = open;
+    this.isOpenChange.emit(open);
+    if (!open) {
+      this.close.emit();
+    }
+  }
+
   private notificationService = inject(NotificationService);
   public languageService = inject(LanguageService);
   private cdr = inject(ChangeDetectorRef);
 
   historyData: MappedHistoryItem[] = [];
-  historyPage = 0;
-  readonly historyPageSize = 5;
-  historyTotalPages = 1;
+  historyPage = PaginationConfig.DEFAULT_PAGE;
+  readonly historyPageSize = PaginationConfig.DEFAULT_HISTORY_PAGE_SIZE;
+  historyTotalPages = PaginationConfig.INITIAL_TOTAL_PAGES;
   isLoading = false;
 
   ngOnChanges(changes: SimpleChanges) {

@@ -94,8 +94,8 @@ public class ComponentServiceImpl extends AbstractMakerCheckerService implements
     @Transactional(readOnly = true)
     public List<ProcessingComponent> getActiveList(Integer status) {
         List<ProcessingComponent> rawList = status != null
-                ? repository.findAllByIsActiveAndStatusOrderByComponentNameAsc(ActiveStatus.ACTIVE.getCode(), status)
-                : repository.findAllByIsActiveOrderByComponentNameAsc(ActiveStatus.ACTIVE.getCode());
+                ? repository.findAllByIsActiveAndStatusOrderByComponentCodeAsc(ActiveStatus.ACTIVE.getCode(), status)
+                : repository.findAllByIsActiveOrderByComponentCodeAsc(ActiveStatus.ACTIVE.getCode());
 
         LocalDateTime now = LocalDateTime.now();
         return rawList.stream()
@@ -247,7 +247,7 @@ public class ComponentServiceImpl extends AbstractMakerCheckerService implements
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getRawDataForExport() {
         List<ProcessingComponent> activeList = repository
-                .findAllByIsActiveOrderByComponentNameAsc(ActiveStatus.ACTIVE.getCode());
+                .findAllByIsActiveOrderByComponentCodeAsc(ActiveStatus.ACTIVE.getCode());
         return activeList.stream()
                 .map(entity -> objectMapper.convertValue(entity, new TypeReference<Map<String, Object>>() {}))
                 .toList();

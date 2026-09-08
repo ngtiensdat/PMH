@@ -171,14 +171,18 @@ export class CategoryDialogComponent
   clearAllComponents():  void { this.dialogForm.get('componentCode')?.setValue([]); }
 
   private loadActiveComponents(): void {
+    this.componentService.clearCache();
     this.componentService.getActiveList(4)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
-          this.componentsList = (res.data || []).map(c => ({
-            value: c.componentCode,
-            label: `${c.componentCode} - ${c.componentName}`
-          }));
+          this.componentsList = (res.data || [])
+            .slice()
+            .sort((a, b) => (a.componentCode || '').localeCompare(b.componentCode || ''))
+            .map(c => ({
+              value: c.componentCode,
+              label: `${c.componentCode} - ${c.componentName}`
+            }));
         },
         error: () => {
           this.componentsList = [

@@ -41,3 +41,13 @@ export enum ModuleType {
   GROUP_CATEGORY = 'GROUP_CATEGORY',
   COMPONENT = 'COMPONENT'
 }
+
+/**
+ * Cấu hình phân trang mặc định trong hệ thống
+ */
+export enum PaginationConfig {
+  DEFAULT_PAGE = 0,
+  DEFAULT_PAGE_SIZE = 10,
+  DEFAULT_HISTORY_PAGE_SIZE = 5,
+  INITIAL_TOTAL_PAGES = 1
+}

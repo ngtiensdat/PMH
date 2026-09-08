@@ -44,6 +44,10 @@ export class ComponentService extends BaseFeatureService {
     return this.http.get<ApiResponse<ProcessingComponentResponse>>(`${this.apiUrl}/${code}`);
   }
 
+  clearCache(): void {
+    this.activeComponentsCache.clear();
+  }
+
   getActiveList(status?: number): Observable<ApiResponse<ProcessingComponentResponse[]>> {
     const cacheKey = status !== undefined && status !== null ? status.toString() : 'all';
     if (this.activeComponentsCache.has(cacheKey)) {
@@ -57,23 +61,33 @@ export class ComponentService extends BaseFeatureService {
   }
 
   create(dto: ProcessingComponentRequest): Observable<ApiResponse<ProcessingComponentResponse>> {
-    return this.http.post<ApiResponse<ProcessingComponentResponse>>(this.apiUrl, dto);
+    return this.http.post<ApiResponse<ProcessingComponentResponse>>(this.apiUrl, dto).pipe(
+      tap(() => this.clearCache())
+    );
   }
 
   update(code: string, dto: ProcessingComponentRequest): Observable<ApiResponse<ProcessingComponentResponse>> {
-    return this.http.put<ApiResponse<ProcessingComponentResponse>>(`${this.apiUrl}/${code}`, dto);
+    return this.http.put<ApiResponse<ProcessingComponentResponse>>(`${this.apiUrl}/${code}`, dto).pipe(
+      tap(() => this.clearCache())
+    );
   }
 
   delete(code: string): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${code}`);
+    return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${code}`).pipe(
+      tap(() => this.clearCache())
+    );
   }
 
   sendApproval(code: string): Observable<ApiResponse<ProcessingComponentResponse>> {
-    return this.http.post<ApiResponse<ProcessingComponentResponse>>(`${this.apiUrl}/${code}/send-approval`, {});
+    return this.http.post<ApiResponse<ProcessingComponentResponse>>(`${this.apiUrl}/${code}/send-approval`, {}).pipe(
+      tap(() => this.clearCache())
+    );
   }
 
   cancelApproval(code: string): Observable<ApiResponse<ProcessingComponentResponse>> {
-    return this.http.post<ApiResponse<ProcessingComponentResponse>>(`${this.apiUrl}/${code}/cancel-approval`, {});
+    return this.http.post<ApiResponse<ProcessingComponentResponse>>(`${this.apiUrl}/${code}/cancel-approval`, {}).pipe(
+      tap(() => this.clearCache())
+    );
   }
 
   // --- DẠNG 2: NATIVE QUERY ---
@@ -85,13 +99,17 @@ export class ComponentService extends BaseFeatureService {
   // --- DẠNG 3: STORED PROCEDURE ---
 
   batchApprove(codes: string[]): Observable<ApiResponse<BatchItemResult[]>> {
-    return this.http.post<ApiResponse<BatchItemResult[]>>(`${this.apiUrl}/batch-approve`, codes);
+    return this.http.post<ApiResponse<BatchItemResult[]>>(`${this.apiUrl}/batch-approve`, codes).pipe(
+      tap(() => this.clearCache())
+    );
   }
 
   batchReject(codes: string[], reason?: string): Observable<ApiResponse<BatchItemResult[]>> {
     let params = new HttpParams();
     if (reason) params = params.set('reason', reason);
-    return this.http.post<ApiResponse<BatchItemResult[]>>(`${this.apiUrl}/batch-reject`, codes, { params });
+    return this.http.post<ApiResponse<BatchItemResult[]>>(`${this.apiUrl}/batch-reject`, codes, { params }).pipe(
+      tap(() => this.clearCache())
+    );
   }
 
   getHistory(code: string, page: number = 0, size: number = 5): Observable<ApiResponse<PageResponse<AuditLogItem>>> {
