@@ -136,12 +136,13 @@ public class ComponentServiceImpl extends AbstractMakerCheckerService implements
         username = resolveUsername(username);
 
         ProcessingComponent entity     = getByCode(code);
-        String              oldJson    = toJson(entity);
-        int                 statusBefore = entity.getStatus();
 
         if (entity.isPending()) throw new InvalidStateTransitionException(BusinessErrorCode.PENDING_EDIT_NOT_ALLOWED);
 
         DateUtils.validateEffectiveDates(dto.getEffectiveDate(), dto.getEndEffectiveDate());
+
+        String oldJson    = toJson(entity);
+        int    statusBefore = entity.getStatus();
 
         ProcessingComponent saved;
         String action;

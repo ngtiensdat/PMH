@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-09-04T14:20:30+0700",
+    date = "2026-09-12T11:05:40+0700",
     comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.46.100.v20260826-1225, environment: Java 21.0.12.1 (Eclipse Adoptium)"
 )
 @Component
@@ -24,11 +24,11 @@ public class GroupCategoryMapperImpl implements GroupCategoryMapper {
         if ( dto != null ) {
             groupCategory.effectiveDate( dto.getEffectiveDate() );
             groupCategory.endEffectiveDate( dto.getEndEffectiveDate() );
-            groupCategory.paramName( dto.getParamName() );
-            groupCategory.paramValue( dto.getParamValue() );
-            groupCategory.paramType( dto.getParamType() );
-            groupCategory.description( dto.getDescription() );
             groupCategory.componentCode( dto.getComponentCode() );
+            groupCategory.description( dto.getDescription() );
+            groupCategory.paramName( dto.getParamName() );
+            groupCategory.paramType( dto.getParamType() );
+            groupCategory.paramValue( dto.getParamValue() );
         }
         if ( username != null ) {
             groupCategory.createdBy( username );

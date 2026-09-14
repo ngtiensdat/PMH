@@ -7,13 +7,14 @@ import { GroupCategoryResponse } from '../../../../shared/models/group-category.
 import { ApiResponse } from '../../../../shared/models/api-response.model';
 import { BaseDetailComponent } from '../../../../shared/components/base-detail/base-detail.component';
 import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
-import { ComparisonCardComponent } from '../../../../shared/components/comparison-card/comparison-card';
+import { ComparisonViewComponent, FieldConfig } from '../../../../shared/components/comparison-view/comparison-view';
+import { DetailFooterActionsComponent } from '../../../../shared/components/detail-footer-actions/detail-footer-actions.component';
 import { formatDateTimeDisplay } from '../../../../shared/utils/date.utils';
 
 @Component({
   selector: 'app-category-detail',
   standalone: true,
-  imports: [CommonModule, SharedTaigaModule, ComparisonCardComponent],
+  imports: [CommonModule, SharedTaigaModule, ComparisonViewComponent, DetailFooterActionsComponent],
   templateUrl: './category-detail.html',
   styleUrl: './category-detail.css'
 })
@@ -23,15 +24,26 @@ export class CategoryDetailComponent
 
   // ── Config ─────────────────────────────────────────────────────────────────
   protected override readonly routeParamKey = 'id';
-  protected override readonly listRoute     = '/categories';
+  protected override readonly listRoute = '/categories';
 
   // ── Service ────────────────────────────────────────────────────────────────
   private categoryService = inject(CategoryService);
 
-  // ── Fields to display ──────────────────────────────────────────────────────
-  override readonly fields = [
-    'paramName', 'paramValue', 'paramType',
-    'componentCode', 'effectiveDate', 'endEffectiveDate', 'description'
+  // ── Field config
+  readonly fieldConfig: FieldConfig[] = [
+    { key: 'paramName', label: 'Tên thành phần' },
+    { key: 'paramValue', label: 'Giá trị thành phần' },
+    { key: 'paramType', label: 'Danh mục theo nhóm' },
+    { key: 'componentCode', label: 'Cấu phần xử lý' },
+    {
+      key: 'effectiveDate', label: 'Ngày hiệu lực',
+      format: (val) => formatDateTimeDisplay(val as string | number | Date)
+    },
+    {
+      key: 'endEffectiveDate', label: 'Ngày hết hiệu lực',
+      format: (val) => val ? formatDateTimeDisplay(val as string | number | Date) : '-'
+    },
+    { key: 'description', label: 'Mô tả' },
   ];
 
   // ── Template alias (template dùng 'category', không đổi template) ──────────
@@ -57,29 +69,8 @@ export class CategoryDetailComponent
   }
 
   // ── Service calls ──────────────────────────────────────────────────────────
-  protected override callDelete(key: number): Observable<ApiResponse<unknown>>                          { return this.categoryService.delete(key); }
-  protected override callSendApproval(key: number): Observable<ApiResponse<unknown>>                    { return this.categoryService.sendApproval(key); }
-  protected override callBatchApprove(keys: number[]): Observable<ApiResponse<unknown>>                 { return this.categoryService.batchApprove(keys); }
-  protected override callBatchReject(keys: number[], reason: string): Observable<ApiResponse<unknown>>  { return this.categoryService.batchReject(keys, reason); }
-
-  // ── Labels & format ────────────────────────────────────────────────────────
-  override getFieldLabel(field: string): string {
-    const labels: Record<string, string> = {
-      paramName:        'Tên thành phần',
-      paramValue:       'Giá trị thành phần',
-      paramType:        'Danh mục theo nhóm',
-      componentCode:    'Cấu phần xử lý',
-      effectiveDate:    'Ngày hiệu lực',
-      endEffectiveDate: 'Ngày hết hiệu lực',
-      description:      'Mô tả'
-    };
-    return labels[field] || field;
-  }
-
-  override formatValue(field: string, val: unknown): string {
-    if (val === undefined || val === null || val === '') return '-';
-    if (field === 'effectiveDate' || field === 'endEffectiveDate')
-      return formatDateTimeDisplay(val as string | number | Date);
-    return String(val);
-  }
+  protected override callDelete(key: number): Observable<ApiResponse<unknown>> { return this.categoryService.delete(key); }
+  protected override callSendApproval(key: number): Observable<ApiResponse<unknown>> { return this.categoryService.sendApproval(key); }
+  protected override callBatchApprove(keys: number[]): Observable<ApiResponse<unknown>> { return this.categoryService.batchApprove(keys); }
+  protected override callBatchReject(keys: number[], reason: string): Observable<ApiResponse<unknown>> { return this.categoryService.batchReject(keys, reason); }
 }

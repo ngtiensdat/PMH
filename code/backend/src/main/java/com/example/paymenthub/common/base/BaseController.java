@@ -19,10 +19,6 @@ public abstract class BaseController {
         return ResponseEntity.ok(ApiResponse.success(null, message));
     }
 
-    /**
-     * Xử lý kết quả batch: nếu mọi item đều FAILED → trả 400 với lỗi đầu tiên.
-     * Tái sử dụng cho mọi endpoint batch-approve / batch-reject.
-     */
     protected ResponseEntity<ApiResponse<List<BatchItemResultDTO>>> handleBatchResult(
             List<BatchItemResultDTO> result, String successMsg, String defaultErrorMsg) {
 

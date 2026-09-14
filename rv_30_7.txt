@@ -63,3 +63,13 @@ A
 - sửa hàm update
 - viết crob job trên db (v)
 - đăng nhập, phân quyền
+
+
+-tìm hiểu @createdby (v)
+- tìm hiểu lại access tk, rf tk (V)
+
+- exception trc khi xử lý logic (validate trên cùng) -> tránh tốn tài nguyên (v)
+- xem lại component khi truyền tham số: tên, giá trị, ... (v)
+- tạo giao diện tìm kiếm dữ liệu cho bảng transaction log , chú ý: xử lý export dữ liệu phía be 
+- yêu cầu: hệ thống không trả về lỗi time out 
+- tìm hiểu kỹ xử lý dữ liệu lớn, doker, redis, kafka ... 

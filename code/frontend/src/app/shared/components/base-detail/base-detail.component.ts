@@ -33,11 +33,6 @@ export abstract class BaseDetailComponent<T extends DetailEntity, K extends stri
   isLoading = signal<boolean>(false);
   protected entityKeyStr: string | null = null;
 
-  // ── Dialog state ───────────────────────────────────────────────────────────
-  isDeleteOpen  = false;
-  isApproveOpen = false;
-  isRejectOpen  = false;
-  rejectReason  = '';
 
   // ── Status label map (IDENTICAL across all modules) ───────────────────────
   readonly statusMap: Record<number, { label: string; css: string }> = {
@@ -51,13 +46,10 @@ export abstract class BaseDetailComponent<T extends DetailEntity, K extends stri
   // ── Config (subclass cung cấp) ─────────────────────────────────────────────
   protected abstract readonly routeParamKey: string;
   protected abstract readonly listRoute: string;
-  abstract readonly fields: string[];
 
   // ── Domain (subclass implement) ────────────────────────────────────────────
   protected abstract getEntityKey(): K;
   protected abstract loadEntityData(keyStr: string): void;
-  abstract getFieldLabel(field: string): string;
-  abstract formatValue(field: string, val: unknown): string;
 
   // ── Service calls (subclass wire) ──────────────────────────────────────────
   protected abstract callDelete(key: K): Observable<ApiResponse<unknown>>;
@@ -102,38 +94,8 @@ export abstract class BaseDetailComponent<T extends DetailEntity, K extends stri
     return this.parsedNewData ?? (this.entity as unknown as Record<string, unknown>);
   }
 
-  isFieldChanged(field: string): boolean {
-    const oldVal = this.formatValue(field, this.oldData[field]);
-    const newVal = this.formatValue(field, this.newData[field]);
-    if (oldVal === '-' && newVal === '-') return false;
-    return oldVal !== newVal;
-  }
-
-  get oldDataRows() {
-    return this.fields.map(f => ({
-      label:     this.getFieldLabel(f),
-      value:     this.formatValue(f, this.oldData[f]),
-      isChanged: this.isFieldChanged(f)
-    }));
-  }
-
-  get newDataRows() {
-    return this.fields.map(f => ({
-      label:     this.getFieldLabel(f),
-      value:     this.formatValue(f, this.newData[f]),
-      isChanged: this.isFieldChanged(f)
-    }));
-  }
-
-  // ── Dialog openers ─────────────────────────────────────────────────────────
-  onDeleteRecord():                 void { this.isDeleteOpen  = true; }
-  onApproveRecord():                void { this.isApproveOpen = true; }
-  onRejectRecord():                 void { this.rejectReason = ''; this.isRejectOpen = true; }
-  onRejectReasonInput(val: string): void { this.rejectReason = val; }
-
   // ── Actions ────────────────────────────────────────────────────────────────
   onConfirmDelete(): void {
-    this.isDeleteOpen = false;
     const msgs = this.languageService.labels().messages;
     this.callDelete(this.getEntityKey()).subscribe({
       next: () => {
@@ -161,7 +123,6 @@ export abstract class BaseDetailComponent<T extends DetailEntity, K extends stri
   }
 
   onConfirmApprove(): void {
-    this.isApproveOpen = false;
     const msgs = this.languageService.labels().messages;
     this.callBatchApprove([this.getEntityKey()]).subscribe({
       next: () => {
@@ -175,9 +136,8 @@ export abstract class BaseDetailComponent<T extends DetailEntity, K extends stri
     });
   }
 
-  onConfirmReject(): void {
-    const reason = this.rejectReason.trim();
-    this.isRejectOpen = false;
+  /** reason được truyền vào từ DetailFooterActionsComponent qua @Output confirmReject */
+  onConfirmReject(reason: string): void {
     const msgs = this.languageService.labels().messages;
     this.callBatchReject([this.getEntityKey()], reason).subscribe({
       next: () => {

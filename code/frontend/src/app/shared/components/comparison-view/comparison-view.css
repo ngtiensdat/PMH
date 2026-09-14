@@ -1,0 +1,11 @@
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.single-card-wrapper {
+  width: 100%;
+  margin-bottom: 1.5rem;
+}

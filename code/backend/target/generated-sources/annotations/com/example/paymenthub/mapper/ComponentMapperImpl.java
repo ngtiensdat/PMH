@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-09-04T14:20:36+0700",
+    date = "2026-09-12T11:05:40+0700",
     comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.46.100.v20260826-1225, environment: Java 21.0.12.1 (Eclipse Adoptium)"
 )
 @Component
@@ -26,9 +26,9 @@ public class ComponentMapperImpl implements ComponentMapper {
             processingComponent.effectiveDate( dto.getEffectiveDate() );
             processingComponent.endEffectiveDate( dto.getEndEffectiveDate() );
             processingComponent.componentName( dto.getComponentName() );
-            processingComponent.messageType( dto.getMessageType() );
             processingComponent.connectionMethod( dto.getConnectionMethod() );
             processingComponent.description( dto.getDescription() );
+            processingComponent.messageType( dto.getMessageType() );
         }
         if ( username != null ) {
             processingComponent.createdBy( username );

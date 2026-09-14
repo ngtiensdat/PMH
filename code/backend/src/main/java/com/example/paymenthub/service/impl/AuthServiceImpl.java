@@ -62,10 +62,7 @@ public class AuthServiceImpl implements AuthService {
         if (user.getLockoutUntil() != null && !LocalDateTime.now().isBefore(user.getLockoutUntil())) {
             user.setFailedLoginAttempts(0);
             user.setLockoutUntil(null);
-            userRepository.save(user);
-        }
-
-        if (user.isLocked()) {
+        } else if (user.isLocked()) {
             log.warn("[AuthService] Đăng nhập thất bại (Tài khoản đang bị khóa): username={}", username);
             throw new UnauthorizedAccessException(AuthErrorCode.INVALID_CREDENTIALS);
         }
@@ -150,15 +147,15 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedAccessException(AuthErrorCode.INVALID_SESSION);
         }
 
-        storedToken.setRevoked(true);
-        refreshTokenRepository.save(storedToken);
-
         User user = userRepository.findByUsernameIgnoreCase(storedToken.getUsername())
                 .orElseThrow(() -> new UnauthorizedAccessException(AuthErrorCode.USER_NOT_FOUND));
 
         if (user.isLocked()) {
             throw new UnauthorizedAccessException(AuthErrorCode.ACCOUNT_LOCKED);
         }
+
+        storedToken.setRevoked(true);
+        refreshTokenRepository.save(storedToken);
 
         List<String> permissionCodes = extractPermissions(user);
         String newAccessToken = jwtProvider.generateAccessToken(user.getUsername(), user.getRole(), permissionCodes);

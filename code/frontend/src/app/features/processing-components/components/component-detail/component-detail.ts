@@ -7,13 +7,14 @@ import { ProcessingComponentResponse } from '../../../../shared/models/component
 import { ApiResponse } from '../../../../shared/models/api-response.model';
 import { BaseDetailComponent } from '../../../../shared/components/base-detail/base-detail.component';
 import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
-import { ComparisonCardComponent } from '../../../../shared/components/comparison-card/comparison-card';
+import { ComparisonViewComponent, FieldConfig } from '../../../../shared/components/comparison-view/comparison-view';
+import { DetailFooterActionsComponent } from '../../../../shared/components/detail-footer-actions/detail-footer-actions.component';
 import { formatDateTimeDisplay } from '../../../../shared/utils/date.utils';
 
 @Component({
   selector: 'app-component-detail',
   standalone: true,
-  imports: [CommonModule, SharedTaigaModule, ComparisonCardComponent],
+  imports: [CommonModule, SharedTaigaModule, ComparisonViewComponent, DetailFooterActionsComponent],
   templateUrl: './component-detail.html',
   styleUrl: './component-detail.css'
 })
@@ -28,13 +29,24 @@ export class ComponentDetailComponent
   // ── Service ────────────────────────────────────────────────────────────────
   private componentService = inject(ComponentService);
 
-  // ── Fields to display ──────────────────────────────────────────────────────
-  override readonly fields = [
-    'componentCode', 'componentName', 'messageType', 'connectionMethod',
-    'effectiveDate', 'endEffectiveDate', 'checkToken', 'isActive', 'description'
+  // ── Field config: khai báo 1 lần, plain data, không function reference thay đổi ─
+  readonly fieldConfig: FieldConfig[] = [
+    { key: 'componentCode',    label: 'Mã cấu phần' },
+    { key: 'componentName',    label: 'Tên cấu phần' },
+    { key: 'messageType',      label: 'Chuẩn tin điện' },
+    { key: 'connectionMethod', label: 'Phương thức kết nối' },
+    { key: 'effectiveDate',    label: 'Ngày hiệu lực',
+      format: (val) => formatDateTimeDisplay(val as string | number | Date) },
+    { key: 'endEffectiveDate', label: 'Ngày hết hiệu lực',
+      format: (val) => val ? formatDateTimeDisplay(val as string | number | Date) : '-' },
+    { key: 'checkToken',       label: 'Kiểm tra Token',
+      format: (val) => val === 'Y' ? 'Có kiểm tra' : 'Không kiểm tra' },
+    { key: 'isActive',         label: 'Trạng thái hoạt động',
+      format: (val) => val === 1 ? 'Hoạt động' : 'Không hoạt động' },
+    { key: 'description',      label: 'Mô tả' },
   ];
 
-  // ── Template alias (template dùng 'component', không đổi template) ─────────
+  // ── Template alias (template dùng 'component', không đổi template) ────────
   get component(): ProcessingComponentResponse | null { return this.entity; }
 
   // ── Key ────────────────────────────────────────────────────────────────────
@@ -61,29 +73,4 @@ export class ComponentDetailComponent
   protected override callSendApproval(key: string): Observable<ApiResponse<unknown>>                    { return this.componentService.sendApproval(key); }
   protected override callBatchApprove(keys: string[]): Observable<ApiResponse<unknown>>                 { return this.componentService.batchApprove(keys); }
   protected override callBatchReject(keys: string[], reason: string): Observable<ApiResponse<unknown>>  { return this.componentService.batchReject(keys, reason); }
-
-  // ── Labels & format ────────────────────────────────────────────────────────
-  override getFieldLabel(field: string): string {
-    const labels: Record<string, string> = {
-      componentCode:    'Mã cấu phần',
-      componentName:    'Tên cấu phần',
-      messageType:      'Chuẩn tin điện',
-      connectionMethod: 'Phương thức kết nối',
-      effectiveDate:    'Ngày hiệu lực',
-      endEffectiveDate: 'Ngày hết hiệu lực',
-      checkToken:       'Kiểm tra Token',
-      isActive:         'Trạng thái hoạt động',
-      description:      'Mô tả'
-    };
-    return labels[field] || field;
-  }
-
-  override formatValue(field: string, val: unknown): string {
-    if (val === undefined || val === null || val === '') return '-';
-    if (field === 'effectiveDate' || field === 'endEffectiveDate')
-      return formatDateTimeDisplay(val as string | number | Date);
-    if (field === 'isActive')   return val === 1 ? 'Hoạt động' : 'Không hoạt động';
-    if (field === 'checkToken') return val === 'Y' ? 'Có kiểm tra' : 'Không kiểm tra';
-    return String(val);
-  }
 }

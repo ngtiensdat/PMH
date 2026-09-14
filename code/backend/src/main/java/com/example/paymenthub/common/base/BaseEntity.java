@@ -3,6 +3,7 @@ package com.example.paymenthub.common.base;
 import com.example.paymenthub.common.enums.DisplayStatus;
 import com.example.paymenthub.common.enums.ParamStatus;
 import jakarta.persistence.Column;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -12,6 +13,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @MappedSuperclass
@@ -20,6 +26,7 @@ import java.time.LocalDateTime;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
+@EntityListeners(AuditingEntityListener.class)
 public abstract class BaseEntity {
 
     @Column(name = "STATUS", nullable = false)
@@ -44,30 +51,33 @@ public abstract class BaseEntity {
     @Column(name = "VERSION")
     private Long version;
 
+    @CreatedBy
     @Column(name = "CREATED_BY", length = 50, updatable = false)
     private String createdBy;
 
+    @CreatedDate
     @Column(name = "CREATED_DATE", updatable = false)
     private LocalDateTime createdDate;
 
+    @LastModifiedBy
     @Column(name = "UPDATED_BY", length = 50)
     private String updatedBy;
 
+    @LastModifiedDate
     @Column(name = "UPDATED_DATE")
     private LocalDateTime updatedDate;
 
     @PrePersist
     protected void onCreate() {
-        createdDate = LocalDateTime.now();
-        updatedDate = LocalDateTime.now();
-        if (status == null) status = ParamStatus.NEW.getCode();
-        if (isDisplay == null) isDisplay = DisplayStatus.INITIAL.getCode();
+        if (status == null)
+            status = ParamStatus.NEW.getCode();
+        if (isDisplay == null)
+            isDisplay = DisplayStatus.INITIAL.getCode();
         updateActiveStatus();
     }
 
     @PreUpdate
     protected void onUpdate() {
-        updatedDate = LocalDateTime.now();
         updateActiveStatus();
     }
 
@@ -83,8 +93,6 @@ public abstract class BaseEntity {
             this.isActive = 1;
         }
     }
-
-    // ─── Domain Status & Display Helpers (Scalable across 100s of modules) ───
 
     public boolean isNew() {
         return Integer.valueOf(ParamStatus.NEW.getCode()).equals(this.status);

@@ -162,14 +162,15 @@ public class GroupCategoryServiceImpl extends AbstractMakerCheckerService implem
         username = resolveUsername(username);
 
         GroupCategory entity = getById(id);
-        String oldJson = toJson(entity);
-        int statusBefore = entity.getStatus();
 
         if (entity.isPending())
             throw new InvalidStateTransitionException(BusinessErrorCode.PENDING_EDIT_NOT_ALLOWED);
 
         validateComponentCode(dto.getComponentCode());
         DateUtils.validateEffectiveDates(dto.getEffectiveDate(), dto.getEndEffectiveDate());
+
+        String oldJson = toJson(entity);
+        int statusBefore = entity.getStatus();
 
         if (repository.existsOverlapping(dto.getParamName(), dto.getParamType(),
                 dto.getEffectiveDate(), dto.getEndEffectiveDate(), id)) {

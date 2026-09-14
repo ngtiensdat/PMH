@@ -37,96 +37,23 @@
 
   <!-- Panel chứa nội dung đối chiếu song song -->
   <div class="comparison-container" *ngIf="!isLoading() && component">
-    <div class="comparison-grid">
-      
-      <!-- Cột Dữ liệu cũ -->
-      <app-comparison-card
-        [title]="languageService.labels().common.oldData"
-        cardType="old"
-        [rows]="oldDataRows"
-      ></app-comparison-card>
+    <app-comparison-view
+      [oldData]="oldData"
+      [newData]="newData"
+      [fieldConfig]="fieldConfig"
+    ></app-comparison-view>
 
-      <!-- Cột Dữ liệu mới (NEW_DATA) -->
-      <app-comparison-card
-        [title]="languageService.labels().common.newData"
-        cardType="new"
-        [rows]="newDataRows"
-      ></app-comparison-card>
-
-    </div>
-
-    <!-- Nút hành động ở dưới cùng bên phải -->
-    <div class="form-footer-actions">
-      <!-- Maker/Editor actions: Mới (1), Từ chối (5), Hủy duyệt (7) -->
-      <ng-container *ngIf="(component.status === ParamStatus.NEW || component.status === ParamStatus.REJECTED || component.status === ParamStatus.CANCELED) && (authService.hasPermission('COMPONENT_SEND') || authService.hasPermission('COMPONENT_UPDATE'))">
-        <button *ngIf="component.isDisplay === DisplayStatus.INITIAL && authService.hasPermission('COMPONENT_DELETE')" tuiButton appearance="secondary" type="button" (click)="onDeleteRecord()" style="margin-right: 0.75rem; --tui-primary: #ef4444; --tui-primary-hover: #dc2626;">
-          {{ languageService.labels().common.delete }}
-        </button>
-        <button *ngIf="(component.isDisplay === DisplayStatus.INITIAL || (component.newData && component.newData !== '')) && authService.hasPermission('COMPONENT_SEND')" tuiButton type="button" (click)="onSendApprovalRecord()">
-          {{ languageService.labels().common.sendApproval }}
-        </button>
-      </ng-container>
-
-      <!-- Checker actions: Chờ duyệt (3) -->
-      <ng-container *ngIf="component.status === ParamStatus.PENDING && (authService.hasPermission('COMPONENT_APPROVE') || authService.hasPermission('COMPONENT_REJECT'))">
-        <button tuiButton appearance="secondary" type="button" (click)="onRejectRecord()" style="margin-right: 0.75rem; --tui-primary: #ef4444; --tui-primary-hover: #dc2626;">
-          {{ languageService.labels().common.reject }}
-        </button>
-        <button tuiButton type="button" (click)="onApproveRecord()">
-          {{ languageService.labels().common.approve }}
-        </button>
-      </ng-container>
-      
-      <button tuiButton appearance="secondary" type="button" (click)="goBack()" style="margin-left: 0.75rem;">
-        {{ languageService.labels().common.back }}
-      </button>
-    </div>
+    <!-- Nút hành động + 3 dialog xác nhận (dùng chung) -->
+    <app-detail-footer-actions
+      [permissionPrefix]="'COMPONENT'"
+      [entityStatus]="component.status"
+      [entityIsDisplay]="component.isDisplay"
+      [hasNewData]="!!(component.newData && component.newData !== '')"
+      (confirmDelete)="onConfirmDelete()"
+      (confirmSendApproval)="onSendApprovalRecord()"
+      (confirmApprove)="onConfirmApprove()"
+      (confirmReject)="onConfirmReject($event)"
+      (back)="goBack()"
+    ></app-detail-footer-actions>
   </div>
 </div>
-
-<!-- Hộp thoại xác nhận Xóa / Hủy yêu cầu sửa dùng tuiDialog -->
-<ng-template [(tuiDialog)]="isDeleteOpen" [tuiDialogOptions]="{label: component?.isDisplay === DisplayStatus.ONCE_APPROVED ? 'Xác nhận hủy yêu cầu sửa' : (languageService.labels().common.delete || 'Xác nhận xóa'), size: 's'}">
-  <div style="padding: 0.75rem 0; font-size: 0.88rem; color: #334155;">
-    {{ component?.isDisplay === DisplayStatus.ONCE_APPROVED 
-      ? 'Bạn có chắc chắn muốn hủy yêu cầu chỉnh sửa này và khôi phục về bản ghi đang chạy?' 
-      : 'Bạn có chắc chắn muốn xóa bản ghi chưa duyệt này không?' }}
-  </div>
-  
-  <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; border-top: 1px solid #f1f5f9; padding-top: 0.75rem;">
-    <button tuiButton appearance="outline" type="button" (click)="isDeleteOpen = false">{{ languageService.labels().common.cancel }}</button>
-    <button tuiButton type="button" (click)="onConfirmDelete()" style="--tui-primary: #ef4444; --tui-primary-hover: #dc2626;">{{ languageService.labels().common.confirm }}</button>
-  </div>
-</ng-template>
-
-<!-- Hộp thoại xác nhận Phê duyệt -->
-<ng-template [(tuiDialog)]="isApproveOpen" [tuiDialogOptions]="{label: languageService.labels().common.approve || 'Xác nhận phê duyệt', size: 's'}">
-  <div style="padding: 0.75rem 0; font-size: 0.88rem; color: #334155;">
-    Bạn có chắc chắn muốn phê duyệt bản ghi này không?
-  </div>
-  
-  <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; border-top: 1px solid #f1f5f9; padding-top: 0.75rem;">
-    <button tuiButton appearance="outline" type="button" (click)="isApproveOpen = false">{{ languageService.labels().common.cancel }}</button>
-    <button tuiButton type="button" (click)="onConfirmApprove()">{{ languageService.labels().common.confirm }}</button>
-  </div>
-</ng-template>
-
-<!-- Hộp thoại nhập Lý do từ chối -->
-<ng-template [(tuiDialog)]="isRejectOpen" [tuiDialogOptions]="{label: languageService.labels().common.reasonReject, size: 's'}">
-  <div class="reject-modal-body" style="padding: 0.5rem 0;">
-    <textarea
-      style="width: 100%; min-height: 100px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.75rem; font-size: 0.85rem; font-family: inherit; resize: none; outline: none; transition: border-color 0.2s;"
-      [placeholder]="languageService.labels().common.reasonRejectPlaceholder"
-      [value]="rejectReason"
-      (input)="onRejectReasonInput($any($event.target).value)"
-      maxLength="500"
-    ></textarea>
-    <div style="text-align: right; font-size: 0.72rem; color: #94a3b8; margin-top: 0.25rem;">
-      {{ rejectReason.length }}/500
-    </div>
-  </div>
-  
-  <div class="reject-modal-footer" style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; border-top: 1px solid #f1f5f9; padding-top: 0.75rem;">
-    <button tuiButton appearance="outline" type="button" (click)="isRejectOpen = false">{{ languageService.labels().common.cancel }}</button>
-    <button tuiButton type="button" [disabled]="!rejectReason.trim()" (click)="onConfirmReject()">{{ languageService.labels().common.confirm }}</button>
-  </div>
-</ng-template>
