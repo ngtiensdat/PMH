@@ -6,18 +6,21 @@
 
 Hệ thống PaymentHub hiện có bảng `TRANSACTION_LOG` trên Oracle Database, lưu trữ toàn bộ lịch sử giao dịch thanh toán. Bảng đã đạt quy mô **~1 triệu bản ghi** và tiếp tục tăng trưởng theo thời gian.
 
-### Schema bảng TRANSACTION_LOG
+### Schema bảng TRANSACTION_LOG (Thực tế trên Oracle DB - 9 cột)
 
-| Cột | Kiểu dữ liệu | Mô tả |
-|-----|-------------|-------|
-| `ID` | NUMBER | Khóa chính, tự tăng tuần tự |
-| `TRANSACTION_CODE` | VARCHAR2 | Mã giao dịch, ví dụ: `TXN20260912-283` |
-| `ACCOUNT_NO` | VARCHAR2 | Số tài khoản |
-| `AMOUNT` | NUMBER | Số tiền giao dịch |
-| `STATUS` | VARCHAR2 | Trạng thái: `SUCCESS`, `FAILED`, `PENDING` |
-| `CREATED_AT` | TIMESTAMP | Thời điểm tạo giao dịch |
+| Cột | Kiểu dữ liệu | Nullable | Mô tả |
+|-----|-------------|:--------:|-------|
+| `ID` | NUMBER | NO | Khóa chính, tự tăng tuần tự |
+| `TRANSACTION_CODE` | VARCHAR2(1020) | NO | Mã giao dịch, ví dụ: `TXN20260912-283` |
+| `ACCOUNT_NO` | VARCHAR2(1020) | NO | Số tài khoản giao dịch |
+| `AMOUNT` | NUMBER | NO | Số tiền giao dịch |
+| `STATUS` | VARCHAR2(1020) | NO | Trạng thái: `SUCCESS`, `FAILED` |
+| `CREATED_AT` | TIMESTAMP(6) | YES | Thời điểm tạo giao dịch |
+| `DESCRIPTION` | VARCHAR2(1020) | YES | Nội dung / Diễn giải giao dịch |
+| `REFERENCE_NO` | VARCHAR2(1020) | YES | Mã tham chiếu / Mã đối chiếu |
+| `UPDATED_AT` | TIMESTAMP(6) | YES | Thời điểm cập nhật giao dịch |
 
-> **Lưu ý:** Bảng có thể có UPDATE (cột `STATUS` thay đổi sau khi giao dịch hoàn tất)
+> **Lưu ý:** Bảng có thể có UPDATE (cột `STATUS` hoặc `UPDATED_AT` thay đổi sau khi giao dịch hoàn tất)
 
 ---
 
@@ -31,13 +34,15 @@ Hệ thống PaymentHub hiện có bảng `TRANSACTION_LOG` trên Oracle Databas
 - Kết quả hiển thị phân trang, mặc định 10 bản ghi/trang
 - Hỗ trợ sắp xếp theo các cột
 
-### 2.2. Xuất file CSV
-- Người dùng có thể xuất **toàn bộ kết quả tìm kiếm** ra file CSV
-- File CSV bao gồm tất cả bản ghi khớp với bộ lọc đang áp dụng, **không giới hạn số lượng**
-- File phải mở được bằng Excel (UTF-8 BOM, dấu phẩy phân cách)
-- Người dùng nhận được thông báo tiến độ trong quá trình xuất
-- Người dùng nhận được file khi quá trình hoàn thành
-
+### 2.2. Xuất file CSV theo bộ lọc & Popup xác nhận
+- Người dùng có thể xuất **kết quả tìm kiếm theo bộ lọc đang áp dụng** (ví dụ: khoảng từ ngày 12 đến ngày 13, theo số tài khoản hoặc trạng thái thành công/thất bại...).
+- Nếu **không áp dụng bộ lọc nào** (form rỗng), hệ thống sẽ xuất **toàn bộ dữ liệu của bảng** (1.000.000+ bản ghi).
+- **Popup xác nhận (Confirm Dialog)**: Khi người dùng bấm nút "Xuất file", hệ thống luôn hiển thị một Popup Popup xác nhận trước:
+  - *Nếu có bộ lọc*: Hiển thị thông báo *"Bạn có chắc chắn muốn xuất dữ liệu giao dịch theo bộ lọc hiện tại sang file CSV?"*.
+  - *Nếu không lọc (rỗng)*: Hiển thị cảnh báo *"Bạn có chắc chắn muốn xuất toàn bộ dữ liệu nhật ký giao dịch (1.000.000+ bản ghi) sang file CSV?"*.
+- File CSV bao gồm tất cả bản ghi khớp với bộ lọc đang áp dụng, **không giới hạn số lượng**.
+- File được định dạng UTF-8 BOM (mở trực tiếp bằng Excel không bị lỗi font tiếng Việt).
+- Nút xuất file có cấu tạo và vị trí như ở các module trước
 ---
 
 ## 3. Yêu cầu phi chức năng
@@ -109,8 +114,9 @@ Hệ thống PaymentHub hiện có bảng `TRANSACTION_LOG` trên Oracle Databas
 
 | Thời điểm | Hệ thống hiển thị |
 |-----------|-------------------|
-| Bấm "Xuất file" | Nút disabled, spinner, thông báo "Đang khởi tạo yêu cầu..." |
-| Job đang xử lý | Thông báo "Đang xử lý: X dòng đã xử lý" (cập nhật theo thời gian thực) |
+| Bấm "Xuất file" | Hiển thị **Popup xác nhận (Confirm Dialog)** với nội dung phù hợp (theo bộ lọc hoặc xuất toàn bộ) |
+| Sau khi người dùng bấm "Xác nhận" trên Popup | Nút disabled, spinner, thông báo "Đang khởi tạo yêu cầu xuất..." |
+| Job đang xử lý | Thông báo progress bar real-time: "Đang xử lý: X / Y dòng (Z%)" |
 | Job hoàn thành | Toast success "Đã xử lý xong, bắt đầu tải ngay" → file tự động tải về (kèm nút "Tải về lại" dự phòng) |
 | Job thất bại | Toast error "Xuất thất bại: [lý do]" → nút "Thử lại" |
 | Bấm xuất khi đã có job đang chạy | Cảnh báo "Đang có yêu cầu xuất đang xử lý, vui lòng chờ" |
@@ -202,15 +208,14 @@ Tận dụng Icon Quả chuông `<tui-icon icon="@tui.bell">` có sẵn tại `s
 ## 9. Kiến trúc Lưu trữ & Dự phòng Sự cố (Storage & HA Architecture)
 
 ### 9.1. Lưu trữ File CSV kết quả (MinIO Object Storage)
-* **Tách biệt dữ liệu**: Oracle DB chỉ lưu thông tin metadata của Job trong bảng `EXPORT_JOB`. Toàn bộ file kết quả `.csv` (150MB - 300MB) được tải và lưu trữ trên **MinIO Object Storage**.
+* **Tách biệt dữ liệu**: Oracle DB chỉ lưu thông tin metadata của Job trong bảng `EXPORT_JOB`. Toàn bộ file kết quả `.csv` (150MB - 300MB) được tải và lưu trữ trực tiếp trên **MinIO Object Storage** tập trung.
 * **Tự động dọn dẹp (Bucket Lifecycle Expiration)**:
   * Cấu hình **MinIO Object Lifecycle Rule** tự động xóa vĩnh viễn các file CSV trong Bucket `export-logs` sau **12 tiếng** (`Expiration: 12 Hours / 1 Day`).
   * Backend Spring Boot **không cần** chạy CronJob dọn dẹp thủ công, giải phóng hoàn toàn CPU/RAM cho Server Backend.
-* **Hỗ trợ Multi-Instance / Cluster**: Cho phép nhiều Server Backend cùng đọc/ghi file CSV tập trung qua MinIO Presigned URL.
-* **Linh hoạt nâng cấp (`FileStorageService` Interface)**:
-  * Định nghĩa `FileStorageService` Interface bọc các thao tác `store()`, `load()`, `delete()`.
-  * Môi trường Dev/Standalone dùng `LocalStorageServiceImpl` (`./storage/exports/`).
-  * Môi trường Prod/Cluster dùng `MinioStorageServiceImpl` kết nối MinIO Cluster.
+* **Hỗ trợ Multi-Instance / Cluster & Tải trực tiếp (Presigned URL)**:
+  * Người dùng tải file trực tiếp qua **MinIO Presigned URL** thời hạn 12 tiếng. Trình duyệt tải thẳng từ MinIO Server, **không stream qua Spring Boot Backend** (không tốn thread pool, RAM hay băng thông backend).
+* **Chuẩn hóa hệ thống lưu trữ (`MinioStorageServiceImpl`)**:
+  * Sử dụng `MinioStorageServiceImpl` kết nối trực tiếp với MinIO Cluster / Server (dùng Docker MinIO `http://localhost:9000` trên môi trường dev và cụm MinIO Cluster trên production).
 
 ### 9.2. Giải pháp Dự phòng Database (High Availability / Disaster Recovery)
 * **Oracle Active Data Guard (Primary - Standby)**:
@@ -234,15 +239,18 @@ Tận dụng Icon Quả chuông `<tui-icon icon="@tui.bell">` có sẵn tại `s
 
 Hệ thống yêu cầu **2 Bảng Database** chính trên Oracle:
 
-### 10.1. Bảng 1: `TRANSACTION_LOG` (Bảng dữ liệu gốc — Đã có sẵn 1M bản ghi)
+### 10.1. Bảng 1: `TRANSACTION_LOG` (Bảng dữ liệu gốc — Đã có sẵn 9 cột & 1M bản ghi)
 ```sql
 CREATE TABLE TRANSACTION_LOG (
     ID               NUMBER PRIMARY KEY,
-    TRANSACTION_CODE VARCHAR2(64) NOT NULL,
-    ACCOUNT_NO       VARCHAR2(32) NOT NULL,
-    AMOUNT           NUMBER(19, 2) NOT NULL,
-    STATUS           VARCHAR2(20) NOT NULL, -- SUCCESS, FAILED, PENDING
-    CREATED_AT       TIMESTAMP NOT NULL
+    TRANSACTION_CODE VARCHAR2(1020) NOT NULL,
+    ACCOUNT_NO       VARCHAR2(1020) NOT NULL,
+    AMOUNT           NUMBER NOT NULL,
+    STATUS           VARCHAR2(1020) NOT NULL, -- SUCCESS, FAILED
+    CREATED_AT       TIMESTAMP(6),
+    DESCRIPTION      VARCHAR2(1020),
+    REFERENCE_NO     VARCHAR2(1020),
+    UPDATED_AT       TIMESTAMP(6)
 );
 
 -- Index tối ưu truy vấn tìm kiếm & phân trang
@@ -257,6 +265,7 @@ CREATE TABLE EXPORT_JOB (
     FILTER_CRITERIA   VARCHAR2(2000),                -- JSON chứa bộ lọc (status, accountNo, dates). 2000 ký tụ dư dả cho các bộ lọc hiện tại; nếu sau này thêm range AMOUNT hoặc nhiều trường hơn, cần benchmark lại độ dài JSON.
     STATUS            VARCHAR2(20) NOT NULL,         -- PENDING, PROCESSING, COMPLETED, FAILED, EXPIRED
     PROCESSED_ROWS    NUMBER DEFAULT 0,              -- Số dòng đã ghi thành công
+    TOTAL_ROWS        NUMBER,                        -- Tổng số dòng cần xuất (bằng MAX_EXPORT_ID snapshot tại t0)
     FILE_PATH         VARCHAR2(500),                 -- Đường dẫn file MinIO Object Key (VD: exports/20260914/job_uuid.csv)
     ERROR_MESSAGE     VARCHAR2(1000),                -- Thông báo lỗi chi tiết nếu FAILED
     -- EXPORT_SCN đã bị loại bỏ (xem quyết định mục 3.6: không dùng Flashback AS OF SCN)
@@ -281,10 +290,10 @@ CREATE INDEX IDX_EXPORT_JOB_USER_STATUS ON EXPORT_JOB (USER_ID, STATUS, EXPIRES_
 - Bổ sung Index phụ `(ACCOUNT_NO, CREATED_AT, ID)` trên `TRANSACTION_LOG` để tối ưu query filter theo tài khoản kèm ORDER BY ID (keyset pagination).
 - _(Best practice chung)_ DBA đảm bảo Undo Tablespace `AUTOEXTEND ON` để tránh Undo Tablespace đầy đột ngột trong các transaction lớn — **không phải yêu cầu riêng cho export**, vì module này không dùng Flashback Query (xem mục 3.6).
 
-### 🔹 Bước 2: Backend Core & File Storage (Spring Boot)
+### 🔹 Bước 2: Backend Core & File Storage (Spring Boot & MinIO)
 - Khai báo Entities `TransactionLog` và `ExportJob` cùng Repositories tương ứng.
-- Viết `FileStorageService` Interface + `MinioStorageServiceImpl` (MinIO Object Storage) + `LocalStorageServiceImpl` (Fallback local).
-- Cấu hình **MinIO Bucket Lifecycle Expiration Rule (12 Hours)** tự động xóa file tạm.
+- Khai báo `FileStorageService` Interface và cài đặt `MinioStorageServiceImpl` kết nối trực tiếp MinIO Object Storage SDK (`minio-java`).
+- Cấu hình **MinIO Bucket `export-logs`** và **Bucket Lifecycle Expiration Rule (12 Hours)** tự động xóa file tạm.
 
 ### 🔹 Bước 3: Backend Worker, CSV Protection & Recovery (Spring Boot)
 - Viết `ExportJobService` — **thứ tự kiểm tra khi tạo job** (quan trọng, dev cần follow đúng trình tự này):

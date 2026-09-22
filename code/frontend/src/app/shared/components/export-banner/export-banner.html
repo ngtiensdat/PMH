@@ -1,0 +1,54 @@
+<div class="export-banner-panel glass-panel" *ngIf="activeJob || exportError">
+
+  <!-- Job đang chạy (PENDING / PROCESSING) -->
+  <ng-container *ngIf="isExporting">
+    <div class="export-progress-wrapper">
+      <div class="export-progress-header">
+        <div class="export-progress-label">
+          <tui-loader size="s" style="display: inline-flex; margin-right: 0.5rem;"></tui-loader>
+          <span>Đang xuất file {{ moduleName }} — <strong>{{ progress }}%</strong>
+            <span *ngIf="activeJob?.totalRows">
+              ({{ activeJob?.processedRows | number:'1.0-0' }} / {{ activeJob?.totalRows | number:'1.0-0' }} dòng)
+            </span>
+          </span>
+        </div>
+        <span class="export-status-badge export-pending">{{ activeJob?.status }}</span>
+      </div>
+      <div class="export-progress-bar-bg">
+        <div class="export-progress-bar-fill" [style.width.%]="progress"></div>
+      </div>
+      <p class="export-hint">Bạn có thể đóng cửa sổ và quay lại sau — tiến trình vẫn tiếp tục chạy ngầm.</p>
+    </div>
+  </ng-container>
+
+  <!-- Job Hoàn thành (SUCCESS / COMPLETED / DONE) -->
+  <ng-container *ngIf="isCompleted">
+    <div class="export-completed-row">
+      <div class="export-completed-info">
+        <tui-icon icon="@tui.circle-check" style="--tui-icon-size: 22px; color: #16a34a;"></tui-icon>
+        <span>Xuất file hoàn tất!
+          <span *ngIf="activeJob?.totalRows"> — {{ activeJob?.totalRows | number:'1.0-0' }} bản ghi</span>
+        </span>
+        <span class="export-expires-label" *ngIf="activeJob?.expiresAt && !isExpired && !activeJob?.isFileDeleted">
+          · Hết hạn lúc {{ activeJob?.expiresAt | date:'dd/MM/yyyy HH:mm' }}
+        </span>
+        <span class="export-expired-badge" *ngIf="isExpired || activeJob?.isFileDeleted">
+          [File đã xóa khỏi máy chủ]
+        </span>
+      </div>
+      <button tuiButton type="button" class="btn-download-primary"
+        *ngIf="!isExpired && !activeJob?.isFileDeleted"
+        (click)="onDownloadClick()"
+        iconStart="@tui.download">
+        Tải file ngay
+      </button>
+    </div>
+  </ng-container>
+
+  <!-- Lỗi xuất file -->
+  <div *ngIf="exportError || isFailed" class="export-error-msg">
+    <tui-icon icon="@tui.alert-circle" style="--tui-icon-size: 16px;"></tui-icon>
+    <span>{{ exportError || activeJob?.errorMessage || 'Xuất file thất bại' }}</span>
+  </div>
+
+</div>

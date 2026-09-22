@@ -6,17 +6,17 @@
     </span>
   </div>
   <nav class="sidebar-nav">
-    <a class="nav-item" [class.active]="activeMenu() === 'dashboard'" (click)="selectMainMenu('dashboard')">
-      <span class="icon">
-        <tui-icon icon="@tui.house"></tui-icon>
-      </span>
-      <span class="text">{{ languageService.labels().navigation.dashboard }}</span>
-    </a>
     <a class="nav-item" [class.active]="activeMenu() === 'params'" (click)="selectMainMenu('params')">
       <span class="icon">
         <tui-icon icon="@tui.box"></tui-icon>
       </span>
       <span class="text">{{ languageService.labels().navigation.paramSetting }}</span>
+    </a>
+    <a class="nav-item" [class.active]="activeMenu() === 'transactions'" (click)="selectMainMenu('transactions')">
+      <span class="icon">
+        <tui-icon icon="@tui.receipt"></tui-icon>
+      </span>
+      <span class="text">Giao dịch</span>
     </a>
   </nav>
   <div class="sidebar-footer">
@@ -49,6 +49,24 @@
         <tui-icon icon="@tui.clipboard"></tui-icon>
       </span>
       {{ languageService.labels().navigation.groupCategory }}
+    </li>
+  </ul>
+</aside>
+
+<!-- 3. SUB-MENU Lịch sử giao dịch -->
+<aside class="sidebar-sub" *ngIf="activeMenu() === 'transactions' && isSubMenuOpen()">
+  <div class="sub-menu-header">
+    <h3>Lịch sử giao dịch</h3>
+    <button class="close-sub-btn" (click)="closeSubMenu()" title="Thu gọn">
+      <tui-icon icon="@tui.chevron-left"></tui-icon>
+    </button>
+  </div>
+  <ul class="sub-menu-list">
+    <li routerLink="/transaction-log" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
+      <span class="sub-menu-icon">
+        <tui-icon icon="@tui.list"></tui-icon>
+      </span>
+      Danh sách giao dịch
     </li>
   </ul>
 </aside>

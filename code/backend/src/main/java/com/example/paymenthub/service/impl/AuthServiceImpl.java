@@ -92,9 +92,7 @@ public class AuthServiceImpl implements AuthService {
             userRepository.save(user);
         }
 
-        List<String> roleCodes = user.getRoles() != null && !user.getRoles().isEmpty()
-                ? user.getRoles().stream().map(r -> r.getRoleCode().replace("ROLE_", "")).distinct().toList()
-                : List.of(user.getRole());
+        List<String> roleCodes = extractRoleCodes(user);
 
         List<String> permissionCodes = extractPermissions(user);
 
@@ -171,9 +169,7 @@ public class AuthServiceImpl implements AuthService {
                 .build();
         refreshTokenRepository.save(newRefreshTokenEntity);
 
-        List<String> roleCodes = user.getRoles() != null && !user.getRoles().isEmpty()
-                ? user.getRoles().stream().map(r -> r.getRoleCode().replace("ROLE_", "")).distinct().toList()
-                : List.of(user.getRole());
+        List<String> roleCodes = extractRoleCodes(user);
 
         return LoginResponse.builder()
                 .token(newAccessToken)
@@ -200,9 +196,7 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedAccessException(AuthErrorCode.ACCOUNT_LOCKED);
         }
 
-        List<String> roleCodes = user.getRoles() != null && !user.getRoles().isEmpty()
-                ? user.getRoles().stream().map(r -> r.getRoleCode().replace("ROLE_", "")).distinct().toList()
-                : List.of(user.getRole());
+        List<String> roleCodes = extractRoleCodes(user);
 
         List<String> permissionCodes = extractPermissions(user);
 
@@ -252,6 +246,20 @@ public class AuthServiceImpl implements AuthService {
                 .filter(r -> r.getPermissions() != null)
                 .flatMap(r -> r.getPermissions().stream())
                 .map(Permission::getPermissionCode)
+                .distinct()
+                .toList();
+    }
+
+    /**
+     * Trích danh sách mã vai trò (không có tiền tố ROLE_) từ User.
+     * Dùng cho lần đăng nhập, làm mới token, và lấy thông tin user hiện tại.
+     */
+    private List<String> extractRoleCodes(User user) {
+        if (user.getRoles() == null || user.getRoles().isEmpty()) {
+            return List.of(user.getRole());
+        }
+        return user.getRoles().stream()
+                .map(r -> r.getRoleCode().replace("ROLE_", ""))
                 .distinct()
                 .toList();
     }

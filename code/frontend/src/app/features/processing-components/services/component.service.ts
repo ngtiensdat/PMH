@@ -5,8 +5,19 @@ import { tap } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import { ApiResponse, PageResponse, BatchItemResult } from '../../../shared/models/api-response.model';
 import { ProcessingComponentResponse, ProcessingComponentRequest } from '../../../shared/models/component.model';
+import { ExportJobResponse } from '../../../shared/models/transaction-log.model';
 import { AuditLogItem } from '../../../shared/models/audit-log.model';
 import { BaseFeatureService } from '../../../shared/services/base-feature.service';
+
+/** Bộ lọc xuất file Component — khớp với CreateExportComponentJobRequestDTO.java */
+export interface ComponentExportFilter {
+  componentCode?: string;
+  componentName?: string;
+  status?: number[];
+  isActive?: number[];
+  sortBy?: string;
+  sortDirection?: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -92,8 +103,53 @@ export class ComponentService extends BaseFeatureService {
 
   // --- DẠNG 2: NATIVE QUERY ---
 
+  /**
+   * @deprecated Dùng createExportJob() thay thế — xuất async không blocking.
+   * Giữ lại để tương thích ngược với code cũ.
+   */
   exportExcel(): Observable<ApiResponse<Record<string, unknown>[]>> {
     return this.http.get<ApiResponse<Record<string, unknown>[]>>(`${this.apiUrl}/export`);
+  }
+
+  // --- ASYNC EXPORT JOB (cơ chế giống Transaction) ---
+
+  /**
+   * Tạo Export Job async — Backend trả 202 Accepted trong < 100ms.
+   * @param filters Bộ lọc hiện tại từ Form tìm kiếm (hoặc {} để xuất toàn bộ)
+   */
+  createExportJob(filters: ComponentExportFilter = {}): Observable<ApiResponse<ExportJobResponse>> {
+    return this.http.post<ApiResponse<ExportJobResponse>>(
+      `${this.apiUrl}/export-jobs`,
+      filters
+    );
+  }
+
+  /**
+   * Polling tiến độ job đang chạy (PENDING/PROCESSING).
+   * Backend đọc từ Redis Cache — nhanh < 5ms, không query Oracle.
+   */
+  getActiveJob(): Observable<ApiResponse<ExportJobResponse | null>> {
+    return this.http.get<ApiResponse<ExportJobResponse | null>>(
+      `${this.apiUrl}/export-jobs/active`
+    );
+  }
+
+  /**
+   * Lịch sử jobs trong 12h gần nhất. Dùng cho Header Notification Bell.
+   */
+  getMyJobs(): Observable<ApiResponse<ExportJobResponse[]>> {
+    return this.http.get<ApiResponse<ExportJobResponse[]>>(
+      `${this.apiUrl}/export-jobs/my-jobs`
+    );
+  }
+
+  /**
+   * Sinh URL tải file XLSX đã xuất.
+   */
+  getDownloadUrl(jobId: number): Observable<ApiResponse<string>> {
+    return this.http.get<ApiResponse<string>>(
+      `${this.apiUrl}/export-jobs/${jobId}/download`
+    );
   }
 
   // --- DẠNG 3: STORED PROCEDURE ---

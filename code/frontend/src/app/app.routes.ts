@@ -11,7 +11,7 @@ export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    redirectTo: 'categories'
+    redirectTo: 'transaction-log'
   },
   {
     path: 'categories',
@@ -23,5 +23,10 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadChildren: () => import('./features/processing-components/processing-components.routes').then(m => m.PROCESSING_COMPONENTS_ROUTES)
   },
-  { path: '**', redirectTo: 'categories' }
+  {
+    path: 'transaction-log',
+    canActivate: [authGuard],
+    loadChildren: () => import('./features/transaction-log/transaction-log.routes').then(m => m.transactionLogRoutes)
+  },
+  { path: '**', redirectTo: 'transaction-log' }
 ];

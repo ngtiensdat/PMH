@@ -44,6 +44,9 @@ public class AuditLogServiceImpl implements AuditLogService {
             if (attributes instanceof ServletRequestAttributes servletAttributes) {
                 HttpServletRequest request = servletAttributes.getRequest();
 
+                // ⚠️ SECURITY NOTE: X-Forwarded-For có thể bị giả mạo bởi client nếu hệ thống
+                // không đứng sau reverse proxy (nginx/HAProxy). Trong môi trường production,
+                // chỉ trust header này khi biết request đến từ IP proxy đã được whitelist.
                 String ipAddress = request.getHeader("X-Forwarded-For");
                 if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
                     ipAddress = request.getHeader("Proxy-Client-IP");

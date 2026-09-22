@@ -1,0 +1,238 @@
+<div class="list-wrapper">
+
+  <!-- ═══ PAGE HEADER ══════════════════════════════════════════════════ -->
+  <div class="page-header-section">
+    <div class="breadcrumb">
+      <span>Quản lý</span>
+      <span class="divider">&gt;</span>
+      <span class="current">Lịch sử giao dịch</span>
+    </div>
+    <div class="title-action-row">
+      <h1 class="page-title">Lịch sử giao dịch</h1>
+    </div>
+  </div>
+
+  <!-- ═══ BỘ LỌC TÌM KIẾM ══════════════════════════════════════════════ -->
+  <div class="search-section glass-panel" [formGroup]="searchForm">
+    <div class="txn-search-grid">
+
+      <tui-textfield>
+        <label tuiLabel>Mã giao dịch</label>
+        <input tuiInput id="transactionCode" formControlName="transactionCode" placeholder="Nhập mã giao dịch" />
+      </tui-textfield>
+
+      <tui-textfield>
+        <label tuiLabel>Số tài khoản</label>
+        <input tuiInput id="accountNo" formControlName="accountNo" placeholder="Nhập số tài khoản" />
+      </tui-textfield>
+
+      <tui-textfield [stringify]="stringifyTxnStatus">
+        <label tuiLabel>Trạng thái</label>
+        <select tuiSelect formControlName="status" [items]="statusItems"></select>
+      </tui-textfield>
+
+      <tui-textfield>
+        <label tuiLabel>Từ ngày giờ</label>
+        <input tuiInputDateTime id="fromDate" formControlName="fromDate" />
+        <tui-calendar *tuiDropdown></tui-calendar>
+      </tui-textfield>
+
+      <tui-textfield>
+        <label tuiLabel>Đến ngày giờ</label>
+        <input tuiInputDateTime id="toDate" formControlName="toDate" />
+        <tui-calendar *tuiDropdown></tui-calendar>
+      </tui-textfield>
+
+      <!-- Nút thao tác -->
+      <div class="search-actions-row">
+        <button tuiButton appearance="secondary" type="button" (click)="onReset()" class="clear-btn-secondary">
+          Xóa bộ lọc
+        </button>
+        <button tuiButton type="button" (click)="onSearch()" class="search-btn-primary" iconStart="@tui.search">
+          Tìm kiếm
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Shared Export Confirm Dialog & Progress Banner -->
+  <app-export-confirm-dialog
+    [isOpen]="showConfirmDialog()"
+    title="Xác nhận xuất file"
+    [message]="confirmDialogMsg()"
+    (confirm)="onConfirmExport()"
+    (cancel)="onCancelExport()">
+  </app-export-confirm-dialog>
+
+  <app-export-progress-banner
+    *ngIf="authService.hasPermission('TRANSACTION_EXPORT')"
+    [activeJob]="activeExportJob()"
+    [exportError]="exportError()"
+    moduleName="giao dịch"
+    (download)="onDownload($event)">
+  </app-export-progress-banner>
+
+  <!-- ═══ BẢNG DỮ LIỆU ═════════════════════════════════════════════════ -->
+  <div class="grid-section glass-panel">
+    <div class="grid-header">
+      <div class="grid-header-left">
+        <h2 class="grid-title">Danh sách giao dịch</h2>
+        <span class="grid-count-badge">{{ totalElements() | number:'1.0-0' }}</span>
+      </div>
+      <div class="grid-actions">
+        <button *ngIf="authService.hasPermission('TRANSACTION_EXPORT')" tuiButton appearance="secondary" type="button"
+          class="clear-btn-secondary" (click)="onClickExport()" [disabled]="isLoading() || isExporting()"
+          iconStart="@tui.download">
+          Xuất Excel
+        </button>
+      </div>
+    </div>
+
+    <!-- Table container -->
+    <div style="overflow-x: auto; width: 100%; position: relative; min-height: 250px;">
+
+      <!-- Loading overlay -->
+      <div class="loading-overlay" *ngIf="isLoading()"
+        style="position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+               background-color: rgba(255, 255, 255, 0.7);
+               display: flex; justify-content: center; align-items: center; z-index: 100;">
+        <tui-loader size="l"></tui-loader>
+      </div>
+
+      <table class="tui-table" style="width: 100%; border-collapse: collapse; table-layout: fixed; text-align: left;">
+        <thead>
+          <tr style="border-bottom: 2px solid #e2e8f0; background-color: #f8fafc;">
+            <th *ngFor="let col of displayColumns; let colIdx = index"
+              [style.width.px]="col.width" [style.min-width.px]="col.width" [style.max-width.px]="col.width"
+              [attr.draggable]="!col.isFixed ? 'true' : null"
+              (dragstart)="onDragStart(col.id, $event)"
+              (dragover)="onDragOver($event, col.id)"
+              (dragleave)="onDragLeave()"
+              (drop)="onDrop(col.id)"
+              [class.draggable-col]="!col.isFixed"
+              [class.drag-over]="dragOverColumnIndex === colIdx"
+              (click)="toggleSort(col.id)"
+              style="padding: 0.75rem 1rem; position: relative; vertical-align: middle;
+                     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;">
+
+              <!-- STT -->
+              <ng-container *ngIf="col.id === 'stt'">
+                <span>STT</span>
+              </ng-container>
+
+              <!-- Other sortable columns -->
+              <ng-container *ngIf="col.id !== 'stt'">
+                <div class="sort-header" [class.sort-active]="sortField() === col.id">
+                  <span>{{ col.label }}</span>
+                  <span class="sort-icon-wrapper" *ngIf="sortField() === col.id">
+                    <tui-icon [icon]="sortDirection() === 'asc' ? '@tui.chevron-up' : '@tui.chevron-down'"
+                      style="--tui-icon-size: 14px;"></tui-icon>
+                  </span>
+                  <span class="sort-icon-wrapper inactive" *ngIf="sortField() !== col.id">
+                    <tui-icon icon="@tui.chevrons-up-down" style="--tui-icon-size: 14px; opacity: 0.35;"></tui-icon>
+                  </span>
+                </div>
+              </ng-container>
+
+              <!-- Resize handle -->
+              <div class="resize-handle" (mousedown)="onResizeStart($event, col)" (click)="$event.stopPropagation()"></div>
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <!-- Empty state -->
+          <tr *ngIf="!isLoading() && transactions().length === 0">
+            <td [attr.colspan]="displayColumns.length" class="no-data">
+              <tui-icon icon="@tui.inbox" style="--tui-icon-size: 32px; color: #cbd5e1; display: block; margin: 0 auto 0.5rem;"></tui-icon>
+              Không tìm thấy giao dịch nào
+            </td>
+          </tr>
+
+          <!-- Data rows -->
+          <tr *ngFor="let item of transactions(); let i = index; trackBy: trackById"
+            style="border-bottom: 1px solid #f1f5f9; transition: background-color 0.15s;">
+
+            <ng-container *ngFor="let col of displayColumns; trackBy: trackByColId">
+              <td [style.width.px]="col.width" [style.min-width.px]="col.width" [style.max-width.px]="col.width"
+                style="padding: 0.75rem 1rem; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+
+                <!-- STT -->
+                <ng-container *ngIf="col.id === 'stt'">
+                  <span style="font-weight: 550; color: #64748b;">{{ i + 1 + page() * size() }}</span>
+                </ng-container>
+
+
+                <!-- Transaction Code -->
+                <ng-container *ngIf="col.id === 'transactionCode'">
+                  <span style="font-family: monospace; font-size: 0.82rem; font-weight: 600; color: #334155;
+                               background: #f1f5f9; padding: 0.2rem 0.45rem; border-radius: 4px;">
+                    {{ item.transactionCode }}
+                  </span>
+                </ng-container>
+
+                <!-- Account No -->
+                <ng-container *ngIf="col.id === 'accountNo'">
+                  <span style="font-family: monospace; font-weight: 600; color: #1e293b;
+                               background: #f8fafc; padding: 0.2rem 0.45rem; border-radius: 4px;
+                               font-size: 0.82rem;">
+                    {{ item.accountNo }}
+                  </span>
+                </ng-container>
+
+                <!-- Amount -->
+                <ng-container *ngIf="col.id === 'amount'">
+                  <span style="font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums;">
+                    {{ formatAmount(item.amount) }}
+                  </span>
+                </ng-container>
+
+                <!-- Status -->
+                <ng-container *ngIf="col.id === 'status'">
+                  <span [class]="getTxnStatusClass(item.txnStatus)">
+                    {{ getTxnStatusLabel(item.txnStatus) }}
+                  </span>
+                </ng-container>
+
+                <!-- Reference No -->
+                <ng-container *ngIf="col.id === 'referenceNo'">
+                  <span style="font-size: 0.8rem; color: #64748b;">{{ item.referenceNo || '\u2014' }}</span>
+                </ng-container>
+
+                <!-- Description -->
+                <ng-container *ngIf="col.id === 'description'">
+                  <span [title]="item.description || ''" style="color: #475569;">
+                    {{ item.description || '\u2014' }}
+                  </span>
+                </ng-container>
+
+                <!-- Created At -->
+                <ng-container *ngIf="col.id === 'createdAt'">
+                  <span style="font-size: 0.8rem; color: #64748b;">
+                    {{ item.createdAt | date:'dd/MM/yyyy HH:mm' }}
+                  </span>
+                </ng-container>
+
+                <!-- Updated At -->
+                <ng-container *ngIf="col.id === 'updatedAt'">
+                  <span style="font-size: 0.8rem; color: #64748b;">
+                    {{ item.updatedAt ? (item.updatedAt | date:'dd/MM/yyyy HH:mm') : '\u2014' }}
+                  </span>
+                </ng-container>
+
+              </td>
+            </ng-container>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <!-- PHÂN TRANG -->
+    <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+      <tui-pagination [length]="totalPages()" [index]="page()" (indexChange)="setPage($event)"></tui-pagination>
+    </div>
+  </div>
+
+</div>

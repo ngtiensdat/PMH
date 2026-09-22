@@ -73,3 +73,5 @@ A
 - tạo giao diện tìm kiếm dữ liệu cho bảng transaction log , chú ý: xử lý export dữ liệu phía be 
 - yêu cầu: hệ thống không trả về lỗi time out 
 - tìm hiểu kỹ xử lý dữ liệu lớn, doker, redis, kafka ... 
+
+timf hieeur     @Schedullook

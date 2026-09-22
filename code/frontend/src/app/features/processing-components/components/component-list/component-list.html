@@ -67,12 +67,28 @@
           iconStart="@tui.x">
           {{ languageService.labels().common.batchReject }}
         </button>
-        <button tuiButton appearance="secondary" type="button" class="clear-btn-secondary" (click)="onExportExcel()"
-          iconStart="@tui.download">
+        <button tuiButton appearance="secondary" type="button" class="clear-btn-secondary" (click)="onClickExport()"
+          iconStart="@tui.download" [disabled]="isExporting">
           Xuất Excel
         </button>
       </div>
     </div>
+
+    <!-- Shared Export Confirm Dialog & Progress Banner -->
+    <app-export-confirm-dialog
+      [isOpen]="showConfirmDialog()"
+      title="Xác nhận xuất file"
+      [message]="confirmDialogMsg()"
+      (confirm)="onConfirmExport()"
+      (cancel)="onCancelExport()">
+    </app-export-confirm-dialog>
+
+    <app-export-progress-banner
+      [activeJob]="activeExportJob()"
+      [exportError]="exportError()"
+      moduleName="cấu phần"
+      (download)="onDownload($event)">
+    </app-export-progress-banner>
 
     <!-- BẢNG DỮ LIỆU DÙNG CHUNG -->
     <div style="overflow-x: auto; width: 100%; position: relative; min-height: 250px;">

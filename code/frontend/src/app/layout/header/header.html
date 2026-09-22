@@ -5,17 +5,58 @@
   </div>
 
   <div class="header-right">
-    <!-- Icon chuông thông báo -->
-    @if (notificationCount() > 0) {
-    <div class="notification-badge-container">
-      <span class="bell-icon">
-        <tui-icon icon="@tui.bell"></tui-icon>
-      </span>
-      <span class="badge-count">{{ notificationCount() }}</span>
-    </div>
-    }
 
-    <!-- Dropdown VIE/EN động -->
+    <!-- ── Notification Bell (6.3) ─────────────────────────────── -->
+    <div class="bell-wrapper" *ngIf="authService.isLoggedIn()">
+      <button class="bell-btn" (click)="toggleBell()" [class.active]="isBellOpen()" title="Lịch sử xuất file">
+        <tui-icon icon="@tui.bell"></tui-icon>
+        <span class="bell-badge" *ngIf="completedJobCount() > 0">{{ completedJobCount() }}</span>
+      </button>
+
+      <!-- Bell Dropdown -->
+      @if (isBellOpen()) {
+      <div class="bell-dropdown" (click)="$event.stopPropagation()">
+        <div class="bell-header">
+          <span class="bell-title">Lịch sử xuất file</span>
+          <span class="bell-sub">12 giờ gần nhất</span>
+        </div>
+
+        <!-- Danh sách jobs -->
+        <ng-container *ngIf="myJobs().length > 0; else emptyBell">
+          <div class="bell-job-list">
+            <div class="bell-job-item" *ngFor="let job of myJobs()">
+              <div class="bell-job-info">
+                <span class="bell-job-name">{{ job.fileName || 'Transaction_Log_' + job.jobId + '.xlsx' }}</span>
+                <div class="bell-job-meta">
+                  <span [class]="'bell-job-status ' + getStatusClass(job.status)">{{ getStatusLabel(job.status) }}</span>
+                  <span class="bell-job-time" *ngIf="job.expiresAt && !isExpired(job) && !job.isFileDeleted">
+                    · {{ getTimeRemaining(job.expiresAt) }}
+                  </span>
+                  <span class="bell-job-expired" *ngIf="job.isFileDeleted || isExpired(job)">· File đã xóa khỏi máy chủ</span>
+                </div>
+                <span class="bell-job-rows" *ngIf="job.totalRows">
+                  {{ job.totalRows | number:'1.0-0' }} bản ghi
+                </span>
+              </div>
+              <button class="bell-download-btn" *ngIf="(job.status === 'SUCCESS' || job.status === 'COMPLETED' || job.status === 'DONE') && !isExpired(job) && !job.isFileDeleted"
+                (click)="downloadFromBell(job)" title="Tải về">
+                <tui-icon icon="@tui.download" style="--tui-icon-size: 16px;"></tui-icon>
+              </button>
+            </div>
+          </div>
+        </ng-container>
+
+        <ng-template #emptyBell>
+          <div class="bell-empty">
+            <tui-icon icon="@tui.file-x" style="--tui-icon-size: 32px; color: #cbd5e1;"></tui-icon>
+            <span>Chưa có file xuất nào trong 12 giờ qua</span>
+          </div>
+        </ng-template>
+      </div>
+      }
+    </div>
+
+    <!-- Dropdown VIE/EN -->
     <div class="language-dropdown-wrapper">
       <div class="language-dropdown" (click)="toggleLangDropdown()">
         <span>{{ languageService.currentLang() }}</span>
@@ -23,10 +64,8 @@
       </div>
       @if (isLangDropdownOpen()) {
       <div class="lang-popover">
-        <div class="lang-item" [class.active]="languageService.currentLang() === 'VIE'" (click)="selectLanguage('VIE')">
-          VIE (Tiếng Việt)</div>
-        <div class="lang-item" [class.active]="languageService.currentLang() === 'EN'" (click)="selectLanguage('EN')">EN
-          (English)</div>
+        <div class="lang-item" [class.active]="languageService.currentLang() === 'VIE'" (click)="selectLanguage('VIE')">VIE (Tiếng Việt)</div>
+        <div class="lang-item" [class.active]="languageService.currentLang() === 'EN'" (click)="selectLanguage('EN')">EN (English)</div>
       </div>
       }
     </div>
@@ -42,17 +81,15 @@
             {{ authService.currentUser()?.fullName }}
             <span *ngIf="authService.hasMultipleRoles()" class="arrow-down">∨</span>
           </span>
-          <span class="user-role-label">
-            {{ getRoleDisplayLabel(authService.activeRole()) }}
-          </span>
+          <span class="user-role-label">{{ getRoleDisplayLabel(authService.activeRole()) }}</span>
         </div>
       </div>
 
-      <!-- Role Switcher Popover -->
       @if (isRoleDropdownOpen() && authService.hasMultipleRoles()) {
       <div class="role-popover">
         <div class="role-popover-header">Chọn vai trò đang làm việc:</div>
-        <div *ngFor="let r of authService.userRoles()" class="role-item" [class.active]="authService.activeRole() === r" (click)="switchRole(r)">
+        <div *ngFor="let r of authService.userRoles()" class="role-item"
+          [class.active]="authService.activeRole() === r" (click)="switchRole(r)">
           <span class="role-icon"></span>
           <span>{{ getRoleDisplayLabel(r) }}</span>
           <span *ngIf="authService.activeRole() === r" class="check-mark">✓</span>
@@ -60,5 +97,6 @@
       </div>
       }
     </div>
+
   </div>
 </header>

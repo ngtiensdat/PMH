@@ -39,16 +39,22 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class GroupCategoryServiceImpl extends AbstractMakerCheckerService implements GroupCategoryService {
 
     private static final String MODULE = ModuleType.GROUP_CATEGORY.getCode();
+    /** Giới hạn tối đa bản ghi trả về trong getJoinedList() để tránh query quá lớn */
+    private static final int COMPLEX_LIST_MAX_RESULTS = 1000;
 
     private final GroupCategoryRepository repository;
     private final ComponentRepository componentRepository;
@@ -277,7 +283,7 @@ public class GroupCategoryServiceImpl extends AbstractMakerCheckerService implem
 
         GroupCategory entity = getById(id);
         if (!entity.isApproved())
-            throw new InvalidStateTransitionException(BusinessErrorCode.INVALID_SUBMIT_STATUS);
+            throw new InvalidStateTransitionException(BusinessErrorCode.INVALID_CANCEL_STATUS);
 
         int statusBefore = entity.getStatus();
         entity.setStatus(ParamStatus.CANCELED.getCode());
@@ -319,16 +325,16 @@ public class GroupCategoryServiceImpl extends AbstractMakerCheckerService implem
                 """;
 
         List<Tuple> tuples = entityManager.createNativeQuery(sql, Tuple.class)
-                .setMaxResults(1000)
+                .setMaxResults(COMPLEX_LIST_MAX_RESULTS)
                 .getResultList();
 
-        Map<String, String> componentNameCache = componentRepository.findAll().stream()
-                .collect(java.util.stream.Collectors.toMap(
-                        ProcessingComponent::getComponentCode,
-                        ProcessingComponent::getComponentName,
-                        (existing, replacement) -> existing));
+        if (tuples.size() == COMPLEX_LIST_MAX_RESULTS) {
+            log.warn("[GroupCategory] getJoinedList() đã đạt giới hạn {} bản ghi — có thể thiếu dữ liệu. Cân nhắc chuyển sang phân trang.",
+                    COMPLEX_LIST_MAX_RESULTS);
+        }
 
-        return tuples.stream().map(tuple -> {
+        // Bước 1: Map Tuple → Map<String, Object>
+        List<Map<String, Object>> result = tuples.stream().map(tuple -> {
             Map<String, Object> map = new HashMap<>();
             tuple.getElements().forEach(elem -> {
                 String alias = elem.getAlias();
@@ -336,10 +342,37 @@ public class GroupCategoryServiceImpl extends AbstractMakerCheckerService implem
                     map.put(alias, tuple.get(elem));
                 }
             });
+            return map;
+        }).toList();
 
-            Object compCodeObj = map.get("componentCode") != null ? map.get("componentCode") : map.get("COMPONENTCODE");
+        // Bước 2: Thu thập các componentCode NHIỀU GIÁ TRỊ (comma-separated) cần resolve thêm.
+        // Single-code đã được LEFT JOIN giải quyết. Chỉ cần lookup thêm cho multi-code.
+        Set<String> multiCodeSet = new HashSet<>();
+        for (Map<String, Object> map : result) {
+            Object compCodeObj = map.get("componentCode");
             String compCode = compCodeObj != null ? compCodeObj.toString() : null;
-            if (StringUtils.hasText(compCode)) {
+            if (StringUtils.hasText(compCode) && compCode.contains(",")) {
+                for (String c : compCode.split(",")) {
+                    String trimmed = c.trim();
+                    if (!trimmed.isEmpty()) multiCodeSet.add(trimmed);
+                }
+            }
+        }
+
+        // Bước 3: Chỉ query DB nếu có multi-code cần resolve (tránh findAll() thừa)
+        Map<String, String> componentNameCache = multiCodeSet.isEmpty()
+                ? Collections.emptyMap()
+                : componentRepository.findAllById(multiCodeSet).stream()
+                        .collect(Collectors.toMap(
+                                ProcessingComponent::getComponentCode,
+                                ProcessingComponent::getComponentName,
+                                (existing, replacement) -> existing));
+
+        // Bước 4: Ghi đè componentName cho các record có multi-code
+        return result.stream().map(map -> {
+            Object compCodeObj = map.get("componentCode");
+            String compCode = compCodeObj != null ? compCodeObj.toString() : null;
+            if (StringUtils.hasText(compCode) && compCode.contains(",")) {
                 List<String> names = new ArrayList<>();
                 for (String c : compCode.split(",")) {
                     String trimmed = c.trim();
@@ -348,8 +381,9 @@ public class GroupCategoryServiceImpl extends AbstractMakerCheckerService implem
                         names.add(foundName != null ? foundName : trimmed);
                     }
                 }
-                if (!names.isEmpty())
+                if (!names.isEmpty()) {
                     map.put("componentName", String.join(", ", names));
+                }
             }
             return map;
         }).toList();

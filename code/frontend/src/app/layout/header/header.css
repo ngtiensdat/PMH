@@ -27,28 +27,172 @@
   gap: 2rem;
 }
 
-/* Notification bell */
-.notification-badge-container {
+/* Notification Bell (6.3) */
+.bell-wrapper {
   position: relative;
-  cursor: pointer;
 }
 
-.notification-badge-container .bell-icon {
-  font-size: 1.3rem;
+.bell-btn {
+  position: relative;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.bell-btn:hover, .bell-btn.active {
+  background: #f0fdfa;
+  border-color: #005953;
+  color: #005953;
+}
+
+.bell-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.1rem 0.3rem;
+  border-radius: 9999px;
+  border: 2px solid #fff;
+  min-width: 18px;
+  text-align: center;
+}
+
+.bell-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 340px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.14);
+  z-index: 200;
+  overflow: hidden;
+  animation: slideDown 0.15s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.bell-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0.9rem 1rem 0.6rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.bell-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.bell-sub {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.bell-job-list {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.bell-job-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f8fafc;
+  transition: background 0.15s;
+}
+
+.bell-job-item:hover { background: #f8fafc; }
+
+.bell-job-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.bell-job-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bell-job-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.bell-job-status {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+}
+
+.bell-job-pending    { background: #fef9c3; color: #854d0e; }
+.bell-job-processing { background: #dbeafe; color: #1d4ed8; }
+.bell-job-completed  { background: #dcfce7; color: #15803d; }
+.bell-job-failed     { background: #fee2e2; color: #b91c1c; }
+
+.bell-job-time, .bell-job-rows {
+  font-size: 0.7rem;
   color: #64748b;
 }
 
-.notification-badge-container .badge-count {
-  position: absolute;
-  top: -8px;
-  right: -10px;
-  background-color: #ef4444;
-  color: #ffffff;
-  font-size: 0.65rem;
-  font-weight: 700;
-  padding: 0.15rem 0.35rem;
-  border-radius: 9999px;
-  border: 2px solid #ffffff;
+.bell-job-expired { font-size: 0.7rem; color: #ef4444; }
+
+.bell-download-btn {
+  background: #f0fdfa;
+  border: 1px solid #005953;
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #005953;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.bell-download-btn:hover {
+  background: #005953;
+  color: #fff;
+}
+
+.bell-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  color: #94a3b8;
+  font-size: 0.82rem;
 }
 
 /* Language dropdown */

@@ -4,11 +4,14 @@ import com.example.paymenthub.common.base.ApiResponse;
 import com.example.paymenthub.common.base.BaseController;
 import com.example.paymenthub.dto.request.ComponentDTO;
 import com.example.paymenthub.dto.request.ComponentSearchCriteria;
+import com.example.paymenthub.dto.request.CreateExportComponentJobRequestDTO;
 import com.example.paymenthub.dto.response.BatchItemResultDTO;
 import com.example.paymenthub.dto.response.ComponentResponseDTO;
+import com.example.paymenthub.dto.response.ExportJobResponseDTO;
 import com.example.paymenthub.entity.ProcessingComponent;
 import com.example.paymenthub.security.SecurityUtils;
 import com.example.paymenthub.service.ComponentService;
+import com.example.paymenthub.service.export.ExportJobService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -30,6 +33,7 @@ import java.util.Map;
 public class ComponentController extends BaseController {
 
     private final ComponentService service;
+    private final ExportJobService exportJobService;
 
     @GetMapping("/search")
     @PreAuthorize("hasAuthority('COMPONENT_VIEW')")
@@ -112,6 +116,56 @@ public class ComponentController extends BaseController {
     @PreAuthorize("hasAuthority('COMPONENT_VIEW')")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> exportData() {
         return ok(service.getRawDataForExport(), "Xuất dữ liệu thành công");
+    }
+
+    // ── Async Export Job Endpoints (cơ chế giống Transaction) ──────────────────
+
+    /**
+     * Tạo Async Export Job cho Component.
+     * Trả về HTTP 202 Accepted trong < 100ms.
+     */
+    @PostMapping("/export-jobs")
+    @PreAuthorize("hasAuthority('COMPONENT_VIEW')")
+    public ResponseEntity<ApiResponse<ExportJobResponseDTO>> createExportJob(
+            @RequestBody(required = false) CreateExportComponentJobRequestDTO request) {
+        String username = SecurityUtils.getCurrentUsername();
+        ExportJobResponseDTO dto = exportJobService.createComponentJob(
+                username,
+                request != null ? request : new CreateExportComponentJobRequestDTO());
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(ApiResponse.success(dto, "Đã nhận yêu cầu xuất file. Hệ thống đang xử lý..."));
+    }
+
+    /**
+     * Lấy tiến độ job đang chạy của user (PENDING/PROCESSING).
+     */
+    @GetMapping("/export-jobs/active")
+    @PreAuthorize("hasAuthority('COMPONENT_VIEW')")
+    public ResponseEntity<ApiResponse<ExportJobResponseDTO>> getActiveExportJob() {
+        String username = SecurityUtils.getCurrentUsername();
+        ExportJobResponseDTO dto = exportJobService.getActiveJob(username);
+        return ok(dto, dto != null ? "Đang xử lý" : "Không có job đang chạy");
+    }
+
+    /**
+     * Lấy danh sách job trong 12 tiếng gần nhất của user.
+     */
+    @GetMapping("/export-jobs/my-jobs")
+    @PreAuthorize("hasAuthority('COMPONENT_VIEW')")
+    public ResponseEntity<ApiResponse<List<ExportJobResponseDTO>>> getMyExportJobs() {
+        String username = SecurityUtils.getCurrentUsername();
+        return ok(exportJobService.getMyJobs(username), "Lấy danh sách xuất file thành công");
+    }
+
+    /**
+     * Sinh URL tải file (MinIO Presigned URL hoặc Local URL).
+     */
+    @GetMapping("/export-jobs/{jobId}/download")
+    @PreAuthorize("hasAuthority('COMPONENT_VIEW')")
+    public ResponseEntity<ApiResponse<String>> downloadExportFile(@PathVariable Long jobId) {
+        String username = SecurityUtils.getCurrentUsername();
+        String url = exportJobService.getDownloadUrl(jobId, username);
+        return ok(url, "Lấy đường dẫn tải file thành công");
     }
 
     @PostMapping("/batch-approve")

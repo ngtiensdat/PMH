@@ -22,7 +22,10 @@ public enum BusinessErrorCode {
     COMPONENT_CODE_EXISTS("BUS_010", "Mã cấu phần đã tồn tại!"),
     DATA_DECODE_ERROR("BUS_011", "Lỗi giải mã dữ liệu thay đổi!"),
     INVALID_EFFECTIVE_DATE("BUS_012", "Ngày hiệu lực không được để trống!"),
-    INVALID_DATE_RANGE("BUS_013", "Ngày hết hiệu lực phải sau ngày hiệu lực!");
+    INVALID_DATE_RANGE("BUS_013", "Ngày hết hiệu lực phải sau ngày hiệu lực!"),
+    EXPORT_JOB_ALREADY_RUNNING("BUS_014", "Đang có yêu cầu xuất file đang xử lý. Vui lòng chờ hoàn thành trước khi tạo yêu cầu mới."),
+    EXPORT_SYSTEM_BUSY("BUS_015", "Hệ thống đang bận xử lý quá nhiều yêu cầu xuất file, vui lòng thử lại sau vài phút."),
+    INVALID_CANCEL_STATUS("BUS_016", "Chỉ được phép hủy duyệt bản ghi đang ở trạng thái Đã duyệt (STATUS = 4)!");
 
     private final String code;
     private final String message;

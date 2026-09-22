@@ -13,14 +13,13 @@ app:
       api-capacity: 100
       api-duration-minutes: 1
 
-
 spring:
   output:
     ansi:
       enabled: ALWAYS
   application:
     name: payment-hub
-  
+
   datasource:
     url: ${DB_URL:jdbc:oracle:thin:@10.10.0.202:1521:orcl}
     username: ${DB_USERNAME:DEMO}
@@ -32,16 +31,34 @@ spring:
       minimum-idle: 2                # Duy trì tối thiểu 2 kết nối sẵn sàng
       idle-timeout: 600000           # Hủy kết nối nhàn rỗi sau 10 phút
       max-lifetime: 1800000          # Hủy kết nối sau tối đa 30 phút
-  
+
   jpa:
     database-platform: org.hibernate.dialect.OracleDialect
     hibernate:
-      ddl-auto: update # Hibernate sẽ tự động cập nhật cột thiếu trong DB Oracle
+      ddl-auto: update               # Hibernate tự cập nhật cột thiếu trong DB Oracle
     show-sql: false
     properties:
       hibernate:
         format_sql: false
         use_sql_comments: true
+
+  # Redis — Export Progress Cache & Per-User Lock
+  # Dev local: Nếu chưa cài Redis, Services sẽ tự fallback sang ConcurrentHashMap
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      connect-timeout: 2000          # 2s timeout kết nối — tránh block lâu khi Redis offline
+      timeout: 1000                  # 1s timeout mỗi operation
+
+# MinIO Object Storage — lưu file CSV kết quả export
+# Dev local: Để MINIO_URL trống → sẽ dùng LocalStorageServiceImpl (lưu ./exports/)
+minio:
+  url: ${MINIO_URL:http://localhost:9000}                 # Mặc định kết nối MinIO local nếu MINIO_URL không được truyền
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket-name: ${MINIO_BUCKET:export-logs}
 
 logging:
   level:

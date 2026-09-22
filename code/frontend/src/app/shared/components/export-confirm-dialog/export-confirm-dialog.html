@@ -1,0 +1,17 @@
+<div class="confirm-overlay" *ngIf="isOpen" (click)="onCancel()">
+  <div class="confirm-dialog" (click)="$event.stopPropagation()">
+    <div class="confirm-dialog-header">
+      <tui-icon icon="@tui.alert-triangle" style="--tui-icon-size: 24px; color: #d97706;"></tui-icon>
+      <h3>{{ title }}</h3>
+    </div>
+    <p class="confirm-dialog-body">{{ message }}</p>
+    <div class="confirm-dialog-actions">
+      <button tuiButton appearance="secondary" type="button" (click)="onCancel()">
+        Hủy
+      </button>
+      <button tuiButton type="button" class="btn-export-primary" (click)="onConfirm()">
+        Tiếp
+      </button>
+    </div>
+  </div>
+</div>

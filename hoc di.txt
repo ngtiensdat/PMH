@@ -1,87 +1,475 @@
 ================================================================================
-           LỘ TRÌNH VÀ CHECKLIST HỌC CODE THỰC CHIẾN (PAYMENT HUB)
+  TÀI LIỆU HỌC TẬP: CHI TIẾT LUỒNG XỬ LÝ VÀ CODE HÀM HỆ THỐNG EXPORT (BE)
+================================================================================
+Dự án: Payment Hub (PMH) - Backend Java Spring Boot
+Mục đích: Dùng để đọc hiểu kiến trúc, giải thích chi tiết code và luồng chạy thực tế.
+
+--------------------------------------------------------------------------------
+MỤC LỤC
+--------------------------------------------------------------------------------
+PHẦN I  : TỔNG QUAN TỔ CHỨC LUỒNG XỬ LÝ (PROCESSING FLOW)
+PHẦN II : CHI TIẾT CÁC MÃ NGUỒN VÀ CODE HÀM CỤ THỂ (CODE & ANNOTATIONS)
+          1. ExportJobServiceImpl (Tiếp nhận & Quản lý Job)
+          2. ExportLockService (Khóa phân tán Redis Anti-Spam)
+          3. BaseExportWorker (Template Method Pattern + Asynchronous)
+          4. TransactionExportWorker (Keyset Batching + SXSSFWorkbook + MinIO)
+          5. ExportProgressService (Theo dõi tiến độ realtime)
+          6. ExportRecoveryScheduler (Khôi phục tự động khi Job kẹt STUCK)
+          7. MinioStorageServiceImpl (Lưu trữ và Bảo mật Download Presigned URL)
+PHẦN III: CÁC KHÁI NIỆM & KỸ THUẬT CỐT LÕI CẦN GHI NHỚ (BEST PRACTICES)
+
+
+================================================================================
+PHẦN I: TỔNG QUAN TỔ CHỨC LUỒNG XỬ LÝ (PROCESSING FLOW)
+================================================================================
+
+1. SƠ ĐỒ LUỒNG CHẠY (ASCII SEQUENCE DIAGRAM)
+
+ [ Client (FE) ]      [ Controller / Service ]       [ Redis Lock ]       [ DB (PostgreSQL) ]    [ Async Worker ]      [ MinIO Storage ]
+        |                         |                         |                     |                      |                     |
+        |--- 1. POST /export ---->|                         |                     |                      |                     |
+        |    (Tạo yêu cầu export) |--- 2. tryLock(userId) ->|                     |                      |                     |
+        |                         |<-- OK (Locked) ---------|                     |                      |                     |
+        |                         |--- 3. Save ExportJob(PENDING)--------------->|                      |                     |
+        |                         |--- 4. @Async execute runExport() ----------------------------------->|                     |
+        |<-- 202 Accepted (JobId)-|                         |                     |                      |                     |
+        |                         |                         |                     |                      |-- Update PROCESSING |
+        |                         |                         |                     |<-- 5. Query Keyset --| (Batch 1000 items)  |
+        |--- 6. GET /active ----->|                         |                     |    (id > lastId)     |-- Ghi vào SXSSFSheet|
+        |    (Poll mỗi 3s)        |--- 7. Get Progress ---->| (Redis Hash)        |                      |                     |
+        |<-- Return % Progress ---|                         |                     |                      |-- 8. Push XLSX ---->|
+        |                         |                         |                     |                      |<-- Return S3 Path --|
+        |                         |                         |                     |                      |-- Update COMPLETED  |
+        |                         |                         |<-- 9. Unlock -------|                      |                     |
+        |                         |                         |                     |                      |                     |
+        |--- 10. GET /download -->|                         |                     |                      |                     |
+        |    (Khi status COMPLETED|--- 11. Anti-IDOR Check (UserId == Owner)      |                      |                     |
+        |<-- Presigned MinIO URL -|--- 12. MinioClient.getPresignedObjectUrl() ----------------------------->|                     |
+        |                         |                         |                     |                      |                     |
+
+--------------------------------------------------------------------------------
+2. CÁC ĐIỂM CHÚ Ý QUAN TRỌNG TRONG LUỒNG:
+   a) Bất đồng bộ (@Async): Request từ FE tạo Job nhận về Http 202 ngay lập tức trong vài millisecond. Luồng chính (HTTP Thread) không bị phong tỏa (non-blocking).
+   b) Tránh Spam (Distributed Lock): Chỉ cho phép 1 User có tối đa 1 Job đang chạy (PENDING hoặc PROCESSING) bằng Redis Lock (Khóa theo `export:lock:user:{userId}`).
+   c) Phân trang Keyset (Keyset Pagination): Không dùng `OFFSET limit` (chậm khi data hàng triệu dòng). Dùng `WHERE id > :lastId ORDER BY id ASC LIMIT :batchSize` (tốc độ không đổi bất kể trang 1 hay trang 1000).
+   d) Ghi File mượt mà (SXSSFWorkbook): Excel SXSSFWorkbook chỉ giữ tối đa 100 dòng trên RAM, còn lại tự động ghi tạm ra đĩa cứng (Flushed to disk). Tránh lỗi OutOfMemoryError (OOM).
+   e) Bảo mật (Anti-IDOR): Người dùng chỉ có quyền tạo URL tải cho Job do chính mình tạo ra (`created_by == currentUserId`).
+
+
+================================================================================
+PHẦN II: CHI TIẾT CÁC MÃ NGUỒN VÀ CODE HÀM CỤ THỂ
 ================================================================================
 
 --------------------------------------------------------------------------------
-MỤC I. QUY TẮC NGHIỆP VỤ & LUỒNG TRẠNG THÁI HỆ THỐNG
+1. ExportJobServiceImpl.java (Service Quản lý Job Export)
 --------------------------------------------------------------------------------
-[x] 1. Hai hệ thống trạng thái độc lập trong Payment Hub:
-    - Trạng thái tham số (STATUS): 1-Tạo mới, 3-Chờ duyệt, 4-Đã duyệt, 5-Từ chối, 7-Hủy duyệt (Phục vụ luồng phê duyệt Maker - Checker).
-    - Tình trạng hoạt động (IS_ACTIVE): 1-Đang hoạt động, 0-Không hoạt động (Tính tự động theo ngày hiệu lực).
-[x] 2. Ma trận các trạng thái được phép sửa:
-    - Được phép sửa: 1 (Tạo mới), 5 (Từ chối), 7 (Hủy duyệt).
-    - Cấm sửa trực tiếp: 3 (Chờ duyệt), 4 (Đã duyệt).
-[x] 3. Quy tắc cốt lõi: Bản ghi Đã duyệt (4) -> Hủy duyệt (7) -> Sửa:
-    - Giá trị sửa KHÔNG được thay thế trực tiếp vào các cột chính trong DB.
-    - Lưu tạm vào cột NEW_DATA dạng JSON, gán IS_DISPLAY = 2.
-    - Hiển thị Form đối chiếu song song 2 cột (Cũ vs Mới) cho Checker duyệt. Khi duyệt mới bung JSON ghi đè vào DB.
+Mục đích: Tiếp nhận request tạo Job, kiểm tra Lock, tạo bản ghi DB và kiểm tra quyền tải file.
+
+[MÃ NGUỒN VÀ GIẢI THÍCH]:
+
+```java
+@Transactional
+public ExportJobResponse createJob(ExportJobRequest request) {
+    Long userId = SecurityUtils.getCurrentUserId();
+    
+    // Gọi hàm nội bộ để tạo Job
+    ExportJob job = createExportJobInternal(request, userId);
+
+    // Tìm Worker tương ứng dựa trên ExportType (TRANSACTION, CATEGORY, COMPONENT)
+    ExportWorker worker = workerMap.get(request.getType());
+    if (worker == null) {
+        throw new BusinessException("Không tìm thấy worker xử lý loại export này");
+    }
+
+    // Kích hoạt tiến trình chạy ngầm bất đồng bộ (@Async)
+    worker.runExport(job.getId(), request);
+
+    return mapper.toResponse(job);
+}
+
+private ExportJob createExportJobInternal(ExportJobRequest request, Long userId) {
+    // 1. Kiểm tra và chiếm Lock Redis của User (Khóa 2 giờ)
+    boolean acquired = lockService.tryLock(userId, 2, TimeUnit.HOURS);
+    if (!acquired) {
+        throw new BusinessException("Bạn đang có tiến trình export khác đang chạy. Vui lòng chờ!");
+    }
+
+    try {
+        // 2. Tạo entity ExportJob ban đầu ở trạng thái PENDING
+        ExportJob job = ExportJob.builder()
+            .type(request.getType())
+            .status(ExportStatus.PENDING)
+            .createdBy(userId)
+            .createdAt(LocalDateTime.now())
+            .build();
+
+        return exportJobRepository.save(job);
+    } catch (Exception e) {
+        // Nếu lưu DB thất bại, phải giải phóng Lock ngay lập tức
+        lockService.unlock(userId);
+        throw e;
+    }
+}
+
+@Transactional(readOnly = true)
+public String getDownloadUrl(Long jobId) {
+    Long userId = SecurityUtils.getCurrentUserId();
+    
+    ExportJob job = exportJobRepository.findById(jobId)
+        .orElseThrow(() -> new ResourceNotFoundException("Job không tồn tại"));
+
+    // Kiểm tra Anti-IDOR: Người dùng A không thể lấy URL tải file của người dùng B
+    if (!job.getCreatedBy().equals(userId)) {
+        throw new AccessDeniedException("Bạn không có quyền tải file này");
+    }
+
+    if (job.getStatus() != ExportStatus.COMPLETED) {
+        throw new BusinessException("File chưa hoàn thành xử lý");
+    }
+
+    // Sinh Presigned URL hết hạn trong 15 phút từ MinIO
+    return storageService.generatePresignedUrl(job.getFilePath(), 15);
+}
+```
+
+* Giải thích hàm quan trọng:
+  + `createExportJobInternal()`: Thực hiện thao tác an toàn nguyên tử (atomic operation) - Thử xin Lock -> Lưu DB trạng thái PENDING -> Trả về Entity.
+  + `@Transactional(readOnly = true)` trên `getDownloadUrl()`: Giúp Hibernate tối ưu truy vấn (không tạo dirty check, không ghi lock ghi vào DB), nâng cao tốc độ đọc.
+
 
 --------------------------------------------------------------------------------
-MỤC II. TỔNG HỢP CHECKLIST KIẾN THỨC JAVA BACKEND (SPRING BOOT & JPA)
+2. ExportLockService.java (Khóa phân tán Redis & Fallback)
 --------------------------------------------------------------------------------
-[x] 1. Phân biệt @Controller và @RestController & Chuẩn hóa HTTP Status Code (200, 201, 400, 403, 404, 500).
-[X] 2. Dependency Injection & Constructor Injection:
-    - Tại sao Constructor Injection + từ khóa 'final' là Best Practice (Thread-safe, Immutability, dễ Unit Test).
-    - Phân biệt tự gọi 'new' (cách truyền thống) vs Spring IoC Container tiêm ngầm.
-    - Spring Bean Scope mặc định: Singleton (Duy nhất 1 instance trên RAM).
-    - Lịch sử và cách dùng @Autowired hiện đại.
-[1] 3. Lập trình hàm Java 8 Stream API & Lambda Expressions:
-    - Tư duy băng chuyền xử lý dữ liệu với .filter(), .map(), .toList(), .findFirst().
-[] 4. Optional<T> & Kỹ thuật diệt lỗi NullPointerException:
-    - .orElse(), .orElseThrow(), .map(), .ifPresent().
-[x] 5. JPA Entity Lifecycle Callbacks & BaseEntity:
-    - @MappedSuperclass, @PrePersist (trước INSERT), @PreUpdate (trước UPDATE).
-[] 6. Tối ưu hóa API & Phân trang chuẩn:
-    - Gom nhóm @RequestParam lẻ tẻ thành DTO (ComponentSearchCriteria, GroupCategorySearchCriteria).
-    - Phân trang chuẩn với Pageable & @PageableDefault.
+Mục đích: Đảm bảo tính nhất quán (Concurrency control), ngăn 1 user tạo 10 job đồng thời.
 
---- CÁC CHỦ ĐỀ CẦN TIẾP TỤC ÔN TẬP TIẾP THEO ---
-[ ] 7. Kiểu dữ liệu Nguyên thủy (int) vs Kiểu Wrapper (Integer):
-    - Khác biệt Stack vs Heap, giá trị null, Autoboxing/Unboxing.
-    - Tại sao DB Entity & DTO bắt buộc dùng kiểu Integer?
-[x] 8. Đối tượng ObjectMapper (Jackson):
-    - Serialization (Object -> JSON writeValueAsString) và Deserialization (JSON -> Object readValue).
-[ ] 9. Cơ chế Transaction & Tính chất ACID:
-    - Cơ chế Rollback, Undo Log / WAL trong Database.
-[ ] 10. Spring AOP Proxy & @Transactional:
-    - Tại sao @Transactional trên phương thức private KHÔNG CÓ TÁC DỤNG?
-    - Hiện tượng Self-invocation (tự gọi hàm nội bộ qua con trỏ 'this').
-[ ] 11. JPA Entity Lifecycle States & Dirty Checking:
-    - 4 trạng thái: Transient, Managed, Detached, Removed.
-    - Giải mã cơ chế Dirty Checking (tự động UPDATE khi commit mà không cần repository.save()).
-[ ] 12. So sánh các cách Quản lý Transaction:
-    - @Transactional (Declarative).
-    - @Transactional(readOnly = true) (Tắt Dirty Checking, tiết kiệm RAM/CPU).
-    - TransactionTemplate (Programmatic - PROPAGATION_REQUIRES_NEW cho Batch Processing độc lập).
-[x] 13. Stored Procedure & Oracle Integration:
-    - ParameterMode.IN, ParameterMode.OUT, đọc kết quả từ StoredProcedureQuery.
-[ ] 14. 4 Tính chất Lập trình Hướng đối tượng (OOP):
-    - Đóng gói (Encapsulation), Kế thừa (Inheritance), Đa hình (Polymorphism), Trừu tượng (Abstraction).
+[MÃ NGUỒN VÀ GIẢI THÍCH]:
 
---------------------------------------------------------------------------------
-MỤC III. TỔNG HỢP CHECKLIST KIẾN THỨC ANGULAR FRONTEND
---------------------------------------------------------------------------------
-[] 1. Phân biệt Toán tử Logical OR (||) và Nullish Coalescing (??):
-    - Falsy (false, 0, "", null, undefined) vs Nullish (null, undefined).
-[] 2. Truyền dữ liệu giữa các Component:
-    - @Input() (Cha -> Con) và @Output() (Con -> Cha qua EventEmitter).
-[] 3. Vòng đời Angular Component & ngOnInit():
-    - Thứ tự: constructor -> ngOnChanges -> ngOnInit -> ngAfterViewInit -> ngOnDestroy.
-    - Tại sao gọi API trong ngOnInit() thay vì constructor()?
+```java
+@Service
+@RequiredArgsConstructor
+public class ExportLockService {
+    private final StringRedisTemplate redisTemplate;
+    // Tự chuẩn bị Fallback HashMap nếu Redis bị mất kết nối (High Availability)
+    private final Map<String, Long> localLocks = new ConcurrentHashMap<>();
 
---- CÁC CHỦ ĐỀ CẦN TIẾP TỤC ÔN TẬP TIẾP THEO ---
-[ ] 4. Hàm inject() trong Angular 14+:
-    - Tiêm phụ thuộc hiện đại không dùng constructor, giải quyết vấn đề kế thừa class cha (extends BaseComponent).
-[ ] 5. Tích hợp Taiga UI & Advanced Form Control:
-    - Value Transformer cho Input DateTime (DateTimeTransformer).
-    - Binding Checkbox với ngModel (ControlValueAccessor).
+    public boolean tryLock(Long userId, long timeout, TimeUnit unit) {
+        String key = "export:lock:user:" + userId;
+        try {
+            // Sử dụng lệnh Redis SET NX (Set if Not Exists) với thời hạn EXPIRE
+            Boolean success = redisTemplate.opsForValue()
+                .setIfAbsent(key, "LOCKED", timeout, unit);
+            return Boolean.TRUE.equals(success);
+        } catch (Exception e) {
+            log.warn("Redis chập chờn, chuyển sang dùng Local Lock: {}", e.getMessage());
+            // Fallback: Kiểm tra xem user này đã có trong map chưa
+            long expireTime = System.currentTimeMillis() + unit.toMillis(timeout);
+            return localLocks.putIfAbsent(key, expireTime) == null;
+        }
+    }
+
+    public void unlock(Long userId) {
+        String key = "export:lock:user:" + userId;
+        try {
+            redisTemplate.delete(key);
+        } catch (Exception e) {
+            localLocks.remove(key);
+        }
+    }
+}
+```
+
+* Giải thích cơ chế:
+  + `setIfAbsent(key, value, timeout, unit)` tương đương câu lệnh Redis: `SET export:lock:user:101 LOCKED NX EX 7200`.
+  + Nếu key đã tồn tại -> Trả về `false` (Khóa thất bại).
+  + Nếu key chưa có -> Tạo key và gán hết hạn 2h -> Trả về `true` (Thành công).
+
 
 --------------------------------------------------------------------------------
-MỤC IV. BÀI TOÁN TỐI ƯU HIỆU NĂNG TRONG THỰC TẾ (PERFORMANCE)
+3. BaseExportWorker.java (Template Method Pattern + Asynchronous)
 --------------------------------------------------------------------------------
-[ ] 1. Duyệt / Hủy duyệt hàng loạt theo Danh sách ID (Batch Processing).
-[ ] 2. Cronjob 5s Scheduler tự động cập nhật IS_ACTIVE bằng SQL Bulk Update.
-[ ] 3. Tối ưu hóa DOM Rendering bằng trackBy trong Angular *ngFor.
-[ ] 4. Kéo giãn cột bảng 60 FPS với requestAnimationFrame và Event Guard.
+Mục đích: Lớp cha trừu tượng (Abstract Class) định nghĩa khung sườn quy trình export chung cho tất cả các loại dữ liệu (Transaction, Category, Component...).
 
+[MÃ NGUỒN VÀ GIẢI THÍCH]:
+
+```java
+public abstract class BaseExportWorker implements ExportWorker {
+    @Autowired protected ExportJobRepository exportJobRepository;
+    @Autowired protected ExportLockService lockService;
+    @Autowired protected ExportProgressService progressService;
+    @Autowired protected FileStorageService storageService;
+
+    @Async("exportTaskExecutor") // Chạy trên ThreadPool riêng biệt
+    @Override
+    public void runExport(Long jobId, ExportJobRequest request) {
+        ExportJob job = exportJobRepository.findById(jobId).orElse(null);
+        if (job == null) return;
+
+        try {
+            // 1. Cập nhật trạng thái Job -> PROCESSING
+            updateStatus(job, ExportStatus.PROCESSING, null, null);
+
+            // 2. Gọi hàm thực thi chi tiết của Lớp Con (Polymorphism / Class kế thừa)
+            String filePath = executeExport(job, request);
+
+            // 3. Hoàn tất -> Cập nhật status COMPLETED và đường dẫn File MinIO
+            updateStatus(job, ExportStatus.COMPLETED, filePath, null);
+        } catch (Exception e) {
+            log.error("Lỗi khi export job {}: ", jobId, e);
+            // 4. Nếu có lỗi -> Cập nhật status FAILED và lưu nguyên nhân lỗi
+            updateStatus(job, ExportStatus.FAILED, null, e.getMessage());
+        } finally {
+            // 5. BẮT BUỘC: Giải phóng Lock Redis dù thành công hay thất bại
+            lockService.unlock(job.getCreatedBy());
+            // Xóa tiến độ cache trong Redis
+            progressService.clearProgress(jobId);
+        }
+    }
+
+    // Hàm template cho lớp con tự viết logic lấy dữ liệu & tạo file
+    protected abstract String executeExport(ExportJob job, ExportJobRequest request) throws Exception;
+
+    private void updateStatus(ExportJob job, ExportStatus status, String filePath, String error) {
+        job.setStatus(status);
+        if (filePath != null) job.setFilePath(filePath);
+        if (error != null) job.setErrorMessage(error);
+        job.setUpdatedAt(LocalDateTime.now());
+        exportJobRepository.save(job);
+    }
+}
+```
+
+
+--------------------------------------------------------------------------------
+4. TransactionExportWorker.java (Xử lý dữ liệu lớn bằng Keyset & SXSSF)
+--------------------------------------------------------------------------------
+Mục đích: Lớp con đảm nhận export Giao dịch (Transaction) - Nơi tập trung dữ liệu cực kỳ lớn.
+
+[MÃ NGUỒN VÀ GIẢI THÍCH]:
+
+```java
+@Component("TRANSACTION")
+public class TransactionExportWorker extends BaseExportWorker {
+    private final TransactionRepository transactionRepository;
+
+    @Override
+    protected String executeExport(ExportJob job, ExportJobRequest request) throws Exception {
+        // 1. Đếm tổng số bản ghi cần export để tính % tiến độ
+        long totalElements = transactionRepository.countByFilter(request.getFilter());
+        progressService.initProgress(job.getId(), totalElements);
+
+        // 2. Khởi tạo SXSSFWorkbook - chỉ giữ tối đa 100 dòng trên RAM!
+        try (SXSSFWorkbook workbook = new SXSSFWorkbook(100)) {
+            SXSSFSheet sheet = workbook.createSheet("Transactions");
+            sheet.setRandomAccessWindowSize(100); // Bật chế độ tự xả bớt dòng xuống đĩa tạm
+
+            // Tạo Header
+            createHeaderRow(sheet);
+
+            int rowIndex = 1;
+            Long lastId = 0L; // Con trỏ Keyset Pagination
+            int batchSize = 1000; // Mỗi lần lấy đúng 1000 dòng
+
+            while (true) {
+                // TRUY VẤN KEYSET: Lấy 1000 bản ghi có ID lớn hơn lastId
+                List<Transaction> batch = transactionRepository.findBatchKeyset(
+                    request.getFilter(), lastId, PageRequest.of(0, batchSize)
+                );
+
+                if (batch.isEmpty()) break; // Hết dữ liệu -> Dừng vòng lặp
+
+                for (Transaction tx : batch) {
+                    Row row = sheet.createRow(rowIndex++);
+                    row.createCell(0).setCellValue(tx.getId());
+                    row.createCell(1).setCellValue(tx.getTxCode());
+                    row.createCell(2).setCellValue(tx.getAmount().doubleValue());
+                    row.createCell(3).setCellValue(tx.getCreatedAt().toString());
+
+                    // Cập nhật lastId cho vòng lặp kế tiếp!
+                    lastId = tx.getId();
+                }
+
+                // Cập nhật tiến độ realtime vào Redis
+                progressService.updateProgress(job.getId(), rowIndex - 1);
+            }
+
+            // 3. Ghi Workbook ra file tạm (.xlsx)
+            File tempFile = File.createTempFile("export_tx_", ".xlsx");
+            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                workbook.write(fos);
+            }
+            workbook.dispose(); // Xóa sạch đĩa tạm do SXSSF tạo ra
+
+            // 4. Upload file từ Local Temp lên MinIO
+            String minioPath = "exports/" + LocalDate.now() + "/" + tempFile.getName();
+            storageService.uploadFile(minioPath, tempFile);
+
+            // Xóa file tạm trên ổ cứng server BE
+            tempFile.delete();
+
+            return minioPath;
+        }
+    }
+}
+```
+
+* Câu SQL Keyset Pagination tương ứng trong Repository:
+  `SELECT t FROM Transaction t WHERE t.id > :lastId AND ... ORDER BY t.id ASC`
+
+
+--------------------------------------------------------------------------------
+5. ExportProgressService.java (Lưu trữ và Truy xuất Tiến độ Realtime)
+--------------------------------------------------------------------------------
+Mục đích: Lưu trạng thái `[processed / total]` vào Redis Hash để Client gọi API Polling liên tục không làm quá tải Database.
+
+[MÃ NGUỒN VÀ GIẢI THÍCH]:
+
+```java
+@Service
+@RequiredArgsConstructor
+public class ExportProgressService {
+    private final StringRedisTemplate redisTemplate;
+
+    public void initProgress(Long jobId, long total) {
+        String key = "export:progress:" + jobId;
+        redisTemplate.opsForHash().put(key, "total", String.valueOf(total));
+        redisTemplate.opsForHash().put(key, "current", "0");
+        redisTemplate.expire(key, 1, TimeUnit.HOURS); // Hết hạn sau 1h
+    }
+
+    public void updateProgress(Long jobId, long current) {
+        String key = "export:progress:" + jobId;
+        redisTemplate.opsForHash().put(key, "current", String.valueOf(current));
+    }
+
+    public ExportProgressDto getProgress(Long jobId) {
+        String key = "export:progress:" + jobId;
+        Object totalObj = redisTemplate.opsForHash().get(key, "total");
+        Object currentObj = redisTemplate.opsForHash().get(key, "current");
+
+        if (totalObj == null || currentObj == null) {
+            return new ExportProgressDto(0, 0, 0.0);
+        }
+
+        long total = Long.parseLong(totalObj.toString());
+        long current = Long.parseLong(currentObj.toString());
+        double percent = total == 0 ? 100.0 : (double) current / total * 100;
+
+        return new ExportProgressDto(total, current, Math.round(percent * 100.0) / 100.0);
+    }
+}
+```
+
+
+--------------------------------------------------------------------------------
+6. ExportRecoveryScheduler.java (Tự động Khôi phục Job bị Kẹt - STUCK)
+--------------------------------------------------------------------------------
+Mục đích: Nếu Server backend bị Restart/Crash đột ngột khi đang chạy Worker, Job sẽ mãi bị kẹt ở trạng thái `PROCESSING`. Scheduler này sẽ quét và khôi phục tự động.
+
+[MÃ NGUỒN VÀ GIẢI THÍCH]:
+
+```java
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class ExportRecoveryScheduler {
+    private final ExportJobRepository exportJobRepository;
+    private final ExportLockService lockService;
+
+    // Chạy mỗi 5 phút một lần
+    @Scheduled(cron = "0 */5 * * * *")
+    @Transactional
+    public void recoverStuckJobs() {
+        // Tìm các Job đang PROCESSING mà không được cập nhật quá 15 phút
+        LocalDateTime threshold = LocalDateTime.now().minusMinutes(15);
+        List<ExportJob> stuckJobs = exportJobRepository
+            .findByStatusAndUpdatedAtBefore(ExportStatus.PROCESSING, threshold);
+
+        for (ExportJob job : stuckJobs) {
+            log.warn("Phát hiện Job bị kẹt (STUCK) ID: {}. Đang tiến hành khôi phục...", job.getId());
+            
+            // Đánh dấu job thất bại với lý do Timeout/Server Restart
+            job.setStatus(ExportStatus.FAILED);
+            job.setErrorMessage("Tiến trình bị gián đoạn do timeout hoặc hệ thống khởi động lại");
+            exportJobRepository.save(job);
+
+            // Xóa Lock để User có thể bấm Export lại
+            lockService.unlock(job.getCreatedBy());
+        }
+    }
+}
+```
+
+
+--------------------------------------------------------------------------------
+7. MinioStorageServiceImpl.java (Lưu trữ và Bảo mật Link Download)
+--------------------------------------------------------------------------------
+Mục đích: Đẩy file lên Cloud/MinIO Object Storage và tạo URL tải xuống có thời hạn.
+
+[MÃ NGUỒN VÀ GIẢI THÍCH]:
+
+```java
+@Service
+@RequiredArgsConstructor
+public class MinioStorageServiceImpl implements FileStorageService {
+    private final MinioClient minioClient;
+    @Value("${minio.bucket-name}") private String bucketName;
+
+    @Override
+    public void uploadFile(String objectName, File file) throws Exception {
+        try (InputStream is = new FileInputStream(file)) {
+            minioClient.putObject(
+                PutObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(objectName)
+                    .stream(is, file.length(), -1)
+                    .contentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    .build()
+            );
+        }
+    }
+
+    @Override
+    public String generatePresignedUrl(String objectName, int expiryMinutes) {
+        try {
+            return minioClient.getPresignedObjectUrl(
+                GetPresignedObjectUrlArgs.builder()
+                    .method(Method.GET)
+                    .bucket(bucketName)
+                    .object(objectName)
+                    .expiry(expiryMinutes, TimeUnit.MINUTES)
+                    .build()
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Không thể tạo đường dẫn tải file", e);
+        }
+    }
+}
+```
+
+
+================================================================================
+PHẦN III: CÁC KHÁI NIỆM & KỸ THUẬT CỐT LÕI CẦN GHI NHỚ (BEST PRACTICES)
+================================================================================
+
+1. LẠM DỤNG `@Transactional` VÀ NGUY CƠ NGHẼN THREAD POOL:
+   - KHÔNG bọc `@Transactional` trên các hàm thực hiện I/O dài hạn (như đọc ghi Excel hay Upload MinIO).
+   - Lý do: Mở Transaction là giữ DB Connection. Đọc 100k dòng Excel hết 30 giây -> DB Connection bị chiếm 30 giây -> Cạn kiệt Connection Pool (HikariCP lockout).
+   - Giải pháp: Chỉ mở `@Transactional` ở các thao tác đọc/ghi DB ngắn hạn, đóng Transaction ngay trước khi ghi File/Upload.
+
+2. PHÂN TRANG KEYSET (KEYSET PAGINATION) VS OFFSET PAGINATION:
+   - Truy vấn OFFSET: `SELECT * FROM tx LIMIT 1000 OFFSET 500000;`
+     -> DB phải duyệt qua 500.000 dòng rồi bỏ đi, chỉ lấy 1000 dòng cuối (RẤT CHẬM).
+   - Truy vấn KEYSET: `SELECT * FROM tx WHERE id > 500000 ORDER BY id ASC LIMIT 1000;`
+     -> DB nhảy thẳng tới B-Tree Index của `id = 500000` và đọc ngay 1000 dòng tiếp theo (TỐC ĐỘ O(1) SIÊU NHANH).
+
+3. CHỐNG NGHẼN BỘ NHỚ RAM BẰNG SXSSF (STREAMING POI):
+   - `XSSFWorkbook`: Dựng toàn bộ cây DOM dữ liệu Excel trên RAM -> 50.000 dòng ngốn 1-2GB RAM -> Dễ dính OutOfMemoryError.
+   - `SXSSFWorkbook(100)`: Chỉ duy trì 100 dòng trên bộ nhớ RAM. Khi vượt quá 100 dòng, các dòng cũ sẽ được nén và ghi xả ra đĩa tạm (Disk Temp). Bộ nhớ RAM luôn giữ ổn định ở mức cực thấp.
+
+4. BẢO MẬT LINK DOWNLOAD BẰNG PRESIGNED URL:
+   - Tránh việc trả về link trực tiếp static file (Public Bucket).
+   - Presigned URL có chứa Chữ ký số HMAC + Thời gian hết hạn (ví dụ: 15 phút). Hết 15 phút link tự hủy, giúp bảo mật dữ liệu nhạy cảm của hệ thống Payment Hub.
+
+================================================================================
+HẾT TÀI LIỆU - CHÚC BẠN HỌC TẬP VÀ ĐỌC CODE HIỆU QUẢ!
 ================================================================================

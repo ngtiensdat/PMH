@@ -42,6 +42,7 @@
     "rxjs": "~7.8.0",
     "taiga-ui": "^5.14.0",
     "tslib": "^2.3.0",
+    "xlsx": "^0.18.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {

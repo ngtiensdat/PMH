@@ -183,7 +183,11 @@ export const APP_LABELS_VN = {
       endEffectiveDateInvalidFormat: 'Ngày hết hiệu lực không phải định dạng ngày giờ hợp lệ (yyyy-MM-ddTHH:mm)',
       endEffectiveDateTooFarPast: 'Ngày hết hiệu lực không được quá 100 năm trong quá khứ',
       endEffectiveDateTooFarFuture: 'Ngày hết hiệu lực không được vượt quá 100 năm trong tương lai',
-      endEffectiveDateMustBeAfter: 'Ngày hết hiệu lực phải sau ngày hiệu lực'
+      endEffectiveDateMustBeAfter: 'Ngày hết hiệu lực phải sau ngày hiệu lực',
+
+      accountNoMaxLength: 'Số tài khoản tối đa 50 ký tự',
+      transactionCodeMaxLength: 'Mã giao dịch tối đa 100 ký tự',
+      toDateMustBeAfterFromDate: 'Đến ngày giờ phải lớn hơn hoặc bằng Từ ngày giờ'
     }
   }
 };

@@ -19,7 +19,8 @@ import {
   TuiSelect,
   TuiDataListWrapper,
   TuiMultiSelect,
-  TuiInputDateTime
+  TuiInputDateTime,
+  TuiInputDate
 } from '@taiga-ui/kit';
 
 const TAIGA_COMPONENTS: any[] = [
@@ -40,7 +41,8 @@ const TAIGA_COMPONENTS: any[] = [
   TuiSelect,
   TuiDataListWrapper,
   TuiMultiSelect,
-  TuiInputDateTime
+  TuiInputDateTime,
+  TuiInputDate
 ];
 
 @NgModule({

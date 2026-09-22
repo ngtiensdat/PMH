@@ -93,15 +93,10 @@ public class ComponentServiceImpl extends AbstractMakerCheckerService implements
     @Override
     @Transactional(readOnly = true)
     public List<ProcessingComponent> getActiveList(Integer status) {
-        List<ProcessingComponent> rawList = status != null
-                ? repository.findAllByIsActiveAndStatusOrderByComponentCodeAsc(ActiveStatus.ACTIVE.getCode(), status)
-                : repository.findAllByIsActiveOrderByComponentCodeAsc(ActiveStatus.ACTIVE.getCode());
-
         LocalDateTime now = LocalDateTime.now();
-        return rawList.stream()
-                .filter(c -> c.getEffectiveDate() != null && !c.getEffectiveDate().isAfter(now))
-                .filter(c -> c.getEndEffectiveDate() == null || !c.getEndEffectiveDate().isBefore(now))
-                .toList();
+        return status != null
+                ? repository.findActiveWithStatusInRange(ActiveStatus.ACTIVE.getCode(), status, now)
+                : repository.findActiveInRange(ActiveStatus.ACTIVE.getCode(), now);
     }
 
     // ─── Create ───────────────────────────────────────────────────────────────
@@ -229,7 +224,7 @@ public class ComponentServiceImpl extends AbstractMakerCheckerService implements
         username = resolveUsername(username);
 
         ProcessingComponent entity = getByCode(code);
-        if (!entity.isApproved()) throw new InvalidStateTransitionException(BusinessErrorCode.INVALID_SUBMIT_STATUS);
+        if (!entity.isApproved()) throw new InvalidStateTransitionException(BusinessErrorCode.INVALID_CANCEL_STATUS);
 
         int statusBefore = entity.getStatus();
         entity.setStatus(ParamStatus.CANCELED.getCode());

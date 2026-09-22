@@ -1,26 +1,30 @@
 import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormsModule } from '@angular/forms';
-import { Observable } from 'rxjs';
+import { Observable, catchError, EMPTY } from 'rxjs';
 import { CategoryService } from '../../services/category.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { exportToCsv } from '../../../../shared/utils/csv-export.utils';
 import { TableColumnDef, computeNextSort } from '../../../../shared/utils/table-column.utils';
 import { GroupCategoryResponse } from '../../../../shared/models/group-category.model';
 import { ApiResponse, BatchItemResult } from '../../../../shared/models/api-response.model';
 import { BaseListComponent } from '../../../../shared/components/base-list/base-list.component';
+import { ExportJobResponse, computeExportProgress } from '../../../../shared/models/transaction-log.model';
+import { environment } from '../../../../../environments/environment';
 
 import { SharedTaigaModule } from '../../../../shared/shared-taiga.module';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog';
 import { RejectReasonDialogComponent } from '../../../../shared/components/reject-reason-dialog/reject-reason-dialog';
 import { AuditHistoryDialogComponent } from '../../../../shared/components/audit-history-dialog/audit-history-dialog';
+import { ExportConfirmDialogComponent } from '../../../../shared/components/export-confirm-dialog/export-confirm-dialog';
+import { ExportProgressBannerComponent } from '../../../../shared/components/export-banner/export-banner';
 
 @Component({
   selector: 'app-category-list',
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule, FormsModule, SharedTaigaModule,
-    ConfirmDialogComponent, RejectReasonDialogComponent, AuditHistoryDialogComponent
+    ConfirmDialogComponent, RejectReasonDialogComponent, AuditHistoryDialogComponent,
+    ExportConfirmDialogComponent, ExportProgressBannerComponent
   ],
   templateUrl: './category-list.html',
   styleUrl: './category-list.css'
@@ -111,6 +115,21 @@ export class CategoryListComponent extends BaseListComponent<GroupCategoryRespon
   trackById(_: number, item: GroupCategoryResponse): number { return item.id; }
   trackByHistoryId(_: number, item: { id?: number }): number | undefined { return item.id; }
 
+  // ── Export Job state (Đồng bộ 100% với Transaction Log) ────────────────────
+  activeExportJob = signal<ExportJobResponse | null>(null);
+  exportProgress = computed(() => {
+    const job = this.activeExportJob();
+    return job ? computeExportProgress(job) : 0;
+  });
+  isExporting = computed(() => {
+    const s = this.activeExportJob()?.status;
+    return s === 'PENDING' || s === 'PROCESSING';
+  });
+  exportError = signal<string | null>(null);
+
+  showConfirmDialog = signal(false);
+  confirmDialogMsg = signal('');
+
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   override ngOnInit(): void {
     const saved = this.categoryService.getListState();
@@ -122,6 +141,19 @@ export class CategoryListComponent extends BaseListComponent<GroupCategoryRespon
       this.searchForm.patchValue(saved.filters);
     }
     this.loadData();
+    this.restoreActiveJobState();
+  }
+
+  private restoreActiveJobState(): void {
+    this.categoryService.getActiveJob().pipe(
+      catchError(() => EMPTY)
+    ).subscribe(res => {
+      const job = res.data;
+      if (job && (job.status === 'PENDING' || job.status === 'PROCESSING')) {
+        this.activeExportJob.set(job);
+        this.pollExportUntilDone(job.jobId);
+      }
+    });
   }
 
   // ── Data loading ───────────────────────────────────────────────────────────
@@ -234,31 +266,120 @@ export class CategoryListComponent extends BaseListComponent<GroupCategoryRespon
   openCopyDialog(item: GroupCategoryResponse):  void { this.router.navigate(['/categories/copy', item.id], { state: { data: item } }); }
   onViewDetail(item: GroupCategoryResponse):    void { this.router.navigate(['/categories/detail', item.id], { state: { data: item } }); }
 
-  // ── Export ─────────────────────────────────────────────────────────────────
-  onExportExcel(): void {
-    this.categoryService.exportExcel().subscribe({
+  // ── Export (Async Job — đồng bộ 100% với TransactionLog) ───────────────────
+  onClickExport(): void {
+    if (this.searchForm.invalid) {
+      this.notificationService.warning('Dữ liệu bộ lọc không hợp lệ. Vui lòng kiểm tra lại.');
+      return;
+    }
+
+    const total = this.totalElements();
+    if (total === 0) {
+      this.notificationService.warning('Không có bản ghi nào phù hợp với bộ lọc hiện tại để xuất.');
+      return;
+    }
+
+    if (this.isExporting()) {
+      this.notificationService.warning('Bạn đã có một tiến trình xuất file đang chạy. Vui lòng chờ hoàn thành.');
+      return;
+    }
+
+    const raw = this.searchForm.value;
+    const filters = this.buildCategoryFilters();
+
+    const hasFilter = !!(filters.paramType || filters.paramValue || filters.paramName ||
+      (Array.isArray(raw.status) && raw.status.length) ||
+      (Array.isArray(raw.isActive) && raw.isActive.length));
+    
+    const formattedTotal = total.toLocaleString('vi-VN');
+    if (hasFilter) {
+      this.confirmDialogMsg.set(`Bạn có chắc chắn muốn xuất ${formattedTotal} bản ghi danh mục theo bộ lọc hiện tại sang file XLSX?`);
+    } else {
+      this.confirmDialogMsg.set(`Bạn có chắc chắn muốn xuất tất cả ${formattedTotal} bản ghi danh mục sang file XLSX?`);
+    }
+    this.showConfirmDialog.set(true);
+  }
+
+  onConfirmExport(): void {
+    this.showConfirmDialog.set(false);
+    this.exportError.set(null);
+    const raw = this.searchForm.value;
+    const filters = this.buildCategoryFilters();
+
+    this.categoryService.createExportJob({
+      paramType:  filters.paramType  || undefined,
+      paramValue: filters.paramValue || undefined,
+      paramName:  filters.paramName  || undefined,
+      status:   Array.isArray(raw.status)   && raw.status.length   ? raw.status   : undefined,
+      isActive: Array.isArray(raw.isActive) && raw.isActive.length ? raw.isActive : undefined,
+      sortBy: this.sortField(),
+      sortDirection: this.sortDirection()
+    }).subscribe({
       next: (res) => {
-        const data = (res.data || []) as unknown as GroupCategoryResponse[];
-        if (data.length === 0) {
-          this.notificationService.warning(this.languageService.labels().messages?.warning?.noDataToExport || 'Không có dữ liệu để xuất!');
-          return;
-        }
-        exportToCsv(
-          data,
-          ['ID', 'Danh mục theo nhóm', 'Giá trị thành phần', 'Tên thành phần', 'Mô tả', 'Trạng thái duyệt', 'Hoạt động', 'Ngày hiệu lực'],
-          (row) => [
-            row.id, row.paramType, row.paramValue, row.paramName, row.description || '',
-            row.status === this.ParamStatus.APPROVED ? 'Đã duyệt' : 'Chưa duyệt',
-            row.isActive === this.ActiveStatus.ACTIVE ? 'Hoạt động' : 'Không hoạt động',
-            row.effectiveDate
-          ],
-          'Danh_muc_theo_nhom'
-        );
+        this.activeExportJob.set(res.data);
+        this.notificationService.info('Yêu cầu xuất file đã được tiếp nhận. Đang xử lý...');
+        const jobId = res.data?.jobId;
+        if (jobId) this.pollExportUntilDone(jobId);
       },
       error: (err: HttpErrorResponse) => {
-        const prefix = this.languageService.labels().messages?.errorPrefix?.exportExcel || 'Lỗi xuất dữ liệu: ';
-        this.notificationService.error(prefix + (err.error?.message || err.message));
+        if (err.status === 409) {
+          this.notificationService.warning('Bạn đã có một tiến trình xuất file đang chạy. Vui lòng chờ hoàn thành.');
+        } else {
+          const msg = err.error?.message || err.message;
+          this.exportError.set(msg);
+          this.notificationService.error('Lỗi tạo yêu cầu xuất file: ' + msg);
+        }
       }
     });
+  }
+
+  onCancelExport(): void {
+    this.showConfirmDialog.set(false);
+  }
+
+  onDownload(job: ExportJobResponse): void {
+    this.categoryService.getDownloadUrl(job.jobId).subscribe({
+      next: (res) => {
+        let url = res.data;
+        if (url && url.startsWith('/')) {
+          url = environment.apiBase + url;
+        }
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', job.fileName || `category_export_${job.jobId}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.notificationService.error('Lỗi tải file: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  isExpired(job: ExportJobResponse): boolean {
+    if (!job.expiresAt) return false;
+    return new Date(job.expiresAt) < new Date();
+  }
+
+  /** Polling cho đến khi job DONE hoặc FAILED */
+  private pollExportUntilDone(jobId: number): void {
+    const interval = setInterval(() => {
+      this.categoryService.getActiveJob().subscribe({
+        next: (res) => {
+          const job = res.data;
+          this.activeExportJob.set(job);
+          if (!job || job.jobId !== jobId || job.status === 'DONE' || job.status === 'SUCCESS' || job.status === 'COMPLETED' || job.status === 'FAILED') {
+            clearInterval(interval);
+            if (!job || (job && (job.status === 'DONE' || job.status === 'SUCCESS' || job.status === 'COMPLETED'))) {
+              this.notificationService.success('Xuất file hoàn tất!');
+            } else if (job && job.status === 'FAILED') {
+              this.notificationService.error('Xuất file thất bại: ' + (job.errorMessage || 'Lỗi không xác định'));
+            }
+          }
+        },
+        error: () => clearInterval(interval)
+      });
+    }, 3000);
   }
 }

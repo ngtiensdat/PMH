@@ -81,6 +81,13 @@ export abstract class BaseListComponent<T extends SelectableRecord, K extends st
   readonly sortDirection = signal('desc');
   readonly isLoading     = signal(false);
 
+  /**
+   * Trường sort mặc định khi user click lần 3 vào cùng một cột (reset về default).
+   * Mỗi subclass ghi đè giá trị này khớp với field tồn tại trên entity của module đó.
+   * Ví dụ: 'updatedDate' cho Category, 'createdAt' cho TransactionLog.
+   */
+  protected readonly defaultSortField: string = 'updatedDate';
+
   // ── Column state ───────────────────────────────────────────────────────────
   abstract columns: TableColumnDef[];
   draggedColumnIndex: number | null = null;
@@ -156,10 +163,10 @@ export abstract class BaseListComponent<T extends SelectableRecord, K extends st
     this.dragOverColumnIndex = null;
   }
 
-  // ── Sort ───────────────────────────────────────────────────────────────────
+  // ── Sort ──────────────────────────────────────────────────────────────
   toggleSort(colId: string): void {
     if (this.isResizing || this.justResized || colId === 'checkbox' || colId === 'stt' || colId === 'actions') return;
-    const res = computeNextSort(this.sortField(), this.sortDirection(), colId);
+    const res = computeNextSort(this.sortField(), this.sortDirection(), colId, this.defaultSortField);
     this.sortField.set(res.sortField);
     this.sortDirection.set(res.sortDirection);
     this.page.set(0);
